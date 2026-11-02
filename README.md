@@ -83,7 +83,7 @@ Después entra a **Configuración** y coloca los datos de tu empresa (salen en l
    from app import app as application
    ```
 
-5. Configura los archivos estáticos y recarga la aplicación desde el panel de PythonAnywhere. El repositorio no incluye las bases de datos, imágenes subidas ni archivos locales; tras el primer despliegue, restaura o importa tus datos por un procedimiento separado y seguro.
+5. Configura los archivos estáticos y recarga la aplicación desde el panel de PythonAnywhere. El repositorio incluye el catálogo `productos_nuevos.json` y las imágenes de `static/uploads/productos/`; las imágenes nuevas que agregues a esa carpeta se versionan. Las bases de datos, respaldos, otros archivos subidos y datos de clientes/ventas quedan fuera del repositorio y deben restaurarse o importarse por un procedimiento separado y seguro.
 
 No ejecutes `init-db --demo` en producción. Si importas una base que ya tiene administrador, `INITIAL_ADMIN_PASSWORD` no cambia las credenciales de las cuentas existentes.
 

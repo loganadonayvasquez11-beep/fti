@@ -15,9 +15,9 @@
 /instance/
 /backups/
 
-# User-uploaded and local business data
-/static/uploads/
-/productos_nuevos.json
+# Product catalog assets are versioned; other uploads remain local
+/static/uploads/*
+!/static/uploads/productos/
 
 # Python and editor artifacts
 __pycache__/

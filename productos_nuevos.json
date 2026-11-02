@@ -1,0 +1,2322 @@
+[
+ {
+  "codigo": "1056",
+  "nombre": "T5 blanco frío",
+  "unidad": "50 und",
+  "precio_mayor_usd": 20.0,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/c160a9573739438c9e7a268ac5018b9e.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1057",
+  "nombre": "T5 blanco cálido (blanco amarillento)",
+  "unidad": "50 und",
+  "precio_mayor_usd": 20.0,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/d84c783e0dda43408b84191ccb2219c5.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1058",
+  "nombre": "T5 rojo",
+  "unidad": "50 und",
+  "precio_mayor_usd": 20.0,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/55b47212be534b9da1e26647d69cf768.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1059",
+  "nombre": "T5 azul",
+  "unidad": "50 und",
+  "precio_mayor_usd": 20.0,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/91d3e9a3ea414d7b803917b151aef47a.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1060",
+  "nombre": "T10 mini azul 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 1.32,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/b43d1f1a46614f7caec8c34d88868577.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1061",
+  "nombre": "T10 mini rojo 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 1.32,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/e770930f000448ce91d13b4d355c2c91.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1062",
+  "nombre": "T10 mini amarillo 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 1.32,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/a72236cb98ba4fd7aabc0956a14342a7.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1063",
+  "nombre": "T10 mini fucsia 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 1.32,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/d7b842e3b2694ea284364aeaa6b20cde.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1064",
+  "nombre": "T10 estrobo blanco 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/1d104433c092470fac76eab2ea730a0e.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1065",
+  "nombre": "T10 estrobo amarillo 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/81f4842dcbc44ca08bdec3c07fa58355.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1066",
+  "nombre": "T10 estrobo policial (azul y rojo) 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/e69a1e71fade477592a409b14d7dd219.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1067",
+  "nombre": "T10 estrobo azul 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/43cf7b1460d7474bb8a5af15d30b0d88.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1068",
+  "nombre": "T10 estrobo roja 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/de3e6b63bf344586825e477fdcb8b0de.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1069",
+  "nombre": "T10 estrobo fucsia 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/5f98b66eb349444fba4305eec724bfc5.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1070",
+  "nombre": "T10 fija blanco 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/2ab2e80d414f4cc1908169e06490b55d.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1071",
+  "nombre": "T10 fija amarilla 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/3a6a0043ed9b47789c5b9bebb990a182.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1072",
+  "nombre": "T10 fija azul 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/b311c8608d41471487268665ae606b19.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1073",
+  "nombre": "T10 fija azul claro 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/3d1e0af489fe4d91b3db45729e6346e5.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1074",
+  "nombre": "T10 fija verde 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/554eb64c3bc54acb96eff33c89bb4114.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1075",
+  "nombre": "T10 fija fucsia 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/d3b90741883a44dfa97ab31e9fbcee96.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1076",
+  "nombre": "T10 fija roja 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/2caa8caac32d409e8c73481851504a81.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1077",
+  "nombre": "T10 secuencial fucsia 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/5f2eb50c714948f29906e5c92c2e45f8.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1078",
+  "nombre": "T10 secuencial roja 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/bc9ba9c942b94497b692ec9fd5b7862e.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1079",
+  "nombre": "T10 secuencial azul 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/e84eb149ac5e42e68172359718eaa31a.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1080",
+  "nombre": "T10 secuencial blanca 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/982c6debfbd34c56a99ce083b2b5218d.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1081",
+  "nombre": "T10 secuencial rgb (azul,rojo y verde) 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/6c5188ddad4246d4968e53a5c8369cfc.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1082",
+  "nombre": "T10 secuencial amarillo 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 2.2,
+  "categoria": "Bombillos",
+  "imagen": "uploads/productos/dacb6d177ce64c2c8f768dce840831d7.jpeg",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1083",
+  "nombre": "Luz led s2 12.000 lumen h4 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/c80d2df7dd0f410bb194e413537245e9.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1084",
+  "nombre": "Luz led s2 12.000 lumen h1 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/b32f5723f42b4068b9bbb41f3c443380.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1085",
+  "nombre": "Luz led s2 12.000 lumen h3 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/8c466bd3f0544716b20497a993c53fe2.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1086",
+  "nombre": "Luz led s2 12.000 lumen h7 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/cf285a3e87804c2ebf0eb13366e2bad1.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1087",
+  "nombre": "Luz led s2 12.000 lumen h11 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/8638dd910cce4a35b38fff89cb78272b.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1088",
+  "nombre": "Luz led s2 12.000 lumen h13 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/7b810867b5b04483bc903d03ebfbe9e2.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1089",
+  "nombre": "Luz led s2 12.000 lumen 880 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/de0951fd8fdb49e691d5a8261841c156.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1090",
+  "nombre": "Luz led s2 12.000 lumen 9005 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/e5e3bef09a1648ef9a63869b1f0c636e.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1091",
+  "nombre": "Luz led s2 12.000 lumen 9006 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/9360ea8881264ebb907396239b0b0a72.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1092",
+  "nombre": "Luz led s2 12.000 lumen 9007 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/ebf3bd937e67443a95ff211475a5035c.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1093",
+  "nombre": "Luz led v13 22.000 lumen h412-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/4882ee6a006047b789652c28a79898a9.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1094",
+  "nombre": "Luz led v13 22.000 lumen h1 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/6d18c2095a34407ca57e2362c4eb90f8.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1095",
+  "nombre": "Luz led v13 22.000 lumen h3 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/c7dfcb0308024ded88140ae6d93d3979.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1096",
+  "nombre": "Luz led v13 22.000 lumen h7 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/420a78329e724c11b1058a265edb63c9.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1097",
+  "nombre": "Luz led v13 22.000 lumen h11 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/02efee2db72844749ab716aa8b7c7a41.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1098",
+  "nombre": "Luz led v13 22.000 lumen h13 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/b0ce69759e4b4b6abf67a378879c1773.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1099",
+  "nombre": "Luz led v13 22.000 lumen 880 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/28d3ec3caf8c47e5abb46674b5c856c1.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1100",
+  "nombre": "Luz led v13 22.000 lumen 9005 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/740b9bc1800f41f5b1145bc636525f6c.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1101",
+  "nombre": "Luz led v13 22.000 lumen 9006 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/b0dd8def656548dfb3b7a3d9ecb4f395.png",
+  "agotado": false,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1102",
+  "nombre": "Luz led v13 22.000 lumen 9007 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 23.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/80acb1d10d7c48dbaf00c29df4128d4c.png",
+  "agotado": true,
+  "pdf_pagina": 5
+ },
+ {
+  "codigo": "1103",
+  "nombre": "Luz led v45 32.000 lumen h4 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/b2c01c4924384c9f83cc647b3d4dda45.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1104",
+  "nombre": "Luz led v45 32.000 lumen h1 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/9c6dbfd6a52c46dbb336252f25706aba.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1105",
+  "nombre": "Luz led v45 32.000 lumen h3 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/ed1bdaa1927f4e2a910fefc28d5cf255.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1106",
+  "nombre": "Luz led v45 32.000 lumen h7 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/7f27f395519a482e857f702e9868ff7a.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1107",
+  "nombre": "Luz led v45 32.000 lumen h11 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/1419ea027b344caa96b7e67639574452.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2059",
+  "nombre": "Luz led v45 32.000 lumen h13 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/5492ef07062c46278a6ebd6c8f96cc67.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1108",
+  "nombre": "Luz led v45 32.000 lumen 9005 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/646412be26ee4d9780c080b87cd2e81f.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1109",
+  "nombre": "Luz led v45 32.000 lumen 9006 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/06550311195b4c2b9a15980f640111cc.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2060",
+  "nombre": "Luz led v45 32.000 lumen 9007 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/32127da8d6194934931cb5a80ca80fa7.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1110",
+  "nombre": "Luz led v60 38.000 lumen h4 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/5aa4d77319a44a339f1e60e20e9db96a.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1111",
+  "nombre": "Luz led v60 38.000 lumen h1 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/914a6bfb9c5a4bacb234c3c3440759ab.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1112",
+  "nombre": "Luz led v60 38.000 lumen h3 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/d5c249abb11e4cad8e40719cb1beffb9.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1113",
+  "nombre": "Luz led v60 38.000 lumen h7 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/f2cb32a337e14b89a67664c65366430a.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1114",
+  "nombre": "Luz led v60 38.000 lumen h11 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/2d4730f6897f4565858608199cd3c47f.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2061",
+  "nombre": "Luz led v60 38.000 lumen h13 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/8a9fccb5c5f04f3c9fd9b44d9a88cfc5.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1115",
+  "nombre": "Luz led v60 38.000 lumen 9005 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/aa199946de204d9884dd071991ae7b21.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1116",
+  "nombre": "Luz led v60 38.000 lumen 9006 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/50392550397040dbb5310012ac1c7005.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2062",
+  "nombre": "Luz led v60 38.000 lumen 9007 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 38.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/a6f98416f9314dfabd8b1de501052c7f.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1117",
+  "nombre": "Luz led v90 42.000 lumen h4 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/b712d8620e5b4011a1d030b4a1662aa0.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1118",
+  "nombre": "Luz led v90 42.000 lumen h1 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/e474711a83134801ac2cb46566896cf9.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1119",
+  "nombre": "Luz led v90 42.000 lumen h3 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/df202e29b39f4432b1a1514c589e9fd0.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1120",
+  "nombre": "Luz led v90 42.000 lumen h7 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/542434ea293c4fc8a5243ce69ca58b83.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1121",
+  "nombre": "Luz led v90 42.000 lumen h11 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/028bdbd9c1614af193583c3117ddf65f.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2063",
+  "nombre": "Luz led v90 42.000 lumen h13 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/880f6e2c02e4423992f40c6e561a066b.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1122",
+  "nombre": "Luz led v90 42.000 lumen 9005 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/3de0e4d7b36c4018acf3db26b0df520c.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1123",
+  "nombre": "Luz led v90 42.000 lumen 9006 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/a941c8a785c94a3a8949f7e90ef68cce.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2064",
+  "nombre": "Luz led v90 42.000 lumen 9007 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 47.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/fb055e803d1b44e3862d6ba9cc12edda.png",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1124",
+  "nombre": "Luz led Y50C 50.000 lumen H4 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/280b6055a1d54e11bcd4f7fc3223d311.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1125",
+  "nombre": "Luz led Y50C 50.000 lumen H1 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/84ee28c0ffdf4eaab88f89d60c7d12ee.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1126",
+  "nombre": "Luz led Y50C 50.000 lumen H3 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/b547b57be69249e58f285cce7bb8cd37.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1127",
+  "nombre": "Luz led Y50C 50.000 lumen H7 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/c137f4dabee94ff2afaf6b89fbb20cc8.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1128",
+  "nombre": "Luz led Y50C 50.000 lumen H11 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/10b6fd0bf03b48aea346ccedb61bed8f.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1129",
+  "nombre": "Luz led Y50C 50.000 lumen 9005 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/0d1760e75f704c09ad2cc3d3b9094472.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1130",
+  "nombre": "Luz led Y50C 50.000 lumen 9006 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/a1f7f592d5f24386965206a3c2e089fe.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1131",
+  "nombre": "Luz led Y50C 50.000 lumen 9007 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/acb0e189f93042d1a8ee16c901d2daa5.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1132",
+  "nombre": "Luz led Y50C 50.000 lumen h13 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 53.0,
+  "categoria": "Kits de luz LED",
+  "imagen": "uploads/productos/33bd868708404c818f3ac9fb3735b967.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2088",
+  "nombre": "Cintas Cob 12V Rojo 5 Metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 8.5,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/e1de385b1f934200b9507563c4530966.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2089",
+  "nombre": "Cintas Cob 12V Blanco frio 5 Metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 8.5,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/834ce1b827a644078f2275e6f847a22f.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2090",
+  "nombre": "Cintas Cob 12V Morado 5 Metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 8.5,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/b325b7c0f29f4130bc19a193934aa996.jpeg",
+  "agotado": true,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2091",
+  "nombre": "Cintas Cob 12V Fucsia 5 Metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 8.5,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/696e2f00e361429fb6e16cbb72e65d0b.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2092",
+  "nombre": "Cintas Cob 12V Verde 5 Metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 8.5,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/09580d21cb654f8b80e18e4bffa64d67.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2093",
+  "nombre": "Cintas Cob 12V Azul 5 Metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 8.5,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/613689a445da48b48f41bc1eac332e11.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2094",
+  "nombre": "Cintas Cob 12V Amarillo 5 Metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 8.5,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/38b52d32b9594c9a97b1bb562d0fd605.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "2095",
+  "nombre": "Cintas Cob 12V Blanco Calido 5 Metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 8.5,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/438aa5abe2234ae28637ec4491b765a0.jpeg",
+  "agotado": false,
+  "pdf_pagina": 6
+ },
+ {
+  "codigo": "1133",
+  "nombre": "Neon flex rojo 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/404188681c6c4e869d3bb7da63d77812.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1134",
+  "nombre": "Neon flex blanco frio 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/e2317794657f408aa45acaeacb427287.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1135",
+  "nombre": "Neon flex morado 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/81912e66f3504179a054d76b6b9e16e6.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1136",
+  "nombre": "Neon flex Fucsia 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/cd83afdc81d54474938a211821c58682.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1137",
+  "nombre": "Neon flex verde 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/eae1a4858e6541f8b919f1e56d0a845a.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1138",
+  "nombre": "Neon flex azul 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/6e1eca9da16a4cf6856e9c4ce708b810.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1139",
+  "nombre": "Neon flex amarillo 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/8b5ac4dbcea94be4bd1a7ec598f44463.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1140",
+  "nombre": "Neon flex azul claro 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/f348aa621b9146ac9e42a514981d59a4.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1141",
+  "nombre": "Neon flex blanco calido 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/cee63a31dc504f29bdee5686bb8a0b75.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1142",
+  "nombre": "Neon flex naranja 12v 5 metros",
+  "unidad": "5 Mts",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Módulos y cintas",
+  "imagen": "uploads/productos/af8667d5a6fa4f30addcb57825528d56.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1143",
+  "nombre": "Faro led 4” 12-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 5.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/8383baa9949f4a3e9d5566cc03b4cd8d.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1144",
+  "nombre": "Faro led 7” 12-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 9.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/3bcc2a7fbd80471983931c5003973dfa.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1145",
+  "nombre": "Faro led zs-2 alta y baja 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 13.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/6fe68da2dcf9459bae14cef89e9af8de.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "2102",
+  "nombre": "Faro led Cuadrado 16 Lupas 24V (Multivoltaje)",
+  "unidad": "und",
+  "precio_mayor_usd": 12.8,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/d560833a1ceb4ac2aaf11f7d08aa84c6.png",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "2030",
+  "nombre": "Faro led redondo 4\" 14 lupas 12v-24V Multivoltaje",
+  "unidad": "und",
+  "precio_mayor_usd": 11.8,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/203099b00951421185a6344506290420.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1146",
+  "nombre": "Faro antiniebla 3.5\" con ojo de angel Blanco 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/f60df93fdbe54d319a5242c7fd484eb1.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1147",
+  "nombre": "Faro antiniebla 3.5\" con ojo de angel Azul 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/6353e70198094eafa6c479709440538b.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1148",
+  "nombre": "Faro antiniebla 3.5\" con ojo de angel Rojo 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/a335a4cd263b44bdbb78f4484f6f9ff0.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1149",
+  "nombre": "Faro antiniebla 3.5\" con ojo de angel Amarillo 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/b793ba5b38024773951315cf474c92e2.jpeg",
+  "agotado": false,
+  "pdf_pagina": 7
+ },
+ {
+  "codigo": "1150",
+  "nombre": "Faro antiniebla 3.5\" 3 lupas multivoltaje 12v - 24v",
+  "unidad": "par",
+  "precio_mayor_usd": 22.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/d9926ff55de94f8494b385aa637a0ef7.jpeg",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "1151",
+  "nombre": "Faro led 7\" slim dual color (blanco amarillo) 12- 24v",
+  "unidad": "und",
+  "precio_mayor_usd": 6.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/d8a15313a5df45cb8e213fdf8fbeaa96.png",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "1152",
+  "nombre": "Faro led mini lupa estrobo 2 cables blanco y amarillo 12v-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 3.3,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/ebbbf6651ed64fac8d93dba98a29cb28.jpeg",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "2014",
+  "nombre": "Faro led mini lupa fijo 3 cables blanco y amarillo 12v-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 3.3,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/89b04722600144ec9a95448966a2fc51.jpeg",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "1153",
+  "nombre": "Faro led YSM-2D 4 colores de luces, 12 funciones multivoltaje 12v-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 6.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/5507e97a624645d19073435fc87927d7.jpeg",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "2015",
+  "nombre": "Faro led 3 Lupas Policial con luz blanca y amarilla, 12 funciones Multivoltaje 12v-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/38feb15a241c48b1bcd8e33b31f9dee8.png",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "2034",
+  "nombre": "Faro Led Cudarado 5\" H4 Alta y Baja 3 Lupas (Multivoltaje) 12v-24V",
+  "unidad": "und",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/2389414e12614f7f9214a1c3e1ee9951.png",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "2101",
+  "nombre": "Faro Led Cuadrado 5\" H4 Alta y Baja 15 Lupas (Multivoltaje) 12v-24V",
+  "unidad": "und",
+  "precio_mayor_usd": 12.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/6ea8ec05f7b74850a3e51dc4459b9ac4.png",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "1154",
+  "nombre": "Faro led cuadrado 7\" H4 alta y baja 13 Lupas multivoltaje 12v-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 22.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/8a109990670c416fbe7193784bdc6f90.png",
+  "agotado": false,
+  "pdf_pagina": 8
+ },
+ {
+  "codigo": "1155",
+  "nombre": "Faro led redondo 7\" H4 ojo de angel alta y baja 4 lupas multivoltaje 12v-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 19.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/b8c3809ad92145879b0c6287099617d5.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1156",
+  "nombre": "Faro led redondo 7\" H4 alta y baja ojo de angel 15 lupas multivoltaje 12v-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 22.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/5680d27abe0e4faaae6ce71989fa935b.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1157",
+  "nombre": "Luces para parrilla tipo TRD 12V",
+  "unidad": "set",
+  "precio_mayor_usd": 9.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/62c666d149514bb086a2d65f51258bb2.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1158",
+  "nombre": "Luces para parrilla tipo tacoma 12V",
+  "unidad": "set",
+  "precio_mayor_usd": 9.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/f6b360d5339145358812ea2e11c88ca4.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1159",
+  "nombre": "Luces para parrilla universales 12V",
+  "unidad": "set",
+  "precio_mayor_usd": 9.5,
+  "categoria": "Faros",
+  "imagen": "uploads/productos/ccf843c51f114c71a4eedb517b8e66b4.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1160",
+  "nombre": "Filtro de gasolina universal",
+  "unidad": "und",
+  "precio_mayor_usd": 5.5,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/bca5b6afc394486f81f5643f579d36df.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1161",
+  "nombre": "Relay 5 pines 80 amp 12v Doble platino",
+  "unidad": "10 und",
+  "precio_mayor_usd": 10.5,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/c939809ed31a47489a954c8002aded4e.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1162",
+  "nombre": "Relay 5 pines 100 amp 12v Doble platino",
+  "unidad": "10 und",
+  "precio_mayor_usd": 11.5,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/3d1f799bfc194bb39fd4173e430d807b.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1163",
+  "nombre": "Relay 5 pines 150/200 amp 12v Doble platino",
+  "unidad": "10 und",
+  "precio_mayor_usd": 12.5,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/df31759e78d7427e91cf830b567f01e1.jpeg",
+  "agotado": false,
+  "pdf_pagina": 9
+ },
+ {
+  "codigo": "1164",
+  "nombre": "Transformador 110V - 12V 1 Amp.",
+  "unidad": "und",
+  "precio_mayor_usd": 3.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/f8e65b5814ad43668c26edb7874aeb02.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1165",
+  "nombre": "Transformador 110V - 12V 2 Amp.",
+  "unidad": "und",
+  "precio_mayor_usd": 4.2,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/445532f9d788456cacbf46159bbb25c9.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "2013",
+  "nombre": "Transformador 110V - 12V 3 Amp.",
+  "unidad": "und",
+  "precio_mayor_usd": 6.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/2cb288a5dd4e4e20bec0c2d0a1efbf06.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1166",
+  "nombre": "Stop 4´´ Rojo ojo de angel 5 cables (4 funciones) multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 15.99,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/6952238f413c409bbdb0834743cc49bf.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1167",
+  "nombre": "Stop 4´´ Amarillo ojo de angel 5 cables (4 funciones) multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 15.99,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/920ae328005941d095611a583bd201a3.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1168",
+  "nombre": "Stop 4´´ Blanco ojo de angel 5 cables (4 funciones) multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 15.99,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/a3c23442d1534e97b15d5cdfe57c2f82.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1169",
+  "nombre": "Stop Triple Con Base 19 Leds Redondo El Par Universal 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 40.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/31d32489e70f40adac9e63eb79cf0bd8.png",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1170",
+  "nombre": "Stop 4´´ Rojo 3 cables multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/8aa89bfb37154f4c95e86958a9aba5a5.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1171",
+  "nombre": "Stop 4´´ Amarillo 3 cables multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/c8bbbc6572794f748704e17917db5378.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1172",
+  "nombre": "Stop 4´´ Blanco 3 cables multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/b4d2fcfdc4074e6f9999f40c0c4a58d2.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "2001",
+  "nombre": "Stop 4´´ Amarillo 2 cables multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 10.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/6edd943fe0a2403a8c0074174c576b68.png",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "2002",
+  "nombre": "Stop 4´´ Blanco 2 cables multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 10.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/7ddedd034bd146a18056f730f757b9bf.png",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "1173",
+  "nombre": "Stop cuadrado 16 led Fijo + Estrobo y Secuencial 4 cables multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 19.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/3b1f9e2fa6cd4af8adedbbf9624681e5.png",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "2096",
+  "nombre": "Stop cuadrado tipo renegado 5 funciones multivoltaje 12v-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 27.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/1cc17f5dcff74a7b8f0c9eb197418766.png",
+  "agotado": true,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "2066",
+  "nombre": "Stop Led Rectangular De 5 Funciones Con Luz fija y Estrobo sencuencial.",
+  "unidad": "par",
+  "precio_mayor_usd": 29.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/a7f8acb2b550466f9e1cf3ecf8a30d7e.jpeg",
+  "agotado": false,
+  "pdf_pagina": 10
+ },
+ {
+  "codigo": "2067",
+  "nombre": "Stop triple con base cuadrado. 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 19.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/89717958716547aea8cec8e4f9a0b89d.png",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2085",
+  "nombre": "Tercer Stop Rojo Luz estrobo y secuencial 12/24v",
+  "unidad": "1 und",
+  "precio_mayor_usd": 8.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/1947cb4ea35842a69891d02aa35fe903.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2086",
+  "nombre": "Tercer Stop Ahumado (luz roja y blanca) estrobo y secuencial 12/24v",
+  "unidad": "1 und",
+  "precio_mayor_usd": 8.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/46095076e23540bba5c20069d1721336.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2068",
+  "nombre": "Tercer Stop Multicolor Ahumado RGB Estrobo y Secuencial 12/24v",
+  "unidad": "par",
+  "precio_mayor_usd": 14.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/cde6da71f1e849db9d20400d91292311.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2069",
+  "nombre": "Luz Direccional Izquierda Tipo Chupeta Pequeña Cuadrada 3\" Con Visera 4 Funciones, Luz Fija y Estrobo. 12-24v",
+  "unidad": "1 und",
+  "precio_mayor_usd": 13.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/498ebd45ba5446faad35c96f9fdeaea3.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2070",
+  "nombre": "Luz Direccional Derecha Tipo Chupeta Pequeña Cuadrada 3\" Con Visera 4 Funciones, Luz Fija y Estrobo. 12-24v",
+  "unidad": "1 und",
+  "precio_mayor_usd": 13.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/af5328f106a5403dbb8cafc81665ec93.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2103",
+  "nombre": "Luz Direccional Izquierda y Derecha Grande Cudarada Fijo y Estrobo 12v-24V / 115mm an x 158mm AL x112mn p(Multivoltaje)",
+  "unidad": "par",
+  "precio_mayor_usd": 32.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/a9b179c8ecde4b01b396622611c3c2ca.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2071",
+  "nombre": "Semaforo Direccional Tipo Chupeta 3\" Redonda Pequeña Funcion Luz Fija y Estrobo. 12-24v",
+  "unidad": "1 und",
+  "precio_mayor_usd": 12.99,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/ad74ec0c939a49909769a769f2badc59.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2097",
+  "nombre": "Luz Direccional Lateral Inclinada Tipo Chupeta Multivoltaje 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/ccd7ec35433e482d9144be2f39cfd627.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2072",
+  "nombre": "Luz Direccional Rojo Fija y secuencial. 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/55d8ade5504d4d519a2cd59f7d8f06ec.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2073",
+  "nombre": "Luz Direccional amarillo Fija y secuencial. 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/4fb5bc471a334838acf9948431a78841.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2074",
+  "nombre": "Luz Direccional Blanco Fija y secuencial. 12-24v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/eeb4065e674140a099c2749a94c1a297.jpeg",
+  "agotado": false,
+  "pdf_pagina": 11
+ },
+ {
+  "codigo": "2105",
+  "nombre": "Luz Led Watermelon Rojo Fijo y Estrobo 12v-24V (Multivoltaje)",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/acb962bafbed41a6b4c8f99e2887ca03.png",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2106",
+  "nombre": "Luz Led Watermelon Amarillo Fijo y Estrobo 12v- 24V (Multivoltaje)",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/0c03dd71532c4600a909ab984791a0d3.png",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2107",
+  "nombre": "Luz Led Watermelon Blanco Fijo y Estrobo 12v- 24V (Multivoltaje)",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/a7148330c78c4b1081bbffb81b72480a.png",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2108",
+  "nombre": "Luz Led Watermelon Azul Fijo y Estrobo 12v-24V (Multivoltaje)",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/c92118fba086457fa9f5db54379b2572.png",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2109",
+  "nombre": "Luz Led Watermelon Verde Fijo y Estrobo 12v-24V (Multivoltaje)",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/365ef90d543942659fa89ece77bc130a.png",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2114",
+  "nombre": "Luz direccional Semaforo T/Cocosette 12-24V multivoltaje 17,5x6x5 cm",
+  "unidad": "1 und",
+  "precio_mayor_usd": 16.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/845a13a570c04625beabbb33ac078252.png",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2075",
+  "nombre": "Stop ovalado con ojo de angel luz fija y Estrobo 5 cables cromada Rojo Multivoltaje 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/f2a542f7bf3e478182d3a63d1a7a1bb7.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2076",
+  "nombre": "Stop ovalado con ojo de angel Luz Fija y Estrobo 5 cables cromada Amarillo 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/924b6cdd7b0344ffadd90ff1382f837b.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2077",
+  "nombre": "Stop ovalado con ojo de angelLuz fija y Estrobo 5 cables cromada Blanco 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 16.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/40c40e146c894d6ca3df246765bb8a98.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2078",
+  "nombre": "Stop ovalado de flechas secuencial Base cromada. Direccional tres cable Rojo 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 14.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/48ccb3e64c3f4455b47df33766b09f9e.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2079",
+  "nombre": "Stop ovalado de flechas secuencial Base cromada. Direccional tres cable Amarillo 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 14.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/0b45fcbc6cdf4fb79e57a481c0ca5c46.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2080",
+  "nombre": "Stop ovalado de flechas secuencial Base cromada. Direccional tres cable Blanco 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 14.5,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/2ae345d6aa8e4f51b6d7cd24c12d7dcd.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "1174",
+  "nombre": "Luz lateral ojo de angel 12-24V 6,3´´ roja",
+  "unidad": "8 und",
+  "precio_mayor_usd": 36.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/ee76181efc7842e394e8eb9e6901f241.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "1175",
+  "nombre": "Luz lateral ojo de angel 12-24V 6,3´´ amarilla",
+  "unidad": "8 und",
+  "precio_mayor_usd": 36.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/bd5ce9a03eca452e870c6dd761bfbe62.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "1176",
+  "nombre": "Luz lateral ojo de angel 12-24V 6,3´´ blanca",
+  "unidad": "8 und",
+  "precio_mayor_usd": 36.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/8819e2b5ca4948f1bcb599ac0d85b077.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2032",
+  "nombre": "Luz lateral ojo de angel 12-24V 6,3´´ azul",
+  "unidad": "8 und",
+  "precio_mayor_usd": 36.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/4bb2d6bd7e954ced84f97f7f5f8fa0b6.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2033",
+  "nombre": "Luz lateral ojo de angel 12-24V 6,3´´ verde",
+  "unidad": "8 und",
+  "precio_mayor_usd": 35.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/68a136bf12b94d329b728ac71964e9ad.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2098",
+  "nombre": "Luz Led Lateral Roja 3 cables Fijo + Estrobo 12v- 24V 6,4´´- 162mm (Multivoltaje)",
+  "unidad": "10 und",
+  "precio_mayor_usd": 30.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/a4e2bc2977df418fbba21335c17e18c1.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2099",
+  "nombre": "Luz Led Lateral Amarillo 3 cables Fijo + Estrobo 12v-24V 6,4´´- 162mm (Multivoltaje)",
+  "unidad": "10 und",
+  "precio_mayor_usd": 30.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/54ea13709acd4b1e8cf8ca7be49fbd86.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2100",
+  "nombre": "Luz Led Lateral Blanco 3 cables Fijo + Estrobo 12v- 24V 6,4´´- 162mm (Multivoltaje)",
+  "unidad": "10 und",
+  "precio_mayor_usd": 30.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/99a9bbb2ade940fdbb376d2e91a71df2.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2081",
+  "nombre": "Mica de Techo 12V Roja (carcasa Ahumada)",
+  "unidad": "5 und",
+  "precio_mayor_usd": 21.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/c185240311234c218cb0e1510a7605b9.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2082",
+  "nombre": "Mica de Techo 12V Amarilla (Carcasa Amarilla)",
+  "unidad": "5 und",
+  "precio_mayor_usd": 21.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/09898a75f67c445faddf8f439f1cdcd9.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2083",
+  "nombre": "Mica de Techo 12V Blanca (carcasa Ahumada)",
+  "unidad": "5 und",
+  "precio_mayor_usd": 21.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/cec7d2fc2ff1490a9aada7587d3ae7ff.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "2084",
+  "nombre": "Mica de Techo 12V Azul (carcasa Ahumada)",
+  "unidad": "5 und",
+  "precio_mayor_usd": 21.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/fe1fe248365b438a9baaab0506aa79a2.jpeg",
+  "agotado": false,
+  "pdf_pagina": 12
+ },
+ {
+  "codigo": "1177",
+  "nombre": "Selenoide universal 2 cables",
+  "unidad": "und",
+  "precio_mayor_usd": 2.6,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/d27cf8dadce147d08390806f11551664.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "1178",
+  "nombre": "Selenoide universal 5 cables",
+  "unidad": "und",
+  "precio_mayor_usd": 3.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/52d6be5dfec044dabbc7c851ede813f7.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "1179",
+  "nombre": "Bornes de Aluminio set de 5 pares",
+  "unidad": "set",
+  "precio_mayor_usd": 13.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/901b78484d6a46d9a21712f44bca31fc.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "1180",
+  "nombre": "Bornes de plomo set de 5 pares",
+  "unidad": "set",
+  "precio_mayor_usd": 24.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/6d375d16b4ae49ca9766eabe2ab940b6.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "1181",
+  "nombre": "Bornes de cobre set de 5 pares",
+  "unidad": "set",
+  "precio_mayor_usd": 30.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/0bfe74b9dae24fc3a78600f178f47c8b.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "1182",
+  "nombre": "Luz de techo 24 led 2 conectores 12v",
+  "unidad": "und",
+  "precio_mayor_usd": 1.2,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/6432c6e0c6c74629b552bf0474a07716.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "1183",
+  "nombre": "Luz de techo 36 led 2 conectores 12v",
+  "unidad": "und",
+  "precio_mayor_usd": 1.5,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/76431520775745c38c5fdabd5e8624e2.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "1184",
+  "nombre": "Luz de techo 48 led 2 conectores 12v",
+  "unidad": "und",
+  "precio_mayor_usd": 1.95,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/de804dd6cc2e4044af5958a69245cadd.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "2036",
+  "nombre": "Luz de interior con botón de encencido (160x60x10mm) 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 8.8,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/a5aff869efce46769cf725cccd1d059d.jpeg",
+  "agotado": false,
+  "pdf_pagina": 13
+ },
+ {
+  "codigo": "2037",
+  "nombre": "Luz de interior con botón de encencido (153x63x20mm) 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 9.68,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/b8a642d2d04740d09194aad2cfe8cb23.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "2038",
+  "nombre": "Luz de interior con botón de encencido (260x60x10mm) 12-24V",
+  "unidad": "par",
+  "precio_mayor_usd": 10.56,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/893cef3040c24c7ca61afa3ea3ec00ab.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "1185",
+  "nombre": "Aviso Taxi LED 12v Blanco",
+  "unidad": "und",
+  "precio_mayor_usd": 4.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/cedb9e5f3efd4c3a8a30e3b72f9c376f.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "1186",
+  "nombre": "Aviso Taxi LED 12v Azul",
+  "unidad": "und",
+  "precio_mayor_usd": 4.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/c8b88f8cebbe4a95a6aa8f687e68816f.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "1187",
+  "nombre": "Aviso Taxi LED 12v Rojo",
+  "unidad": "und",
+  "precio_mayor_usd": 4.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/0f4e579fca2a47098e21b06ca68e2e8d.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "1188",
+  "nombre": "Aviso Taxi LED 12v Verde",
+  "unidad": "und",
+  "precio_mayor_usd": 4.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/bec7591509374a38aeaa9660da3a88c4.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "2039",
+  "nombre": "Aviso Taxi LED 12v Amarillo",
+  "unidad": "und",
+  "precio_mayor_usd": 4.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/7ccc76f9842944ea9b5882219fc7c871.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "1189",
+  "nombre": "Cornetas Pito tipo Toyota Denso 12 v",
+  "unidad": "par",
+  "precio_mayor_usd": 9.0,
+  "categoria": "Cornetas",
+  "imagen": "uploads/productos/9a6d7215ca944ebaa94225833c0b8c64.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "1190",
+  "nombre": "Cornetas tipo caracol 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 9.5,
+  "categoria": "Cornetas",
+  "imagen": "uploads/productos/f0e33402987248b1ab0b98cbec4748d0.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "2112",
+  "nombre": "Corneta T/ Disco plateada 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 10.0,
+  "categoria": "Cornetas",
+  "imagen": "uploads/productos/b2b7cc05b6ee488195b0eae7788f3fac.png",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "2113",
+  "nombre": "Corneta Supersonante Roja 12v",
+  "unidad": "par",
+  "precio_mayor_usd": 11.5,
+  "categoria": "Cornetas",
+  "imagen": "uploads/productos/bd3ea907805648eba3e80a4fa57a6180.png",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "2031",
+  "nombre": "Corneta de trompeta doble de aire + corriente con selenoide 12-24v",
+  "unidad": "und",
+  "precio_mayor_usd": 17.16,
+  "categoria": "Cornetas",
+  "imagen": "uploads/productos/294ab0e5f02044409ec3eec19da414d7.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "1191",
+  "nombre": "Conector plastico H1 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 3.87,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/74c198757684437ebae4929547788887.jpeg",
+  "agotado": false,
+  "pdf_pagina": 14
+ },
+ {
+  "codigo": "2007",
+  "nombre": "Conector plastico H3 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 3.87,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/4d119b4fb14744c2bef2b0cfb00722c1.jpeg",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1192",
+  "nombre": "Conector plastico H4 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 4.75,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/66a45a1395634dfdbeb7d1d515c9b71f.png",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1193",
+  "nombre": "Conector ceramica H4 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 5.94,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/664184ef59ae4de3a663b1f339adbb89.jpeg",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1194",
+  "nombre": "Conector plástico H7 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 4.51,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/e326fce0530d433dbf0f736b6afd5932.jpeg",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1195",
+  "nombre": "Conector plastico H11 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 4.51,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/f8ba9c58fa6d44eda284677c9d57853d.png",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1196",
+  "nombre": "Conector plastico 9005 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 4.51,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/7abe113722fc43e083b7efefd3c897a3.jpeg",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1197",
+  "nombre": "Conector plastico 9006 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 4.51,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/93cd48b62ac0436dba0bb79de73b5bec.jpeg",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1198",
+  "nombre": "Conector plastico T10 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 4.13,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/221e22ed7ec0423ebd6366f1568f3004.png",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1199",
+  "nombre": "Porta fusible set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 4.13,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/cb7e9b62269a48b096500f77e4d7c7d0.jpeg",
+  "agotado": false,
+  "pdf_pagina": 15
+ },
+ {
+  "codigo": "1200",
+  "nombre": "Conector cerámica relay 5 pines set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/d42d8ac49c5e4ab5b2f7f1d4b6989803.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1201",
+  "nombre": "Conector plastico 1156 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 7.12,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/57f6ced618a34c9f9673d1050ef01387.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1202",
+  "nombre": "Conector plastico 1157 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 7.56,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/47cb906dba4c46a09fbd72a115f1b736.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1215",
+  "nombre": "Conector plástico H13 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 6.51,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/0bda8dcf5505434584d9e138ad9a3602.png",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1216",
+  "nombre": "Conector plástico 9004/9007 set 6 unidades",
+  "unidad": "set",
+  "precio_mayor_usd": 6.51,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/22a2723b71f94977a28d33f24911d8a0.png",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1203",
+  "nombre": "Tapa válvula fluorescente amarilla",
+  "unidad": "40 und",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/5ccf0323f82b43dcb0e0edf6ef5188cc.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1204",
+  "nombre": "Tapa válvula fluorescente verde",
+  "unidad": "40 und",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/1531895aa3fa4da8982ccc7dd113a759.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1205",
+  "nombre": "Tapa válvula fluorescente azul",
+  "unidad": "40 und",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/f37ca3a3e4824c23adea04cca4f896bf.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1206",
+  "nombre": "Tapa válvula fluorescente naranja",
+  "unidad": "40 und",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/bde3a375f2224f52aa000b2eff464a47.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1207",
+  "nombre": "Tapa válvula fluorescente fucsia",
+  "unidad": "40 und",
+  "precio_mayor_usd": 12.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/5728b97952b545ccac6fe70f2dd86bc6.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1208",
+  "nombre": "Llaveros con enganche de seguridad FTI Negro",
+  "unidad": "und",
+  "precio_mayor_usd": 2.37,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/020da45b9676403a8ae2c07cff258b8d.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "2035",
+  "nombre": "Llaveros con enganche de seguridad FTI Rojo",
+  "unidad": "und",
+  "precio_mayor_usd": 2.37,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/861705cb861d4ea6b093d826e60a936a.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1209",
+  "nombre": "Cierre Centralizado",
+  "unidad": "kit",
+  "precio_mayor_usd": 14.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/5ea6e703e3854e5cb384c465f2136458.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1210",
+  "nombre": "Controlador estrobo de cable 12-24v multivoltaje",
+  "unidad": "und",
+  "precio_mayor_usd": 2.5,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/cd96146202274727921f8d94d428a449.jpeg",
+  "agotado": false,
+  "pdf_pagina": 16
+ },
+ {
+  "codigo": "1211",
+  "nombre": "Controlador estrobo con conectores 12-24v multivoltaje",
+  "unidad": "und",
+  "precio_mayor_usd": 3.5,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/299f9ddd1aac4664a7e963f0cc77eca2.jpeg",
+  "agotado": false,
+  "pdf_pagina": 17
+ },
+ {
+  "codigo": "1212",
+  "nombre": "Controlador estrobo con control 12-24v multivoltaje",
+  "unidad": "und",
+  "precio_mayor_usd": 5.9,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/7ffdf5bdd79940708a03c2d20451716c.jpeg",
+  "agotado": false,
+  "pdf_pagina": 17
+ },
+ {
+  "codigo": "1213",
+  "nombre": "Kit De Ppf Manilla Y Filo De Puerta",
+  "unidad": "kit",
+  "precio_mayor_usd": 15.99,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/96f16de5c09e4748bfae27cf59f6f7e9.jpeg",
+  "agotado": false,
+  "pdf_pagina": 17
+ },
+ {
+  "codigo": "1214",
+  "nombre": "Kit de fusibles muelita surtido mini, mediano y micro 300 piezas",
+  "unidad": "300 und",
+  "precio_mayor_usd": 14.5,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/be4d2fc0abc7404cadadc94cde8c8d57.png",
+  "agotado": false,
+  "pdf_pagina": 17
+ },
+ {
+  "codigo": "1217",
+  "nombre": "Teipe eléctrico resistente al fuego 0.18mm x 19mm x 18m",
+  "unidad": "set de 10 und",
+  "precio_mayor_usd": 9.0,
+  "categoria": "Conectores y eléctricos",
+  "imagen": "uploads/productos/11bc70d12ee94b8b874191a4e3550228.png",
+  "agotado": false,
+  "pdf_pagina": 17
+ },
+ {
+  "codigo": "1218",
+  "nombre": "Stop 4´´ Blanco 2 cables 24v",
+  "unidad": "par",
+  "precio_mayor_usd": 7.0,
+  "categoria": "Luces para frenos / giro",
+  "imagen": "uploads/productos/87c45a4fb0fb43659e04508b64fa8271.jpeg",
+  "agotado": false,
+  "pdf_pagina": 17
+ },
+ {
+  "codigo": "1219",
+  "nombre": "Gorra Premium de Malla FTI",
+  "unidad": "und",
+  "precio_mayor_usd": 5.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/c605de3af6974b6ca5352f731e273635.jpeg",
+  "agotado": false,
+  "pdf_pagina": 17
+ },
+ {
+  "codigo": "2110",
+  "nombre": "Medidor de Presion de Aire metalico 50 PCI Plateado",
+  "unidad": "10 und",
+  "precio_mayor_usd": 15.0,
+  "categoria": "Otros",
+  "imagen": "uploads/productos/8f1aafa5a3b04c70be8f94a10deb27c0.jpeg",
+  "agotado": false,
+  "pdf_pagina": 17
+ }
+]
