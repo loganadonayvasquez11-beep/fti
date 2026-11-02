@@ -12,23 +12,80 @@
   const vacio = document.getElementById('vacio-tienda');
   const contador = document.getElementById('contador-tienda');
 
-  const norm = t => (t || '').toLocaleLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const norm = t => (t || '').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  /** Muestra solo las filas que coinciden con la búsqueda y la categoría. */
-  function filtrar() {
+  // ---------------------------------------------------------- paginación (solo si la página tiene #paginacion-tienda)
+  const pager = document.getElementById('paginacion-tienda');
+  const porPagina = pager ? (parseInt(pager.dataset.porPagina, 10) || 20) : 0;
+  let pagina = 1;
+
+  function dibujarPaginas(total) {
+    if (!pager) return;
+    const paginas = Math.max(1, Math.ceil(total / porPagina));
+    pager.hidden = paginas <= 1;
+    pager.innerHTML = '';
+    if (paginas <= 1) return;
+    const boton = (txt, p, extra = '') => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pag-btn ' + extra;
+      b.textContent = txt;
+      if (p === null) b.disabled = true;
+      else b.addEventListener('click', () => irAPagina(p));
+      return b;
+    };
+    pager.appendChild(boton('‹', pagina > 1 ? pagina - 1 : null, 'pag-flecha'));
+    // 1 … (actual-1) actual (actual+1) … última
+    const mostrar = new Set([1, paginas, pagina - 1, pagina, pagina + 1]);
+    let previo = 0;
+    for (let p = 1; p <= paginas; p++) {
+      if (!mostrar.has(p)) continue;
+      if (p - previo > 1) {
+        const s = document.createElement('span');
+        s.className = 'pag-puntos';
+        s.textContent = '…';
+        pager.appendChild(s);
+      }
+      pager.appendChild(boton(String(p), p === pagina ? null : p, p === pagina ? 'pag-actual' : ''));
+      previo = p;
+    }
+    pager.appendChild(boton('›', pagina < paginas ? pagina + 1 : null, 'pag-flecha'));
+  }
+
+  function irAPagina(p) {
+    pagina = p;
+    filtrar(false);
+    // vuelve al inicio de la lista, debajo de la barra fija
+    const barra = document.querySelector('.barra-fija');
+    const alto = barra ? barra.offsetHeight : 0;
+    window.scrollTo({ top: Math.max(0, tabla.getBoundingClientRect().top + window.scrollY - alto - 8), behavior: 'auto' });
+  }
+
+  /** Muestra solo las filas que coinciden con la búsqueda y la categoría (y de la página actual, si hay paginación). */
+  function filtrar(reiniciar = true) {
+    if (reiniciar !== false) pagina = 1;
     const q = norm(buscar ? buscar.value.trim() : '');
     const c = cat ? cat.value : '';
-    let n = 0;
-    filas.forEach(f => {
-      const ok = (!q || norm(f.dataset.busqueda).includes(q)) && (!c || f.dataset.cat === c);
-      f.hidden = !ok;
-      if (ok) n++;
-    });
+    const coinciden = filas.filter(f => (!q || norm(f.dataset.busqueda).includes(q)) && (!c || f.dataset.cat === c));
+    const n = coinciden.length;
+    if (pager) {
+      const paginas = Math.max(1, Math.ceil(n / porPagina));
+      if (pagina > paginas) pagina = paginas;
+    }
+    const visibles = pager ? new Set(coinciden.slice((pagina - 1) * porPagina, pagina * porPagina)) : new Set(coinciden);
+    filas.forEach(f => { f.hidden = !visibles.has(f); });
     if (vacio) vacio.hidden = n > 0;
     if (contador) contador.textContent = `${n} producto(s)`;
+    dibujarPaginas(n);
     actualizarSeleccion();
   }
-  if (buscar) buscar.addEventListener('input', filtrar);
+  if (buscar) {
+    buscar.addEventListener('input', filtrar);
+    // En el teléfono, "Buscar" del teclado cierra el teclado en vez de recargar la página
+    buscar.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); buscar.blur(); }
+    });
+  }
   if (cat) cat.addEventListener('change', filtrar);
 
   // ---------------------------------------------------------- selección (solo Nueva venta)

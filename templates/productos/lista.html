@@ -9,18 +9,22 @@
 {% set es_admin = g.user.rol == 'admin' %}
 {% include 'productos/_precios_recientes.html' %}
 {% if puede_ver_stock %}<p class="hint">Stock indica cuántas unidades de venta hay disponibles. «Unidad de venta» describe su presentación (por ejemplo, par, juego o 50 und); son datos separados.</p>{% endif %}
-<form class="filters card" method="get">
-  <input name="q" id="buscar-tienda" value="{{ q }}" placeholder="Buscar por nombre, categoría o código" autocomplete="off">
-  <select name="categoria" id="cat-tienda"><option value="">Todas las categorías</option>
-    {% for c in categorias %}<option value="{{ c.id }}" {{ 'selected' if cat == c.id }}>{{ c.nombre }}</option>{% endfor %}</select>
-  <label class="check"><input type="checkbox" name="bajo" value="1" {{ 'checked' if bajo }}> Stock bajo</label>
-  {% if es_admin %}<label class="check"><input type="checkbox" name="inactivos" value="1" {{ 'checked' if inactivos }}> Ver inactivos</label>{% endif %}
-  <button class="btn">Filtrar</button>
-  <span class="muted" id="contador-tienda"></span>
+<form class="filters card barra-fija" method="get">
+  <div class="bf-busq">
+    <input type="search" name="q" id="buscar-tienda" value="{{ q }}" placeholder="Buscar por nombre, categoría o código" autocomplete="off" enterkeyhint="search">
+  </div>
+  <div class="bf-chips">
+    <select name="categoria" id="cat-tienda"><option value="">Todas las categorías</option>
+      {% for c in categorias %}<option value="{{ c.id }}" {{ 'selected' if cat == c.id }}>{{ c.nombre }}</option>{% endfor %}</select>
+    <label class="chip"><input type="checkbox" name="bajo" value="1" {{ 'checked' if bajo }} onchange="this.form.submit()"> Stock bajo</label>
+    {% if es_admin %}<label class="chip"><input type="checkbox" name="inactivos" value="1" {{ 'checked' if inactivos }} onchange="this.form.submit()"> Ver inactivos</label>{% endif %}
+    <button class="btn bf-filtrar">Filtrar</button>
+    <span class="muted bf-cont" id="contador-tienda"></span>
+  </div>
 </form>
 
 {% if productos %}
-<div class="ptabla-scroll"><table class="ptabla" id="tienda">
+<div class="ptabla-scroll catalogo-lista"><table class="ptabla" id="tienda">
   <thead><tr><th class="c-foto">Foto</th><th>Producto</th><th class="r">Precio mayor</th><th class="r">{{ 'Stock' if puede_ver_stock else 'Disponibilidad' }}</th>{% if puede_ver_stock %}<th class="r">Vendidos</th>{% endif %}<th>Unidad de venta</th>
     {% if es_admin %}<th class="r">Alerta mín.</th>{% endif %}{% if es_admin %}<th class="r">Acciones</th>{% endif %}</tr></thead>
   <tbody>
@@ -49,6 +53,7 @@
     </tr>
   {% endfor %}
   </tbody></table></div>
+<nav class="paginacion" id="paginacion-tienda" data-por-pagina="20" aria-label="Páginas" hidden></nav>
 <p class="muted vacio-tienda" id="vacio-tienda" hidden>Ningún producto coincide con tu búsqueda.</p>
 {% else %}<section class="card"><p class="muted">No hay productos con esos filtros.</p></section>{% endif %}
 {% endblock %}

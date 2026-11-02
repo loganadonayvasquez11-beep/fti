@@ -5,11 +5,15 @@
 {% set especial = g.user.tipo_vendedor == 'especial' %}
 {% include 'productos/_precios_recientes.html' %}
 
-<div class="filters card">
-  <input type="search" id="buscar-tienda" placeholder="Buscar por nombre, categoría o código..." autocomplete="off" autofocus>
-  <select id="cat-tienda"><option value="">Todas las categorías</option>
-    {% for c in categorias %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}</select>
-  <span class="muted" id="contador-tienda"></span>
+<div class="filters card barra-fija">
+  <div class="bf-busq">
+    <input type="search" id="buscar-tienda" placeholder="Buscar por nombre, categoría o código..." autocomplete="off" enterkeyhint="search">
+  </div>
+  <div class="bf-chips">
+    <select id="cat-tienda"><option value="">Todas las categorías</option>
+      {% for c in categorias %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}</select>
+    <span class="muted bf-cont" id="contador-tienda"></span>
+  </div>
 </div>
 
 {% if productos %}
@@ -17,7 +21,7 @@
   {{ csrf_field() }}
   <p class="hint" style="margin:0 0 8px">Marca los productos que quieras (o toca la fila), ajusta la cantidad y pulsa <b>Añadir seleccionados</b>.</p>
   <p class="hint" style="margin:0 0 8px">La cantidad y el stock cuentan unidades de venta. «Unidad de venta» indica su presentación (por ejemplo, 50 und o par): vender 1 descuenta 1 del stock, no 50.</p>
-  <div class="ptabla-scroll"><table class="ptabla sel" id="tienda">
+  <div class="ptabla-scroll catalogo-lista"><table class="ptabla sel" id="tienda">
     <thead><tr><th class="c-sel"><input type="checkbox" id="marcar-todos" title="Marcar los visibles" aria-label="Marcar los visibles"></th><th class="c-foto">Foto</th><th>Producto</th>
       <th class="r">Precio mayor</th><th class="r">{{ 'Disponible' if especial else 'Disponibilidad' }}</th><th>Unidad de venta</th><th class="r">En carrito</th><th class="r">Cantidad</th></tr></thead>
     <tbody>
@@ -43,6 +47,7 @@
       </tr>
     {% endfor %}
     </tbody></table></div>
+  <nav class="paginacion" id="paginacion-tienda" data-por-pagina="20" aria-label="Páginas" hidden></nav>
   <p class="muted vacio-tienda" id="vacio-tienda" hidden>Ningún producto coincide con tu búsqueda.</p>
 
   <div class="carrito-barra" id="barra-seleccion">

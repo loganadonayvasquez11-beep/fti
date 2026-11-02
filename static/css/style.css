@@ -465,7 +465,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(96, 205, 
   /* los datos sueltos se muestran como "Etiqueta ........ valor" */
   .ptabla td[data-label]:not(.c-nombre) { grid-column: 3 / -1; display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
   .ptabla td[data-label]:not(.c-nombre)::before { content: attr(data-label); color: var(--muted); }
-  .ptabla tbody tr:not(:has(.c-sel)) .c-foto { grid-column: 1 / span 2; }
+  .ptabla tbody tr:not(:has(.c-sel)) .c-foto { grid-column: 1; }
   .ptabla tbody tr:not(:has(.c-sel)) { grid-template-columns: 64px 1fr auto; }
   .ptabla tbody tr:not(:has(.c-sel)) .c-nombre, .ptabla tbody tr:not(:has(.c-sel)) td[data-label]:not(.c-nombre) { grid-column: 2 / -1; }
   .ptabla .c-acc { grid-column: 1 / -1; padding-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -522,3 +522,56 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(96, 205, 
 
 /* Que los precios y cantidades no se partan en dos líneas en escritorio */
 @media (min-width: 721px) { .ptabla td.r { white-space: nowrap; } }
+
+/* ==========================================================
+   LISTA DE PRODUCTOS ESTILO TIENDA (móvil): barra de búsqueda
+   y filtros siempre visible, y la página se desliza entera
+   (sin scroll interno dentro del contenedor de productos).
+   ========================================================== */
+.barra-fija { position: sticky; top: 0; z-index: 25; background: rgba(32, 32, 32, .96);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.barra-fija .bf-busq { flex: 1 1 260px; max-width: 420px; }
+.barra-fija .bf-busq input { width: 100%; max-width: none; flex: none; }
+.barra-fija .bf-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.barra-fija .bf-chips select { flex: 0 0 auto; width: auto; max-width: 62vw; min-height: 36px; padding: 6px 14px; border-radius: 999px; }
+.barra-fija .bf-cont { flex: none; font-size: 12.5px; white-space: nowrap; }
+.barra-fija .chip { flex-direction: row; align-items: center; gap: 6px; position: relative; flex: none; min-height: 36px; padding: 6px 14px;
+  border: 1px solid var(--stroke-2); border-radius: 999px; background: var(--card); color: var(--text); font-size: 14px; white-space: nowrap; cursor: pointer; }
+.barra-fija .chip input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; min-height: 0; max-width: none; flex: none; }
+.barra-fija .chip:has(input:checked) { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+
+@media (max-width: 720px) {
+  .barra-fija { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 8px; margin: 0 -14px 12px; padding: 10px 14px;
+    border-radius: 0; border-left: 0; border-right: 0; }
+  .barra-fija .bf-busq { flex: none; max-width: none; }
+  .barra-fija .bf-busq input { min-height: 44px; font-size: 16px; padding: 8px 18px; border-radius: 999px; border-bottom-width: 1px; }
+  .barra-fija .bf-busq input:focus { padding-bottom: 8px; border-bottom: 1px solid var(--accent); }
+  .barra-fija .bf-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .barra-fija .bf-chips::-webkit-scrollbar { display: none; }
+  .barra-fija .bf-filtrar { display: none; }
+
+  /* La lista ya no tiene su propio scroll: se desliza la página completa */
+  .ptabla-scroll.catalogo-lista { max-height: none; overflow: visible; overscroll-behavior: auto; background: transparent; border: 0; border-radius: 0; margin-bottom: 0; }
+  .catalogo-lista .ptabla tbody tr { background: var(--card); border: 1px solid var(--stroke); border-radius: var(--radius-lg); margin-bottom: 10px; padding: 12px; }
+  .catalogo-lista .ptabla tbody tr:last-child { border-bottom: 1px solid var(--stroke); }
+  .catalogo-lista .ptabla tbody tr:not(:has(.c-sel)) .c-foto { grid-row: 1 / span 6; align-self: start; }
+  .catalogo-lista .ptabla tbody tr.alerta-vend { background: rgba(255, 99, 120, .12); }
+  .catalogo-lista .c-nombre b { font-size: 15px; }
+  .catalogo-lista td[data-label="Precio mayor"] { font-size: 19px; font-weight: 700; align-items: baseline; }
+  .catalogo-lista td[data-label="Precio mayor"]::before { font-size: 13px; font-weight: 400; }
+  /* Nueva venta (filas con casilla): casilla y foto abarcan toda la tarjeta, y la fila elegida se resalta */
+  .catalogo-lista .ptabla tbody tr:has(.c-sel) .c-sel, .catalogo-lista .ptabla tbody tr:has(.c-sel) .c-foto { grid-row: 1 / span 6; align-self: start; }
+  .catalogo-lista .ptabla tbody tr:has(.c-sel) .c-sel { align-self: center; }
+  .catalogo-lista .c-sel input { width: 22px; height: 22px; }
+  .catalogo-lista .ptabla tbody tr.elegido { background: rgba(96, 205, 255, .13); border-color: var(--accent); }
+}
+
+/* Paginación: ‹ 1 2 3 … 17 › */
+.paginacion { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 16px 0 8px; }
+.paginacion[hidden] { display: none; }
+.pag-btn { min-width: 42px; height: 42px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--stroke-2); background: var(--card);
+  color: var(--text); font: inherit; font-size: 15px; cursor: pointer; }
+.pag-btn:hover:not(:disabled) { background: var(--card-2); }
+.pag-btn:disabled { opacity: .4; cursor: default; }
+.pag-btn.pag-actual { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700; opacity: 1; }
+.pag-puntos { color: var(--muted); padding: 0 2px; }
