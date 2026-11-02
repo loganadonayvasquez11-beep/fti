@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block titulo %}Nueva venta · Productos{% endblock %}
+{% block contenido %}
+{% include 'ventas/_pasos.html' %}
+{% set especial = g.user.tipo_vendedor == 'especial' %}
+{% include 'productos/_precios_recientes.html' %}
+
+<div class="filters card">
+  <input type="search" id="buscar-tienda" placeholder="Buscar por nombre, categoría o código..." autocomplete="off" autofocus>
+  <select id="cat-tienda"><option value="">Todas las categorías</option>
+    {% for c in categorias %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}</select>
+  <span class="muted" id="contador-tienda"></span>
+</div>
+
+{% if productos %}
+<form method="post" action="{{ url_for('ventas.carrito_agregar_varios') }}" id="form-seleccion">
+  {{ csrf_field() }}
+  <p class="hint" style="margin:0 0 8px">Marca los productos que quieras (o toca la fila), ajusta la cantidad y pulsa <b>Añadir seleccionados</b>.</p>
+  <p class="hint" style="margin:0 0 8px">La cantidad y el stock cuentan unidades de venta. «Unidad de venta» indica su presentación (por ejemplo, 50 und o par): vender 1 descuenta 1 del stock, no 50.</p>
+  <div class="ptabla-scroll"><table class="ptabla sel" id="tienda">
+    <thead><tr><th class="c-sel"><input type="checkbox" id="marcar-todos" title="Marcar los visibles" aria-label="Marcar los visibles"></th><th class="c-foto">Foto</th><th>Producto</th>
+      <th class="r">Precio mayor</th><th class="r">{{ 'Disponible' if especial else 'Disponibilidad' }}</th><th>Unidad de venta</th><th class="r">En carrito</th><th class="r">Cantidad</th></tr></thead>
+    <tbody>
+    {% for p in productos %}
+      {% set agotado = p.stock <= 0 %}
+      {% set minimo = p.stock <= p.minimo_ef %}
+      <tr class="{{ 'agotado' if agotado }} {{ 'alerta-vend' if minimo and not agotado and not especial }}" data-id="{{ p.id }}" data-busqueda="{{ (p.codigo ~ ' ' ~ p.nombre ~ ' ' ~ (p.categoria or ''))|lower }}" data-cat="{{ p.categoria_id or '' }}">
+        <td class="c-sel"><input type="checkbox" name="sel" value="{{ p.id }}" aria-label="Elegir {{ p.nombre }}" {{ 'disabled' if agotado }}></td>
+        <td class="c-foto">{% if p.imagen %}<img class="pfoto" src="{{ url_for('static', filename=p.imagen) }}" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="psinfoto" hidden>Sin foto</span>{% else %}<span class="psinfoto">Sin foto</span>{% endif %}</td>
+        <td class="c-nombre" data-label="Producto"><b>{{ p.nombre }}</b>{% if p.id in ids_recientes %} <span class="badge warn" title="Precio cambiado en las últimas 48 horas">Precio nuevo</span>{% endif %}
+          <br><small class="muted">{{ p.codigo }}{% if p.categoria %} · {{ p.categoria }}{% endif %}</small>
+          {% if agotado %}<br><small class="neg"><b>Se agotó: no hay más.</b> Elige otro producto para continuar con la compra.</small>{% endif %}</td>
+        <td data-label="Precio mayor" class="r">$ {{ p.precio_mayor_usd|num }}</td>
+        {% if especial %}
+        <td data-label="Disponible" class="r {{ 'neg' if agotado }}">{% if agotado %}<span class="badge bad">Agotado</span>{% else %}{{ p.stock|qty }}{% endif %}</td>
+        {% else %}
+        {# El vendedor normal NO ve cantidades: solo disponible / stock mínimo (rojo) / agotado #}
+        <td data-label="Disponibilidad" class="r">{% if agotado %}<span class="badge bad">Agotado</span>{% elif minimo %}<span class="badge bad">Stock mínimo</span>{% else %}<span class="badge ok">Disponible</span>{% endif %}</td>
+        {% endif %}
+        <td data-label="Unidad de venta">{{ p.unidad }}</td>
+        <td data-label="En carrito" class="r en-carrito-cel">{% if carrito.get(p.id|string) %}<span class="badge ok">✓ {{ carrito.get(p.id|string)|qty }}</span>{% else %}—{% endif %}</td>
+        <td data-label="Cantidad" class="r c-cant"><input type="number" name="cant_{{ p.id }}" value="1" min="0.001" step="any" {% if especial %}max="{{ p.stock }}"{% endif %} aria-label="Cantidad de {{ p.nombre }}" {{ 'disabled' if agotado }}></td>
+      </tr>
+    {% endfor %}
+    </tbody></table></div>
+  <p class="muted vacio-tienda" id="vacio-tienda" hidden>Ningún producto coincide con tu búsqueda.</p>
+
+  <div class="carrito-barra" id="barra-seleccion">
+    <span><b id="n-sel">0</b> seleccionado(s) · <span id="carrito-resumen">🛒 <b id="carrito-n">{{ carrito|length }}</b> en tu carrito</span></span>
+    <span class="barra-botones">
+      <button class="btn primary" type="submit" id="btn-anadir" disabled>Añadir seleccionados</button>
+      <a class="btn" id="btn-carrito" href="{{ url_for('ventas.carrito') }}" {{ 'hidden' if not carrito }}>Ver carrito y continuar →</a>
+    </span>
+  </div>
+</form>
+{% else %}
+<div class="card empty"><p>No hay productos en el catálogo.</p></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/tienda.js') }}"></script>{% endblock %}

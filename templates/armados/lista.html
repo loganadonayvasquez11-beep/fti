@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import armado_tag %}
+{% block titulo %}Pedidos para armar{% endblock %}
+{% block contenido %}
+{% macro pedido(p, con_boton) %}
+  {% set a = p.a %}
+  <article class="card armado {{ 'armado-ok' if a.estado == 'armado' }}">
+    <header class="armado-cab">
+      <div><b>{{ a.numero }}</b> <small class="muted">· {{ a.venta_fecha|fechahora }} · Vendedor: {{ a.vendedor }}{% if modo == 'admin' %} · Cliente: {{ a.cliente }}{% endif %}</small></div>
+      <div>
+        {% if a.estado == 'armado' %}<span class="badge ok">Armado ✓ por {{ a.armador_nombre }}</span>
+        {% else %}<span class="badge warn">Aún no se ha armado</span>
+          <span class="badge info">{{ 'Para: ' ~ a.asignado_nombre if a.asignado_a else 'Cualquiera' }}</span>{% endif %}
+      </div>
+    </header>
+    <div class="ptabla-scroll armado-scroll"><table class="ptabla">
+      <thead><tr><th class="c-foto">Foto</th><th>Producto</th><th class="r">Cantidad a armar</th><th>Unidad de venta</th></tr></thead>
+      <tbody>{% for l in p.lineas %}
+        <tr><td class="c-foto">{% if l.imagen %}<img class="pfoto" src="{{ url_for('static', filename=l.imagen) }}" alt="" loading="lazy" onerror="this.hidden=true">{% else %}<span class="psinfoto">Sin foto</span>{% endif %}</td>
+            <td data-label="Producto"><b>{{ l.nombre }}</b><br><small class="muted">{{ l.codigo }}</small></td>
+            <td data-label="Cantidad a armar" class="r"><b class="cant-armar">{{ l.cantidad|qty }}</b></td>
+            <td data-label="Unidad de venta">{{ l.unidad }}</td></tr>
+      {% endfor %}</tbody></table></div>
+    {% if con_boton and a.estado == 'pendiente' %}
+    <form method="post" action="{{ url_for('armados.confirmar', armado_id=a.id) }}" class="actions"
+          onsubmit="return confirm('¿Confirmas que ya armaste este pedido?');">{{ csrf_field() }}
+      <button class="btn primary lg">Ya lo armé · Confirmar</button></form>
+    {% endif %}
+    {% if modo == 'admin' and a.estado == 'pendiente' %}
+      {% with venta_id=a.venta_id, actual=a, volver=url_for('armados.lista') %}{% include 'armados/_asignar.html' %}{% endwith %}
+    {% endif %}
+  </article>
+{% endmacro %}
+
+{% if modo == 'admin' %}
+<form class="filters card" method="get">
+  <select name="estado">
+    {% for e, t in [('pendiente','Por armar'),('armado','Ya armados'),('todos','Todos')] %}<option value="{{ e }}" {{ 'selected' if estado == e }}>{{ t }}</option>{% endfor %}
+  </select>
+  <button class="btn">Filtrar</button>
+</form>
+{% if sin_asignar %}
+<section class="card">
+  <h2>Ventas aprobadas sin asignar ({{ sin_asignar|length }})</h2>
+  <p class="hint">Elige quién arma cada pedido. La venta sigue siendo del vendedor que la hizo.</p>
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Venta</th><th>Vendedor</th><th>Cliente</th><th>Asignar armado</th></tr></thead>
+    <tbody>{% for s in sin_asignar %}
+      <tr><td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=s.id) }}"><b>{{ s.numero }}</b></a><br><small class="muted">{{ s.fecha|fechahora }}</small></td>
+          <td data-label="Vendedor">{{ s.vendedor }}</td><td data-label="Cliente">{{ s.cliente }}</td>
+          <td>{% with venta_id=s.id, actual=None, volver=url_for('armados.lista') %}
+            <form method="post" action="{{ url_for('armados.asignar', venta_id=venta_id) }}" class="inline-form">{{ csrf_field() }}
+              <input type="hidden" name="volver" value="{{ volver }}">
+              <select name="armador" required><option value="">— Elegir —</option><option value="cualquiera">Cualquiera de los especiales</option>
+                {% for e in vendedores_especiales() %}<option value="{{ e.id }}">{{ e.nombre }}</option>{% endfor %}</select>
+              <button class="btn primary sm">Enviar a armar</button></form>{% endwith %}</td></tr>
+    {% endfor %}</tbody></table></div>
+</section>
+{% endif %}
+{% endif %}
+
+{% for p in pedidos %}{{ pedido(p, modo == 'especial') }}
+{% else %}<section class="card empty"><p class="muted">{{ 'No tienes pedidos por armar en tu bandeja.' if modo == 'especial' else 'No hay pedidos con ese filtro.' }}</p></section>{% endfor %}
+
+{% if modo == 'especial' and hechos %}
+<h2 style="margin:22px 0 10px">Armados por ti recientemente</h2>
+{% for p in hechos %}{{ pedido(p, false) }}{% endfor %}
+{% endif %}
+{% endblock %}

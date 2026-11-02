@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import estado_deuda_tag, estado_venta, tipo_pago_tag, color_cliente, cli_clase %}
+{% block titulo %}{{ color_cliente(c.color) }}{{ c.nombre }}{% endblock %}
+{% block acciones %}
+  <a class="btn" href="{{ url_for('clientes.estado_cuenta_pdf', cliente_id=c.id) }}">Descargar estado de cuenta PDF</a>
+  <a class="btn" href="{{ url_for('clientes.editar', cliente_id=c.id) }}">Editar</a>
+  {% if g.user.rol == 'admin' %}<a class="btn" href="{{ url_for('deudas.nueva', cliente=c.id) }}">Poner deuda</a>{% endif %}
+{% endblock %}
+{% block contenido %}
+<section class="stats">
+  <div class="stat {{ 'deuda-roja' if saldo > 0.005 }}"><span>Debe actualmente</span><b>$ {{ saldo|num }}</b></div>
+  <div class="stat"><span>Compras</span><b class="txt">Independientes</b><small>Contado, crédito o cuota inicial según cada venta</small></div>
+  <div class="stat {{ cli_clase(c.color) }}"><span>Clasificación</span><b class="txt">{% if c.color %}{{ color_cliente(c.color, True) }}{% else %}Sin color{% endif %}</b>{% if g.user.rol == 'admin' %}<small>Plazo de crédito: {{ (c.dias_credito ~ ' días (fijo)') if c.dias_credito > 0 else 'automático por monto' }}</small>{% endif %}</div>
+  <div class="stat"><span>Vendedor</span><b class="txt">{{ c.vendedor_nombre }}</b><small>{{ c.telefono or 'Sin teléfono' }}</small></div>
+</section>
+{% if g.user.rol == 'admin' %}
+<section class="card">
+  <h2>Clasificación del cliente</h2>
+  <div class="color-picker">
+    {% for col, nombre in [('verde', 'Verde'), ('amarillo', 'Amarillo'), ('rojo', 'Rojo'), ('', 'Sin color')] %}
+    <form method="post" action="{{ url_for('clientes.color', cliente_id=c.id) }}">{{ csrf_field() }}
+      <input type="hidden" name="color" value="{{ col }}">
+      <button class="btn {{ 'sel' if (c.color or '') == col }}">{% if col %}<span class="dot {{ col }}"></span>{% endif %}{{ nombre }}</button>
+    </form>
+    {% endfor %}
+  </div>
+  <p class="hint">Solo tú puedes cambiar el color. Los vendedores (especiales o normales) lo ven pero no pueden modificarlo.</p>
+</section>
+{% endif %}
+<section class="card">
+  <h2>Deudas</h2>
+  {% if deudas %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Fecha</th><th>Concepto</th><th>Vence</th><th class="r">Monto</th><th class="r">Saldo</th><th>Estado</th></tr></thead>
+    <tbody>{% for d in deudas %}
+      <tr><td data-label="Fecha">{{ d.fecha|fecha }}</td><td data-label="Concepto"><a href="{{ url_for('deudas.detalle', deuda_id=d.id) }}">{{ d.concepto }}</a></td>
+          <td data-label="Vence">{{ d.vencimiento|fecha }}</td><td data-label="Monto" class="r">$ {{ d.monto_usd|num }}</td>
+          <td data-label="Saldo" class="r {{ 'deuda-roja' if d.estado == 'activa' and d.saldo_usd > 0.005 }}">$ {{ d.saldo_usd|num }}</td><td data-label="Estado">{{ estado_deuda_tag(d) }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">Este cliente no tiene deudas.</p>{% endif %}
+</section>
+<section class="card">
+  <h2>Últimas ventas</h2>
+  {% if ventas %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>N°</th><th>Fecha</th><th>Pago</th><th class="r">Total</th><th>Estado</th></tr></thead>
+    <tbody>{% for v in ventas %}
+      <tr><td data-label="N°"><a href="{{ url_for('ventas.detalle', venta_id=v.id) }}">{{ v.numero }}</a></td><td data-label="Fecha">{{ v.fecha|fechahora }}</td>
+          <td data-label="Pago">{{ tipo_pago_tag(v.tipo_pago) }}</td><td data-label="Total" class="r">{{ v.total|money(v.moneda) }}</td><td data-label="Estado">{{ estado_venta(v.estado) }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">Sin ventas todavía.</p>{% endif %}
+  {% if g.user.rol == 'vendedor' %}<div class="actions"><a class="btn primary" href="{{ url_for('ventas.nueva', cliente=c.id) }}">Vender a este cliente</a></div>{% endif %}
+</section>
+<form method="post" action="{{ url_for('clientes.desactivar', cliente_id=c.id) }}" onsubmit="return confirm('¿Quitar a este cliente de la cartera?');">
+  {{ csrf_field() }}<button class="btn danger sm">Quitar de la cartera</button>
+</form>
+{% endblock %}

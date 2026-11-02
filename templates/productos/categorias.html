@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block titulo %}Categorías{% endblock %}
+{% block acciones %}<a class="btn" href="{{ url_for('catalogo.productos') }}">← Volver a productos</a>{% endblock %}
+{% block contenido %}
+<p class="hint">Las categorías solo llevan nombre. El código lo escribes tú en cada producto.</p>
+<form method="post" class="filters card">
+  {{ csrf_field() }}
+  <input name="nombre" placeholder="Nombre de la nueva categoría" required>
+  <button class="btn primary">Agregar categoría</button>
+</form>
+<section class="card">
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Categoría</th><th class="r">Productos activos</th><th>Estado</th><th></th></tr></thead>
+    <tbody>{% for c in categorias %}
+      <tr><td data-label="Categoría"><b>{{ c.nombre }}</b></td><td data-label="Productos" class="r">{{ c.n }}</td>
+          <td data-label="Estado"><span class="badge {{ 'ok' if c.activo else 'mute' }}">{{ 'Activa' if c.activo else 'Inactiva' }}</span></td>
+          <td class="r"><form method="post" action="{{ url_for('catalogo.categoria_estado', cid=c.id) }}">{{ csrf_field() }}<button class="btn sm">{{ 'Desactivar' if c.activo else 'Activar' }}</button></form></td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Aún no hay categorías.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ 'Nuevo cliente' if nuevo else 'Editar cliente' }}{% endblock %}
+{% block contenido %}
+<form method="post" class="card form">
+  {{ csrf_field() }}
+  <div class="cols">
+    <label>Nombre o razón social *<input name="nombre" value="{{ c.nombre or '' }}" required></label>
+    <label>Identificación
+      <span class="documento-control">
+        <select name="documento_tipo" aria-label="Tipo de identificación">
+          {% for tipo in ['J', 'V', 'E'] %}<option value="{{ tipo }}" {{ 'selected' if documento_tipo == tipo }}>{{ tipo }}-</option>{% endfor %}
+        </select>
+        <input name="documento_numero" value="{{ documento_numero }}" inputmode="numeric" pattern="[0-9]*"
+               autocomplete="off" aria-label="Número de identificación" placeholder="Solo números">
+      </span>
+    </label>
+    <label>Teléfono<input name="telefono" value="{{ c.telefono or '' }}"></label>
+    <label>Dirección<input name="direccion" value="{{ c.direccion or '' }}"></label>
+    {% if g.user.rol == 'admin' %}
+    <label>Vendedor de la cartera
+      <select name="vendedor_id" {{ 'required' if nuevo }}>
+        {% if nuevo %}<option value="">— Elegir —</option>{% endif %}
+        {% for v in vendedores %}<option value="{{ v.id }}" {{ 'selected' if (c.vendedor_id|string) == (v.id|string) }}>{{ v.nombre }}</option>{% endfor %}
+      </select></label>
+    <label>Días de crédito fijos (opcional)
+      <input type="number" min="0" name="dias_credito" value="{{ c.dias_credito or '' }}" placeholder="Vacío = automático">
+      <small class="muted">Vacío o 0: el sistema asigna 15 días (menos de 250 $), 20 días (menos de 600 $) o 30 días (600 $ o más). Solo tú puedes cambiarlo.</small></label>
+    {% endif %}
+  </div>
+  <p class="hint">La forma de pago se elige en cada venta. Este cliente podrá comprar al contado, a crédito o pagar una cuota inicial según cada operación.</p>
+  <div class="actions">
+    <button class="btn primary">Guardar</button>
+    <a class="btn" href="{{ url_for('clientes.detalle', cliente_id=cid) if not nuevo else url_for('clientes.lista') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  const numeroIdentificacion = document.querySelector('[name="documento_numero"]');
+  numeroIdentificacion.addEventListener('input', () => {
+    numeroIdentificacion.value = numeroIdentificacion.value.replace(/[^0-9]/g, '');
+  });
+</script>
+{% endblock %}

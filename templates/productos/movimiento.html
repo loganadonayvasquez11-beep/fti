@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block titulo %}Entradas, mermas y ajustes{% endblock %}
+{% block contenido %}
+<form method="post" class="card form narrow">
+  {{ csrf_field() }}
+  <label>Producto
+    <select name="producto_id" required>
+      <option value="">— Elegir —</option>
+      {% for p in productos %}<option value="{{ p.id }}" {{ 'selected' if seleccionado == p.id }}>{{ p.codigo }} · {{ p.nombre }} (stock: {{ p.stock|qty }} · unidad de venta: {{ p.unidad }})</option>{% endfor %}
+    </select></label>
+  <label>Tipo de movimiento
+    <select name="tipo" id="tipo">
+      <option value="entrada">Entrada de mercancía (suma)</option>
+      <option value="merma">Merma / pérdida (resta)</option>
+      <option value="ajuste">Ajuste por conteo físico (fija el stock en esta cantidad)</option>
+    </select></label>
+  <label>Cantidad<input type="number" step="any" min="0" name="cantidad" required></label>
+  <label>Motivo / referencia (factura de compra, daño, conteo...)<input name="motivo"></label>
+  <div class="actions"><button class="btn primary">Registrar</button><a class="btn" href="{{ url_for('catalogo.productos') }}">Cancelar</a></div>
+</form>
+{% endblock %}

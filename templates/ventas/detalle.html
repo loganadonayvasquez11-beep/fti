@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import estado_venta, tipo_pago_tag, estado_deuda_tag, armado_tag %}
+{% block titulo %}Venta {{ v.numero }}{% endblock %}
+{% block acciones %}<a class="btn" href="{{ url_for('ventas.nota_pdf', venta_id=v.id) }}">Descargar nota de venta PDF</a>{% endblock %}
+{% block contenido %}
+<section class="card">
+  <div class="detail-head">
+    <div><span class="muted">Cliente</span><b>{% if g.user.rol == 'admin' or v.vendedor_id == g.user.id %}<a href="{{ url_for('clientes.detalle', cliente_id=v.cliente_id) }}">{{ v.cliente }}</a>{% else %}{{ v.cliente }}{% endif %}</b><small class="muted">{{ v.documento }}</small></div>
+    <div><span class="muted">Vendedor</span><b>{{ v.vendedor }}</b><small class="muted">{{ v.fecha|fechahora }}</small></div>
+    <div><span class="muted">Condiciones</span><b>{{ tipo_pago_tag(v.tipo_pago) }}</b>
+      <small class="muted">{% if v.tipo_pago == 'credito' %}{{ v.dias_credito }} días de crédito{% else %}{{ v.metodo_pago or 'Contado' }}{% endif %}</small></div>
+    <div><span class="muted">Estado</span><b>{{ estado_venta(v.estado) }}</b>
+      <small class="muted">{% if v.aprobador %}Por {{ v.aprobador }} · {{ v.fecha_aprobacion|fechahora }}{% elif v.estado == 'aprobada' %}Automática (contado){% endif %}</small>
+      {% if v.estado == 'aprobada' and req_armado %}<small>{{ armado_tag(v.estado, armado.estado if armado else None, req_armado, g.user.rol == 'admin') }}</small>{% endif %}</div>
+  </div>
+  {% if v.motivo %}<p class="flash warn">Motivo: {{ v.motivo }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Productos</h2>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Producto</th><th class="r">Cantidad</th><th>Unidad de venta</th><th class="r">Precio base</th><th class="r">Precio cobrado</th><th class="r">Subtotal</th>
+      {% if (g.user.rol == 'admin' or es_especial) and v.estado == 'pendiente' %}<th class="r">Stock actual</th>{% endif %}</tr></thead>
+    <tbody>{% for l in lineas %}
+      <tr class="{{ 'modificado' if l.modificado }}">
+        <td data-label="Producto">{{ l.codigo }} · <b>{{ l.nombre }}</b></td><td data-label="Cantidad" class="r">{{ l.cantidad|qty }}</td><td data-label="Unidad de venta">{{ l.unidad }}</td>
+        <td data-label="Precio base" class="r">{{ l.precio_lista|num }}</td>
+        <td data-label="Precio cobrado" class="r">{{ l.precio_unit|num }}{% if l.modificado %} <span class="badge warn" title="El vendedor cambió el precio base">modificado</span>{% endif %}</td>
+        <td data-label="Subtotal" class="r">{{ l.subtotal|num }}</td>
+        {% if (g.user.rol == 'admin' or es_especial) and v.estado == 'pendiente' %}<td data-label="Stock actual" class="r {{ 'neg' if l.stock < l.cantidad }}">{{ l.stock|qty }}</td>{% endif %}</tr>
+    {% endfor %}</tbody></table></div>
+  <div class="total-box right">
+    <div><span>Subtotal</span><b>{{ v.subtotal|money(v.moneda) }}</b></div>
+    {% if v.descuento %}<div><span>Descuento</span><b>- {{ v.descuento|money(v.moneda) }}</b></div>{% endif %}
+    <div class="grande"><span>Total</span><b>{{ v.total|money(v.moneda) }}</b></div>
+  </div>
+  {% if v.nota %}<p class="muted">Nota: {{ v.nota }}</p>{% endif %}
+</section>
+
+{% if v.estado == 'aprobada' and req_armado %}
+<section class="card">
+  <h2>Pedido para armar</h2>
+  {% if armado and armado.estado == 'armado' %}
+    <p><span class="badge ok">Armado ✓</span> por <b>{{ armado.armador_nombre }}</b> el {{ armado.fecha_armado|fechahora }}.</p>
+  {% else %}
+    <p><span class="badge warn">Aún no se ha armado</span>
+      {% if armado %}<small class="muted">Asignado a: <b>{{ armado.asignado_nombre or 'Cualquiera de los vendedores especiales' }}</b></small>
+      {% elif g.user.rol == 'admin' %}<small class="muted">Todavía no se ha elegido quién lo arma.</small>{% endif %}</p>
+    {% if g.user.rol == 'admin' %}
+      {% with venta_id=v.id, actual=armado, volver=url_for('ventas.detalle', venta_id=v.id) %}{% include 'armados/_asignar.html' %}{% endwith %}
+    {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+
+{% if deuda and deuda.estado != 'anulada' %}
+<section class="card">
+  <h2>Deuda generada</h2>
+  <p>Vence el <b>{{ deuda.vencimiento|fecha }}</b> · Saldo <b>$ {{ deuda.saldo_usd|num }}</b> {{ estado_deuda_tag(deuda) }}
+    {% if g.user.rol == 'admin' or v.vendedor_id == g.user.id %}<a class="btn sm" href="{{ url_for('deudas.detalle', deuda_id=deuda.id) }}">Ver deuda y abonos</a>{% endif %}</p>
+</section>
+{% endif %}
+
+{% if g.user.rol == 'admin' or es_especial %}
+  {% if v.estado == 'pendiente' %}
+  <section class="card">
+    <h2>Aprobación</h2>
+    <p class="muted">Al aprobar se descuenta el stock del almacén central{% if v.tipo_pago == 'credito' %} y la deuda pasa a estar activa{% endif %}.</p>
+    <div class="actions">
+      <form method="post" action="{{ url_for('ventas.aprobar', venta_id=v.id) }}" class="inline-form">{{ csrf_field() }}
+        {% if g.user.rol == 'admin' %}<select name="armador" title="Quién arma el pedido (la venta sigue siendo del vendedor)">
+          <option value="">Armado: decidir después</option>
+          <option value="cualquiera">Armado: cualquiera de los especiales</option>
+          {% for e in vendedores_especiales() %}<option value="{{ e.id }}">Armado: {{ e.nombre }}</option>{% endfor %}
+        </select>{% endif %}
+        <button class="btn primary">Aprobar venta</button></form>
+      <form method="post" action="{{ url_for('ventas.rechazar', venta_id=v.id) }}" class="inline-form">{{ csrf_field() }}
+        <input name="motivo" placeholder="Motivo del rechazo" required><button class="btn danger">Rechazar</button></form>
+    </div>
+  </section>
+  {% elif v.estado == 'aprobada' %}
+  <section class="card">
+    <form method="post" action="{{ url_for('ventas.anular', venta_id=v.id) }}" class="inline-form" onsubmit="return confirm('¿Anular esta venta? Se devolverá el stock, se anularán sus deudas y los abonos asociados quedarán marcados como anulados (sin borrarlos del historial).');">{{ csrf_field() }}
+      <input name="motivo" placeholder="Motivo de la anulación" required><button class="btn danger">Anular venta</button></form>
+  </section>
+  {% endif %}
+{% endif %}
+{% endblock %}

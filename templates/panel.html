@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import estado_venta %}
+{% block titulo %}{{ 'Panel general' if g.user.rol == 'admin' else 'Mi panel' }}{% endblock %}
+{% block acciones %}{% if g.user.rol == 'vendedor' %}<a class="btn primary" href="{{ url_for('ventas.nueva') }}">Nueva venta</a>{% endif %}{% endblock %}
+{% block contenido %}
+<section class="stats">
+  <div class="stat"><span>Vendido este mes</span><b>$ {{ r.ventas_mes.t|num }}</b><small>{{ r.ventas_mes.n }} ventas aprobadas</small></div>
+  <a class="stat link {{ 'deuda-roja' if r.por_cobrar.t > 0.005 }}" href="{{ url_for('deudas.lista') }}"><span>Por cobrar</span><b>$ {{ r.por_cobrar.t|num }}</b><small>{{ r.por_cobrar.n }} deudas activas</small></a>
+  <a class="stat link {{ 'danger deuda-roja' if r.vencidas.n }}" href="{{ url_for('deudas.lista', estado='vencidas') }}"><span>Vencido</span><b>$ {{ r.vencidas.t|num }}</b><small>{{ r.vencidas.n }} deudas vencidas</small></a>
+  <a class="stat link {{ 'warn' if r.pendientes.n }}" href="{{ url_for('ventas.lista', estado='pendiente') }}"><span>{{ 'Por aprobar' if g.user.rol == 'admin' or es_especial else 'En espera de aprobación' }}</span><b>{{ r.pendientes.n }}</b><small>$ {{ r.pendientes.t|num }} en ventas</small></a>
+  {% if n_por_armar is defined %}<a class="stat link {{ 'warn' if n_por_armar }}" href="{{ url_for('armados.lista') }}"><span>Pedidos por armar</span><b>{{ n_por_armar }}</b><small>{{ 'pendientes o sin asignar' if g.user.rol == 'admin' else 'en tu bandeja' }}</small></a>{% endif %}
+  {% if g.user.rol == 'admin' %}<a class="stat link {{ 'danger' if r.n_stock_bajo }}" href="{{ url_for('catalogo.productos', bajo=1) }}"><span>Stock en alerta</span><b>{{ r.n_stock_bajo }}</b><small>productos en su mínimo o por debajo</small></a>{% endif %}
+</section>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Últimas ventas</h2>
+    {% if r.ultimas %}
+    <div class="table-wrap"><table class="stack">
+      <thead><tr><th>N°</th><th>Cliente</th><th class="r">Total</th><th>Estado</th></tr></thead>
+      <tbody>{% for v in r.ultimas %}
+        <tr><td data-label="N°"><a href="{{ url_for('ventas.detalle', venta_id=v.id) }}">{{ v.numero }}</a></td><td data-label="Cliente">{{ v.cliente }}</td>
+            <td data-label="Total" class="r">{{ v.total|money(v.moneda) }}</td><td data-label="Estado">{{ estado_venta(v.estado) }}</td></tr>
+      {% endfor %}</tbody></table></div>
+    {% else %}<p class="muted">Todavía no hay ventas.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Próximos vencimientos</h2>
+    {% if r.proximas %}
+    <div class="table-wrap"><table class="stack">
+      <thead><tr><th>Cliente</th><th>Vence</th><th class="r">Saldo</th></tr></thead>
+      <tbody>{% for d in r.proximas %}
+        <tr><td data-label="Cliente"><a href="{{ url_for('deudas.detalle', deuda_id=d.id) }}">{{ d.cliente_nombre }}</a></td>
+            <td data-label="Vence" class="{{ 'neg' if d.vencimiento < hoy }}">{{ d.vencimiento|fecha }}</td><td data-label="Saldo" class="r deuda-roja">$ {{ d.saldo_usd|num }}</td></tr>
+      {% endfor %}</tbody></table></div>
+    {% else %}<p class="muted">No hay deudas por cobrar. 🎉</p>{% endif %}
+  </section>
+
+  {% if g.user.rol == 'admin' %}
+  <section class="card">
+    <h2>Vendedores del mes</h2>
+    {% if r.por_vendedor %}
+    <div class="table-wrap"><table class="stack">
+      <thead><tr><th>Vendedor</th><th class="r">Vendido</th><th class="r">Por cobrar</th></tr></thead>
+      <tbody>{% for v in r.por_vendedor %}
+        <tr><td data-label="Vendedor"><a href="{{ url_for('admin.vendedor_detalle', vid=v.id) }}">{{ v.nombre }}</a></td>
+            <td data-label="Vendido" class="r">$ {{ v.vendido|num }}</td><td data-label="Por cobrar" class="r {{ 'deuda-roja' if v.por_cobrar > 0.005 }}">$ {{ v.por_cobrar|num }}</td></tr>
+      {% endfor %}</tbody></table></div>
+    {% else %}<p class="muted">Aún no tienes vendedores. <a href="{{ url_for('admin.vendedor_nuevo') }}">Agrega el primero</a>.</p>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if g.user.rol == 'admin' %}
+  <section class="card">
+    <h2>Stock bajo <a class="mini-link" href="{{ url_for('catalogo.productos', bajo=1) }}">Ver todos ({{ r.n_stock_bajo }})</a></h2>
+    {% if r.stock_bajo %}
+    <div class="table-wrap"><table class="stack">
+      <thead><tr><th>Producto</th><th class="r">Stock</th><th>Unidad de venta</th><th class="r">Alerta mín.</th></tr></thead>
+      <tbody>{% for p in r.stock_bajo %}
+        <tr><td data-label="Producto">{{ p.codigo }} · {{ p.nombre }}</td><td data-label="Stock" class="r neg">{{ p.stock|qty }}</td><td data-label="Unidad de venta">{{ p.unidad }}</td><td data-label="Mínimo" class="r">{{ p.minimo|qty }}</td></tr>
+      {% endfor %}</tbody></table></div>
+    {% else %}<p class="muted">Todo el stock está por encima del mínimo.</p>{% endif %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

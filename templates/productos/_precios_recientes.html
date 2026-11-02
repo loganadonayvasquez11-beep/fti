@@ -1,0 +1,15 @@
+{# Lista temporal (48 h) de productos a los que se les cambió el precio. Variable: recientes (lista de dicts). #}
+{% if recientes %}
+<details class="card precios-recientes">
+  <summary><b>Precios actualizados</b> <span class="badge warn">{{ recientes|length }}</span>
+    <small class="muted">Cada producto se muestra aquí durante 48 horas después de su último cambio de precio. Pulsa para expandir o contraer.</small></summary>
+  <div class="ptabla-scroll recientes-scroll"><table class="ptabla">
+    <thead><tr><th class="c-foto">Foto</th><th>Producto</th><th class="r">Mayor (antes → ahora)</th><th>Cambió</th></tr></thead>
+    <tbody>{% for r in recientes %}
+      <tr><td class="c-foto">{% if r.imagen %}<img class="pfoto" src="{{ url_for('static', filename=r.imagen) }}" alt="" loading="lazy" onerror="this.hidden=true">{% else %}<span class="psinfoto">Sin foto</span>{% endif %}</td>
+          <td data-label="Producto"><b>{{ r.nombre }}</b><br><small class="muted">{{ r.codigo }}</small></td>
+          <td data-label="Mayor" class="r"><span class="precio-ant">$ {{ r.mayor_ant|num }}</span> → <b class="{{ 'pos' if r.mayor_nuevo < r.mayor_ant else ('neg' if r.mayor_nuevo > r.mayor_ant) }}">$ {{ r.mayor_nuevo|num }}</b></td>
+          <td data-label="Cambió"><small>{{ r.usuario or '—' }}<br><span class="muted">{{ r.fecha|fechahora }} · vence {{ r.expira|fechahora }}</span></small></td></tr>
+    {% endfor %}</tbody></table></div>
+</details>
+{% endif %}

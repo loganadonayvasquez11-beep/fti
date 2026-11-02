@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ 'Poner deuda a un cliente' if nueva else 'Editar deuda #' ~ d.id }}{% endblock %}
+{% block contenido %}
+<form method="post" class="card form narrow">
+  {{ csrf_field() }}
+  {% if nueva %}
+  <label>Cliente
+    <select name="cliente_id" required>
+      <option value="">— Elegir —</option>
+      {% for c in clientes %}<option value="{{ c.id }}" {{ 'selected' if (d.get('cliente_id') or cliente_sel|string) == (c.id|string) }}>{{ c.nombre }} — vendedor {{ c.vendedor }}</option>{% endfor %}
+    </select></label>
+  {% else %}<p>Cliente: <b>{{ d.cliente_nombre }}</b> · Abonado hasta ahora: $ {{ d.abonado_usd|num }}</p>{% endif %}
+  <label>Concepto<input name="concepto" value="{{ d.concepto or '' }}" placeholder="Ej: saldo anterior, mercancía a consignación..."></label>
+  <label>Monto en dólares ($)<input type="number" data-decimal-input step="0.01" min="0.01" name="monto_usd" value="{{ d.monto_usd or '' }}" required></label>
+  <label>Días de crédito<input type="number" min="0" name="dias_credito" value="{{ d.dias_credito if d.dias_credito is not none else '' }}" required></label>
+  <div class="actions"><button class="btn primary">Guardar</button><a class="btn" href="{{ url_for('deudas.lista') }}">Cancelar</a></div>
+</form>
+{% endblock %}

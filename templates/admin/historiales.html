@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block titulo %}Archivos históricos{% endblock %}
+{% block acciones %}<form method="post" action="{{ url_for('admin.historial_generar') }}">{{ csrf_field() }}<button class="btn primary" onclick="return confirm('¿Generar o actualizar el PDF histórico de hoy?')">Generar PDF de hoy</button></form>{% endblock %}
+{% block contenido %}
+<section class="card">
+  <p class="muted">Se conserva un único PDF por día con los movimientos, el detalle de ventas (producto, comprador, vendedor e importe) y los saldos pendientes. Si lo generas otra vez hoy, se actualiza el mismo archivo. Al cambiar el día, el PDF anterior se elimina; los registros originales de ventas, inventario y deudas permanecen en el sistema.</p>
+  {% if archivos %}<div class="table-wrap"><table class="stack"><thead><tr><th>Archivo</th><th>Período desde</th><th>Período hasta</th><th>Generado</th><th>Estado</th><th></th></tr></thead><tbody>
+  {% for a in archivos %}<tr><td data-label="Archivo">{{ a.titulo }} #{{ a.id }}</td><td data-label="Desde">{{ a.desde|fechahora }}</td><td data-label="Hasta">{{ a.hasta|fechahora }}</td><td data-label="Generado">{{ a.generado|fechahora }}</td><td>{{ a.estado }}</td><td><a class="btn sm" href="{{ url_for('admin.historial_descargar', archivo_id=a.id) }}">Descargar PDF</a></td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<p class="muted">Todavía no se ha generado el PDF de hoy. Puedes generarlo con el botón superior.</p>{% endif %}
+</section>
+{% endblock %}

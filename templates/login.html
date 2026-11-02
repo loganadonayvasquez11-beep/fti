@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block contenido %}
+<form method="post" class="card auth-card">
+  {{ csrf_field() }}
+  <h1>Bienvenido</h1>
+  <p class="muted">Inicia sesión para gestionar el inventario y las ventas.</p>
+  <label>Usuario<input name="usuario" autocomplete="username" required autofocus></label>
+  <label>Clave<input name="clave" type="password" autocomplete="current-password" required></label>
+  <button class="btn primary block">Entrar</button>
+</form>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block titulo %}Kardex{% endblock %}
+{% block acciones %}<a class="btn primary" href="{{ url_for('catalogo.movimiento', producto=pid or '') }}">Nuevo movimiento</a>{% endblock %}
+{% block contenido %}
+<form class="filters card" method="get">
+  <label>Desde<input type="date" name="desde" value="{{ desde }}"></label><label>Hasta<input type="date" name="hasta" value="{{ hasta }}"></label>
+  <select name="producto"><option value="">Todos los productos</option>
+    {% for p in productos %}<option value="{{ p.id }}" {{ 'selected' if pid == p.id }}>{{ p.codigo }} · {{ p.nombre }}</option>{% endfor %}</select>
+  <button class="btn">Filtrar</button>
+</form>
+<section class="card">
+  {% if movs %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th class="r">Cantidad</th><th class="r">Stock resultante</th><th>Unidad de venta</th><th>Detalle</th><th>Usuario</th></tr></thead>
+    <tbody>{% for m in movs %}
+      <tr><td data-label="Fecha">{{ m.fecha|fechahora }}</td><td data-label="Producto">{{ m.codigo }} · {{ m.producto }}</td>
+          <td data-label="Tipo"><span class="badge {{ {'entrada':'ok','salida':'info','ajuste':'warn','merma':'bad','devolucion':'ok'}[m.tipo] }}">{{ m.tipo|capitalize }}</span></td>
+          <td data-label="Cantidad" class="r {{ 'neg' if m.cantidad < 0 else 'pos' }}">{{ '+' if m.cantidad > 0 }}{{ m.cantidad|qty }}</td>
+          <td data-label="Stock resultante" class="r">{{ m.stock_resultante|qty }}</td><td data-label="Unidad de venta">{{ m.unidad }}</td>
+          <td data-label="Detalle">{% if m.venta_id %}<a href="{{ url_for('ventas.detalle', venta_id=m.venta_id) }}">{{ m.motivo }}</a>{% else %}{{ m.motivo or '—' }}{% endif %}</td>
+          <td data-label="Usuario">{{ m.usuario or '—' }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">Sin movimientos registrados.</p>{% endif %}
+</section>
+{% endblock %}

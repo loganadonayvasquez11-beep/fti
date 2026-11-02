@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import tipo_vendedor_tag %}
+{% block titulo %}Cartera de vendedores{% endblock %}
+{% block acciones %}<a class="btn primary" href="{{ url_for('admin.vendedor_nuevo') }}">Agregar vendedor</a>{% endblock %}
+{% block contenido %}
+<section class="card">
+  {% if vendedores %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Vendedor</th><th class="r">Clientes</th><th class="r">Deudores</th><th class="r">Vendido (mes)</th><th class="r">Por cobrar</th><th class="r">Vencido</th><th>Estado</th></tr></thead>
+    <tbody>{% for v in vendedores %}
+      <tr class="{{ 'inactivo' if not v.activo }}">
+        <td data-label="Vendedor"><a href="{{ url_for('admin.vendedor_detalle', vid=v.id) }}"><b>{{ v.nombre }}</b></a><br>{{ tipo_vendedor_tag(v.tipo_vendedor) }} <small class="muted">{{ v.usuario }} · {{ v.telefono or 'sin teléfono' }}</small></td>
+        <td data-label="Clientes" class="r">{{ v.n_clientes }}</td><td data-label="Deudores" class="r {{ 'deuda-roja' if v.n_deudores }}">{{ v.n_deudores }}</td>
+        <td data-label="Vendido (mes)" class="r">$ {{ v.vendido_mes|num }}</td><td data-label="Por cobrar" class="r {{ 'deuda-roja' if v.por_cobrar > 0.005 }}">$ {{ v.por_cobrar|num }}</td>
+        <td data-label="Vencido" class="r {{ 'deuda-roja' if v.vencido > 0.005 }}">$ {{ v.vencido|num }}</td>
+        <td data-label="Estado">{% if not v.activo %}<span class="badge mute">Fuera de la cartera</span>{% elif v.pendientes %}<span class="badge warn">{{ v.pendientes }} por aprobar</span>{% else %}<span class="badge ok">Activo</span>{% endif %}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">Tu cartera está vacía. Agrega tu primer vendedor.</p>{% endif %}
+</section>
+{% endblock %}

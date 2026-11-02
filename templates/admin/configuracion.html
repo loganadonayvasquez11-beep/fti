@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block titulo %}Configuración{% endblock %}
+{% block contenido %}
+<form method="post" class="card form">
+  {{ csrf_field() }}
+  <h2>Datos de la empresa (aparecen en los PDF)</h2>
+  <div class="cols">
+    <label>Nombre<input name="empresa_nombre" value="{{ cfg.empresa_nombre }}"></label>
+    <label>RIF<input name="empresa_rif" value="{{ cfg.empresa_rif }}"></label>
+    <label>Dirección<input name="empresa_direccion" value="{{ cfg.empresa_direccion }}"></label>
+    <label>Teléfono<input name="empresa_telefono" value="{{ cfg.empresa_telefono }}"></label>
+  </div>
+
+  <h2>Alerta de stock</h2>
+  <label>Alerta mínima general de stock (unidades)<input type="number" step="any" min="0" name="stock_alerta_defecto" value="{{ cfg.stock_alerta_defecto or '10' }}"></label>
+  <p class="hint">Se avisa cuando un producto llega a esta cantidad o menos. Si un producto tiene su propio "Stock mínimo" (en su ficha), se usa ese en lugar de este valor.</p>
+
+  <h2>Reglas</h2>
+  <label>Avisar "por vencer" cuando falten (días)<input type="number" min="0" name="dias_por_vencer" value="{{ cfg.dias_por_vencer }}"></label>
+  <label class="check"><input type="checkbox" name="contado_requiere_aprobacion" value="1" {{ 'checked' if cfg.contado_requiere_aprobacion == '1' }}>
+    Las ventas de contado también necesitan mi aprobación (si no, se aprueban solas y descuentan stock al instante)</label>
+  <div class="actions"><button class="btn primary">Guardar configuración</button></div>
+</form>
+{% endblock %}

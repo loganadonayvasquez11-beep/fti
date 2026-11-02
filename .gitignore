@@ -1,0 +1,29 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local databases, exports, and backups
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+/instance/
+/backups/
+
+# User-uploaded and local business data
+/static/uploads/
+/productos_nuevos.json
+
+# Python and editor artifacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.idea/
+.vscode/

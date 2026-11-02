@@ -1,0 +1,6 @@
+{# Indicador de los 3 pasos de la venta. Uso: {% include 'ventas/_pasos.html' %} con la variable `paso` (1, 2 o 3). #}
+<ol class="pasos" aria-label="Pasos de la venta">
+  <li class="{{ 'on' if paso == 1 }} {{ 'hecho' if paso > 1 }}"><a href="{{ url_for('ventas.nueva') }}"><span class="n">1</span> Productos</a></li>
+  <li class="{{ 'on' if paso == 2 }} {{ 'hecho' if paso > 2 }}"><a href="{{ url_for('ventas.carrito') }}"><span class="n">2</span> Carrito y cliente</a></li>
+  <li class="{{ 'on' if paso == 3 }}"><span><span class="n">3</span> Confirmación</span></li>
+</ol>

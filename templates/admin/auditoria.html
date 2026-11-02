@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block titulo %}Auditoría{% endblock %}
+{% block contenido %}
+<form class="filters card" method="get"><label>Desde<input type="date" name="desde" value="{{ desde }}"></label><label>Hasta<input type="date" name="hasta" value="{{ hasta }}"></label><button class="btn">Filtrar</button><a class="btn" href="{{ url_for('admin.historiales') }}">Archivos PDF</a></form>
+<section class="card">
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
+    <tbody>{% for a in filas %}
+      <tr><td data-label="Fecha">{{ a.fecha|fechahora }}</td><td data-label="Usuario">{{ a.usuario or '—' }}</td>
+          <td data-label="Acción"><span class="badge mute">{{ a.accion }}</span></td><td data-label="Detalle">{{ a.detalle }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Sin registros.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

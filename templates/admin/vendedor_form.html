@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ 'Agregar vendedor' if nuevo else 'Editar vendedor' }}{% endblock %}
+{% block contenido %}
+<form method="post" class="card form narrow">
+  {{ csrf_field() }}
+  <label>Nombre completo *<input name="nombre" value="{{ u.nombre or '' }}" required></label>
+  <label>Usuario de acceso *<input name="usuario" value="{{ u.usuario or '' }}" {{ 'readonly' if not nuevo else 'required' }} autocomplete="off"></label>
+  <label>Tipo de vendedor
+    <select name="tipo_vendedor">
+      <option value="normal" {{ 'selected' if (u.tipo_vendedor or 'normal') != 'especial' }}>Normal — solo al mayor y en dólares</option>
+      <option value="especial" {{ 'selected' if u.tipo_vendedor == 'especial' }}>Especial — puede aprobar ventas y armar pedidos</option>
+    </select></label>
+  <label>Teléfono<input name="telefono" value="{{ u.telefono or '' }}"></label>
+  <label>Correo<input type="email" name="email" value="{{ u.email or '' }}"></label>
+  <label>{{ 'Clave * (mínimo 6 caracteres)' if nuevo else 'Nueva clave (dejar vacío para no cambiarla)' }}
+    <input type="password" name="clave" minlength="6" autocomplete="new-password" {{ 'required' if nuevo }}></label>
+  <div class="actions"><button class="btn primary">Guardar</button><a class="btn" href="{{ url_for('admin.vendedores') }}">Cancelar</a></div>
+</form>
+{% endblock %}

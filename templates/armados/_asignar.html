@@ -1,0 +1,12 @@
+{# Formulario para elegir quién arma el pedido. Variables: venta_id, actual (fila de armados o None), volver (ruta a la que regresar). #}
+<form method="post" action="{{ url_for('armados.asignar', venta_id=venta_id) }}" class="inline-form">
+  {{ csrf_field() }}
+  <input type="hidden" name="volver" value="{{ volver }}">
+  <select name="armador" aria-label="Quién arma el pedido" required>
+    <option value="">— Elegir quién arma —</option>
+    <option value="cualquiera" {{ 'selected' if actual and actual.asignado_a is none }}>Cualquiera de los vendedores especiales</option>
+    {% for e in vendedores_especiales() %}<option value="{{ e.id }}" {{ 'selected' if actual and actual.asignado_a == e.id }}>{{ e.nombre }}</option>{% endfor %}
+  </select>
+  <button class="btn primary">{{ 'Reasignar armado' if actual else 'Enviar a armar' }}</button>
+</form>
+<p class="hint">La venta sigue siendo del vendedor original; solo se decide quién prepara el pedido. Con «Cualquiera», le llega a todos los especiales y gana el primero que lo confirme.</p>

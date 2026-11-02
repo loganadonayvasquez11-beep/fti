@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block titulo %}Nueva venta · Carrito y cliente{% endblock %}
+{% block contenido %}
+{% include 'ventas/_pasos.html' %}
+{% set especial = g.user.tipo_vendedor == 'especial' %}
+{% set pago = b.get('tipo_pago', 'contado') %}
+{% set agotados = lineas|selectattr('0.stock', 'le', 0)|list %}
+{% if agotados %}<section class="card aviso-agotado"><b class="neg">Hay productos agotados en tu carrito:</b>
+  <ul>{% for p, cant in agotados %}<li><b>{{ p.nombre }}</b> — no hay más. Quítalo (✕) y elige otro producto para continuar con la compra.</li>{% endfor %}</ul></section>{% endif %}
+<form method="post" id="venta-form" class="venta">
+  {{ csrf_field() }}
+
+  <section class="card form">
+    <h2>Tu carrito</h2>
+    <div class="table-wrap"><table class="stack lineas compacta">
+      <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad de venta</th><th>Precio unitario</th><th class="r">Subtotal</th><th></th></tr></thead>
+      <tbody>
+      {% for p, cant in lineas %}
+        {% set escrito = (b.get('precios') or {}).get(p.id|string) %}
+        <tr class="linea" data-mayor="{{ p.precio_mayor_usd }}" data-stock="{{ p.stock if especial else '' }}" data-editado="{{ '1' if escrito }}">
+          <td data-label="Producto"><div class="linea-prod">
+            {% if p.imagen %}<img class="producto-miniatura" src="{{ url_for('static', filename=p.imagen) }}" alt="{{ p.nombre }}" title="Clic para ampliar" loading="lazy" onerror="this.hidden=true">{% endif %}
+            <div><b>{{ p.nombre }}</b><br><small class="muted">{{ p.codigo }}{% if especial %} · Stock disponible: {{ p.stock|qty }}{% endif %}</small>
+              {% if p.stock <= 0 %}<br><small class="neg"><b>Agotado: no hay más. Elige otro producto.</b></small>{% elif p.stock <= p.minimo_ef and not especial %}<br><small class="neg">Stock mínimo</small>{% endif %}
+              <br><small class="stock-info"></small></div></div></td>
+          <td data-label="Cantidad"><input type="number" name="cant_{{ p.id }}" class="cant" min="0" step="any" value="{{ '%g' % cant }}"><small class="muted">0 = quitar</small></td>
+          <td data-label="Unidad de venta">{{ p.unidad }}</td>
+          <td data-label="Precio"><input type="number" name="precio_{{ p.id }}" class="precio" data-decimal-input min="0" step="0.01" value="{{ escrito or '' }}"><small class="lista-info muted"></small></td>
+          <td data-label="Subtotal" class="r sub">0,00</td>
+          <td class="r"><button class="icon-btn" title="Quitar del carrito" formaction="{{ url_for('ventas.carrito_quitar') }}" name="producto_id" value="{{ p.id }}">✕</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('ventas.nueva') }}">← Seguir agregando productos</a>
+      <button class="btn danger" formaction="{{ url_for('ventas.carrito_quitar') }}" name="todo" value="1" onclick="return confirm('¿Vaciar el carrito?');">Vaciar carrito</button>
+    </div>
+    <p class="hint">El precio sale del precio base, pero puedes cambiarlo en cada línea; los precios cambiados se marcan para el administrador.</p>
+  </section>
+
+  <section class="card form">
+    <h2>Cliente y condiciones</h2>
+    <div class="cols">
+      <label>Cliente
+        <select name="cliente_id" id="cliente" required>
+          <option value="">— Elegir de mi cartera —</option>
+          {% for c in clientes %}
+          <option value="{{ c.id }}" data-dias="{{ c.dias_credito or 0 }}" {{ 'selected' if b.get('cliente_id') == c.id|string }}>{{ {'verde': '🟢 ', 'amarillo': '🟡 ', 'rojo': '🔴 '}.get(c.color, '') }}{{ c.nombre }}</option>
+          {% endfor %}
+        </select>
+        <a class="mini-link" href="{{ url_for('clientes.nuevo', volver_a_venta=1) }}">+ Agregar cliente nuevo</a>
+      </label>
+      <div><span class="muted">Precio aplicado</span><b>Al mayor</b></div>
+      <fieldset class="seg">
+        <legend>Forma de pago</legend>
+        <label class="radio"><input type="radio" name="tipo_pago" value="contado" {{ 'checked' if pago == 'contado' }}> Contado</label>
+        <label class="radio"><input type="radio" name="tipo_pago" value="credito" {{ 'checked' if pago == 'credito' }}> Crédito</label>
+      </fieldset>
+      <label id="campo-dias">Plazo para pagar
+        <b class="plazo-valor" id="plazo-texto">—</b>
+        <small class="muted">Lo asigna el sistema según el monto (menos de 250 $: 15 días · menos de 600 $: 20 días · 600 $ o más: 30 días). Solo el administrador puede cambiarlo.</small></label>
+      <label id="campo-inicial">Cuota inicial (opcional)<input type="number" data-decimal-input min="0" step="0.01" name="cuota_inicial" id="cuota-inicial" value="{{ b.get('cuota_inicial', '0') or '0' }}" placeholder="0,00"><small class="muted">En crédito, se registra como primer abono.</small></label>
+      <label id="campo-metodo">Método de pago
+        <select name="metodo_pago">
+          {% for m in (['Efectivo $', 'Transferencia', 'Zelle', 'Punto de venta', 'Otro'] if especial else ['Efectivo $', 'Transferencia', 'Zelle', 'Otro']) %}
+          <option {{ 'selected' if b.get('metodo_pago') == m }}>{{ m }}</option>{% endfor %}
+        </select></label>
+      <label><span>Descuento ($)</span><input type="number" data-decimal-input step="0.01" min="0" name="descuento" id="descuento" value="{{ b.get('descuento', '') }}"></label>
+      <label>Nota (opcional)<input name="nota" value="{{ b.get('nota', '') }}"></label>
+    </div>
+    <p class="hint" id="aviso-credito">Las ventas a crédito quedan <b>pendientes</b>: el stock se descuenta cuando el administrador las aprueba.</p>
+  </section>
+
+  <section class="card form totales">
+    <div class="total-box">
+      <div><span>Subtotal</span><b id="t-sub">0,00</b></div>
+      <div class="grande"><span>Total</span><b id="t-total">0,00</b></div>
+    </div>
+    <div class="actions"><button class="btn primary lg" id="continuar" {{ 'disabled' if agotados }}>Continuar a la confirmación →</button></div>
+  </section>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/venta.js') }}"></script>{% endblock %}

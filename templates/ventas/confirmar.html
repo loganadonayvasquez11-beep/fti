@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import color_cliente, cli_clase %}
+{% block titulo %}Nueva venta · Confirmación{% endblock %}
+{% block contenido %}
+{% include 'ventas/_pasos.html' %}
+{% set cred = r.tipo_pago == 'credito' %}
+{% set hay_exceso = r.lineas|selectattr('excede')|list|length > 0 %}
+<section class="card">
+  <h2>Resumen de la venta</h2>
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Producto</th><th class="r">Cantidad</th><th>Unidad de venta</th><th class="r">Precio</th><th class="r">Subtotal</th></tr></thead>
+    <tbody>{% for l in r.lineas %}
+      <tr class="{{ 'modificado' if l.modificado }}">
+        <td data-label="Producto"><div class="linea-prod">
+          {% if l.producto.imagen %}<img class="producto-miniatura" src="{{ url_for('static', filename=l.producto.imagen) }}" alt="{{ l.producto.nombre }}" title="Clic para ampliar" loading="lazy" onerror="this.hidden=true">{% endif %}
+          <div><b>{{ l.producto.nombre }}</b><br><small class="muted">{{ l.producto.codigo }}</small>
+          {% if l.agotado %}<br><small class="neg"><b>Se agotó: no hay más.</b> Vuelve al carrito y elige otro producto.</small>
+          {% elif l.excede %}<br><small class="neg">{% if es_especial %}Stock insuficiente (disponible: {{ l.producto.stock|qty }}){% else %}No hay existencias suficientes para esa cantidad{% endif %}</small>{% endif %}
+          {% if l.modificado %}<br><small class="muted">Precio modificado (base: {{ l.precio_lista|num }})</small>{% endif %}</div></div></td>
+        <td data-label="Cantidad" class="r">{{ l.cantidad|qty }}</td>
+        <td data-label="Unidad de venta">{{ l.producto.unidad }}</td>
+        <td data-label="Precio" class="r">{{ l.precio_unit|money(r.moneda) }}</td>
+        <td data-label="Subtotal" class="r">{{ l.subtotal|money(r.moneda) }}</td></tr>
+    {% endfor %}</tbody></table></div>
+</section>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Cliente y condiciones</h2>
+    <dl class="resumen-dl">
+      <dt>Cliente</dt><dd class="{{ cli_clase(r.cliente.color) }}">{{ color_cliente(r.cliente.color) }}<b>{{ r.cliente.nombre }}</b></dd>
+      <dt>Precio</dt><dd>Al mayor</dd>
+      <dt>Forma de pago</dt><dd>{{ 'Crédito' if cred else 'Contado' }}{% if r.metodo_pago %} · {{ r.metodo_pago }}{% endif %}</dd>
+      {% if cred %}
+      <dt>Plazo</dt><dd>{{ r.dias }} días <small class="muted">(solo el administrador puede cambiarlo)</small></dd>
+      {% if r.cuota_inicial > 0 %}<dt>Cuota inicial</dt><dd>{{ r.cuota_inicial|money(r.moneda) }}</dd>{% endif %}
+      {% endif %}
+      {% if r.nota %}<dt>Nota</dt><dd>{{ r.nota }}</dd>{% endif %}
+    </dl>
+  </section>
+  <section class="card totales">
+    <div class="total-box">
+      <div><span>Subtotal</span><b>{{ r.subtotal|num }}</b></div>
+      {% if r.descuento > 0 %}<div><span>Descuento</span><b>- {{ r.descuento|num }}</b></div>{% endif %}
+      <div class="grande"><span>Total</span><b>{{ r.total|money(r.moneda) }}</b></div>
+    </div>
+  </section>
+</div>
+
+<section class="card">
+  {% if hay_exceso %}<p class="neg">Hay productos agotados o sin existencias suficientes. Vuelve al carrito, quita o ajusta esos productos y elige otro para continuar con la compra.</p>{% endif %}
+  <p class="hint">{% if cred %}Es una venta a crédito: se envía como <b>solicitud</b> al administrador y el stock se descuenta cuando la apruebe.{% elif r.auto %}Es una venta de contado: se registra, se cobra y descuenta el stock en el acto.{% else %}Se enviará al administrador para su aprobación.{% endif %}</p>
+  <form method="post" class="actions">
+    {{ csrf_field() }}
+    <a class="btn" href="{{ url_for('ventas.carrito') }}">← Volver al carrito</a>
+    <button class="btn primary lg" {{ 'disabled' if hay_exceso }}>{{ 'Generar venta' if r.auto else 'Enviar solicitud' }}</button>
+  </form>
+</section>
+{% endblock %}

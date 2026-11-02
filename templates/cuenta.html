@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block titulo %}Cambiar clave{% endblock %}
+{% block contenido %}
+<form method="post" class="card form narrow">
+  {{ csrf_field() }}
+  <label>Clave actual<input type="password" name="actual" required autocomplete="current-password"></label>
+  <label>Clave nueva (mínimo 6 caracteres)<input type="password" name="nueva" required minlength="6" autocomplete="new-password"></label>
+  <label>Repite la clave nueva<input type="password" name="repetir" required minlength="6" autocomplete="new-password"></label>
+  <div class="actions"><button class="btn primary">Guardar</button><a class="btn" href="{{ url_for('panel.inicio') }}">Cancelar</a></div>
+</form>
+{% endblock %}

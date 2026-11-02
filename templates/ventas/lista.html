@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import estado_venta, tipo_pago_tag, armado_tag %}
+{% block titulo %}{{ 'Ventas' if g.user.rol == 'admin' or es_especial else 'Mis ventas' }}{% endblock %}
+{% block acciones %}{% if g.user.rol == 'vendedor' %}<a class="btn primary" href="{{ url_for('ventas.nueva') }}">Nueva venta</a>{% endif %}{% endblock %}
+{% block contenido %}
+<form class="filters card" method="get">
+  <input name="q" value="{{ q }}" placeholder="Buscar por cliente o número">
+  <select name="estado"><option value="">Todos los estados</option>
+    {% for e, t in [('pendiente','Pendientes'),('aprobada','Aprobadas'),('rechazada','Rechazadas'),('anulada','Anuladas')] %}
+    <option value="{{ e }}" {{ 'selected' if estado == e }}>{{ t }}</option>{% endfor %}</select>
+  {% if g.user.rol == 'admin' %}
+  <select name="vendedor"><option value="">Todos los responsables</option>
+    {% for v in vendedores %}<option value="{{ v.id }}" {{ 'selected' if vendedor == v.id }}>{{ v.nombre }}{% if v.id == g.user.id %} (mi perfil){% elif v.rol == 'admin' %} (administrador){% endif %}</option>{% endfor %}</select>
+  {% endif %}
+  <button class="btn">Filtrar</button>
+</form>
+<section class="card">
+  {% if ventas %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th>{% if g.user.rol == 'admin' or es_especial %}<th>Vendedor</th>{% endif %}<th>Pago</th><th class="r">Total</th><th>Estado</th><th>Armado</th></tr></thead>
+    <tbody>{% for v in ventas %}
+      <tr class="{{ 'resaltar' if v.estado == 'pendiente' and (g.user.rol == 'admin' or es_especial) }}">
+        <td data-label="N°"><a href="{{ url_for('ventas.detalle', venta_id=v.id) }}"><b>{{ v.numero }}</b></a></td>
+        <td data-label="Fecha">{{ v.fecha|fechahora }}</td><td data-label="Cliente">{{ v.cliente }}</td>
+        {% if g.user.rol == 'admin' or es_especial %}<td data-label="Vendedor">{{ v.vendedor }}</td>{% endif %}
+        <td data-label="Pago">{{ tipo_pago_tag(v.tipo_pago) }}</td>
+        <td data-label="Total" class="r">{{ v.total|money(v.moneda) }}<br><small class="muted">$ {{ v.total_usd|num }}</small></td>
+        <td data-label="Estado">{{ estado_venta(v.estado) }}</td>
+        <td data-label="Armado">{{ armado_tag(v.estado, v.armado_estado, v.req_armado, g.user.rol == 'admin') or '—' }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">No hay ventas con esos filtros.</p>{% endif %}
+</section>
+{% endblock %}

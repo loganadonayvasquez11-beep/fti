@@ -1,0 +1,91 @@
+{% from '_macros.html' import ico, flashes %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{{ self.titulo() }} · Inventario</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='Logo.ico') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .brand-logo {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.logo-empresa {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+  </style>
+</head>
+<body>
+{% if g.user %}
+  {% set ep = request.endpoint or '' %}
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Menú">
+  <div class="shell">
+    <aside class="sidebar">
+<div class="brand">
+    <span class="brand-logo">
+        <img src="{{ url_for('static', filename='logo.png') }}"
+             alt="Logo de la empresa"
+             class="logo-empresa">
+    </span>
+    <span class="brand-name">{{ empresa }}</span>
+</div>      <nav class="nav">
+        <a href="{{ url_for('panel.inicio') }}" class="{{ 'on' if ep == 'panel.inicio' }}">{{ ico('home') }}<span>Panel</span></a>
+        {% if g.user.rol == 'admin' %}
+          <div class="nav-group">Cartera</div>
+          <a href="{{ url_for('admin.vendedores') }}" class="{{ 'on' if ep.startswith('admin.vendedor') }}">{{ ico('brief') }}<span>Vendedores</span></a>
+          <a href="{{ url_for('clientes.lista') }}" class="{{ 'on' if ep.startswith('clientes.') }}">{{ ico('users') }}<span>Clientes</span></a>
+          <div class="nav-group">Operación</div>
+          <a href="{{ url_for('ventas.lista') }}" class="{{ 'on' if ep.startswith('ventas.') }}">{{ ico('cart') }}<span>Ventas</span>{% if n_pendientes %}<b class="pill">{{ n_pendientes }}</b>{% endif %}</a>
+          <a href="{{ url_for('deudas.lista') }}" class="{{ 'on' if ep.startswith('deudas.') }}">{{ ico('dollar') }}<span>Deudas</span></a>
+          <div class="nav-group">Almacén</div>
+          <a href="{{ url_for('catalogo.productos') }}" class="{{ 'on' if ep in ('catalogo.productos','catalogo.producto_nuevo','catalogo.producto_editar','catalogo.categorias') }}">{{ ico('box') }}<span>Productos</span>{% if n_stock_alerta %}<b class="pill" title="Productos con stock en alerta">{{ n_stock_alerta }}</b>{% endif %}</a>
+          <a href="{{ url_for('armados.lista') }}" class="{{ 'on' if ep.startswith('armados.') }}">{{ ico('layers') }}<span>Pedidos para armar</span>{% if n_por_armar %}<b class="pill" title="Pedidos pendientes o sin asignar">{{ n_por_armar }}</b>{% endif %}</a>
+          <a href="{{ url_for('catalogo.movimiento') }}" class="{{ 'on' if ep == 'catalogo.movimiento' }}">{{ ico('plus') }}<span>Entradas y ajustes</span></a>
+          <a href="{{ url_for('catalogo.kardex') }}" class="{{ 'on' if ep == 'catalogo.kardex' }}">{{ ico('clip') }}<span>Kardex</span></a>
+          <div class="nav-group">Sistema</div>
+          <a href="{{ url_for('admin.reportes') }}" class="{{ 'on' if ep == 'admin.reportes' }}">{{ ico('chart') }}<span>Reportes</span></a>
+          <a href="{{ url_for('admin.auditoria') }}" class="{{ 'on' if ep == 'admin.auditoria' }}">{{ ico('file') }}<span>Auditoría</span></a>
+          <a href="{{ url_for('admin.historiales') }}" class="{{ 'on' if ep.startswith('admin.historial') }}">{{ ico('clip') }}<span>Archivos históricos</span></a>
+          <a href="{{ url_for('admin.configuracion') }}" class="{{ 'on' if ep == 'admin.configuracion' }}">{{ ico('sliders') }}<span>Configuración</span></a>
+        {% else %}
+          <a href="{{ url_for('ventas.nueva') }}" class="{{ 'on' if ep in ('ventas.nueva', 'ventas.carrito', 'ventas.confirmar') }}">{{ ico('plus') }}<span>Nueva venta</span>{% if n_carrito %}<b class="pill" title="Productos en tu carrito">{{ n_carrito }}</b>{% endif %}</a>
+          <a href="{{ url_for('catalogo.productos') }}" class="{{ 'on' if ep in ('catalogo.productos','catalogo.producto_nuevo','catalogo.producto_editar') }}">{{ ico('box') }}<span>Catálogo y stock</span></a>
+          {% if es_especial %}<a href="{{ url_for('armados.lista') }}" class="{{ 'on' if ep.startswith('armados.') }}">{{ ico('layers') }}<span>Pedidos para armar</span>{% if n_por_armar %}<b class="pill" title="Pedidos en tu bandeja">{{ n_por_armar }}</b>{% endif %}</a>{% endif %}
+          <a href="{{ url_for('ventas.lista') }}" class="{{ 'on' if ep in ('ventas.lista','ventas.detalle') }}">{{ ico('cart') }}<span>{{ 'Ventas' if es_especial else 'Mis ventas' }}</span>{% if es_especial and n_pendientes %}<b class="pill" title="Ventas pendientes por revisar">{{ n_pendientes }}</b>{% endif %}</a>
+          <a href="{{ url_for('clientes.lista') }}" class="{{ 'on' if ep.startswith('clientes.') }}">{{ ico('users') }}<span>Mis clientes</span></a>
+          <a href="{{ url_for('deudas.lista') }}" class="{{ 'on' if ep.startswith('deudas.') }}">{{ ico('dollar') }}<span>Mis deudores</span></a>
+        {% endif %}
+      </nav>
+      <div class="user-box">
+        <div class="user-info"><b>{{ g.user.nombre }}</b><small>{{ 'Administrador' if g.user.rol == 'admin' else ('Vendedor especial' if g.user.tipo_vendedor == 'especial' else 'Vendedor') }}</small></div>
+        <a class="icon-btn" href="{{ url_for('auth.cuenta') }}" title="Cambiar clave">{{ ico('key') }}</a>
+        <form method="post" action="{{ url_for('auth.logout') }}">{{ csrf_field() }}<button class="icon-btn" title="Cerrar sesión">{{ ico('logout') }}</button></form>
+      </div>
+    </aside>
+    <label for="nav-toggle" class="scrim"></label>
+    <main class="content">
+      <header class="topbar">
+        <label for="nav-toggle" class="burger" aria-label="Abrir menú">☰</label>
+        <h1>{% block titulo %}{% endblock %}</h1>
+        <div class="topbar-right">{% block acciones %}{% endblock %}</div>
+      </header>
+      {{ flashes() }}
+      {% block contenido %}{% endblock %}
+    </main>
+  </div>
+{% else %}
+  <main class="auth">{{ flashes() }}{{ self.contenido() }}</main>
+{% endif %}
+{% if g.user %}<script src="{{ url_for('static', filename='js/decimal-inputs.js') }}"></script>{% endif %}
+{% block scripts %}{% endblock %}
+{% if g.user %}<script src="{{ url_for('static', filename='js/lightbox.js') }}"></script>{% endif %}
+</body>
+</html>

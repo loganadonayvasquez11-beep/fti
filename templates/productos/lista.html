@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ 'Productos del almacén' if g.user.rol == 'admin' else 'Catálogo y stock' }}{% endblock %}
+{% block acciones %}
+  {% if puede_ver_stock %}<a class="btn" href="{{ url_for('catalogo.productos_pdf') }}" title="PDF con la lista de mercancía (sin precios ni cantidades)">Descargar lista PDF</a>{% endif %}
+  {% if g.user.rol == 'admin' %}<a class="btn" href="{{ url_for('catalogo.categorias') }}">Categorías</a>{% endif %}
+  {% if g.user.rol == 'admin' %}<a class="btn primary" href="{{ url_for('catalogo.producto_nuevo') }}">Nuevo producto</a>{% endif %}
+{% endblock %}
+{% block contenido %}
+{% set es_admin = g.user.rol == 'admin' %}
+{% include 'productos/_precios_recientes.html' %}
+{% if puede_ver_stock %}<p class="hint">Stock indica cuántas unidades de venta hay disponibles. «Unidad de venta» describe su presentación (por ejemplo, par, juego o 50 und); son datos separados.</p>{% endif %}
+<form class="filters card" method="get">
+  <input name="q" id="buscar-tienda" value="{{ q }}" placeholder="Buscar por nombre, categoría o código" autocomplete="off">
+  <select name="categoria" id="cat-tienda"><option value="">Todas las categorías</option>
+    {% for c in categorias %}<option value="{{ c.id }}" {{ 'selected' if cat == c.id }}>{{ c.nombre }}</option>{% endfor %}</select>
+  <label class="check"><input type="checkbox" name="bajo" value="1" {{ 'checked' if bajo }}> Stock bajo</label>
+  {% if es_admin %}<label class="check"><input type="checkbox" name="inactivos" value="1" {{ 'checked' if inactivos }}> Ver inactivos</label>{% endif %}
+  <button class="btn">Filtrar</button>
+  <span class="muted" id="contador-tienda"></span>
+</form>
+
+{% if productos %}
+<div class="ptabla-scroll"><table class="ptabla" id="tienda">
+  <thead><tr><th class="c-foto">Foto</th><th>Producto</th><th class="r">Precio mayor</th><th class="r">{{ 'Stock' if puede_ver_stock else 'Disponibilidad' }}</th>{% if puede_ver_stock %}<th class="r">Vendidos</th>{% endif %}<th>Unidad de venta</th>
+    {% if es_admin %}<th class="r">Alerta mín.</th>{% endif %}{% if es_admin %}<th class="r">Acciones</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for p in productos %}
+    {# alerta: el admin y el vendedor normal ven el producto en rojo cuando está en su mínimo (el normal sin ver cantidades) #}
+    {% set alerta = (es_admin or not puede_ver_stock) and p.stock <= p.minimo_ef %}
+    {% set agotado = p.stock <= 0 %}
+    <tr class="{{ 'inactivo' if not p.activo }} {{ 'en-alerta' if alerta }} {{ 'alerta-vend' if alerta and not puede_ver_stock }}" data-busqueda="{{ (p.codigo ~ ' ' ~ p.nombre ~ ' ' ~ (p.categoria or ''))|lower }}" data-cat="{{ p.categoria_id or '' }}">
+      <td class="c-foto">{% if p.imagen %}<img class="pfoto" src="{{ url_for('static', filename=p.imagen) }}" alt="{{ p.nombre }}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="psinfoto" hidden>Sin foto</span>{% else %}<span class="psinfoto">Sin foto</span>{% endif %}</td>
+      <td class="c-nombre" data-label="Producto"><b>{{ p.nombre }}</b>{% if p.id in ids_recientes %} <span class="badge warn" title="Precio cambiado en las últimas 48 horas">Precio nuevo</span>{% endif %}
+        <br><small class="muted"><span class="codigo-producto">{{ p.codigo }}</span>{% if p.categoria %} · {{ p.categoria }}{% endif %}{% if not p.activo %} · Inactivo{% endif %}</small></td>
+      <td data-label="Precio mayor" class="r">$ {{ p.precio_mayor_usd|num }}</td>
+      {% if puede_ver_stock %}
+      <td data-label="Stock" class="r estado-stock {{ 'neg' if alerta }}">{{ p.stock|qty }}{% if alerta %} <span class="badge bad">Alerta</span>{% endif %}</td>
+      <td data-label="Vendidos" class="r">{{ p.vendidos|qty }}</td>
+      {% else %}
+      <td data-label="Disponibilidad" class="r estado-stock">{% if agotado %}<span class="badge bad">Agotado · no hay más</span>{% elif alerta %}<span class="badge bad">Stock mínimo</span>{% else %}<span class="badge ok">Disponible</span>{% endif %}</td>
+      {% endif %}
+      <td data-label="Unidad de venta">{{ p.unidad }}</td>
+      {% if es_admin %}<td data-label="Alerta mín." class="r">{{ p.minimo_ef|qty }}</td>{% endif %}
+      {% if es_admin %}<td class="r nowrap c-acc">
+        <a class="btn sm" href="{{ url_for('catalogo.movimiento', producto=p.id) }}">Stock</a>
+        <a class="btn sm" href="{{ url_for('catalogo.producto_editar', pid=p.id) }}">Editar</a>
+        <form method="post" action="{{ url_for('catalogo.producto_eliminar', pid=p.id) }}" style="display:inline" onsubmit="return confirm('¿Eliminar o desactivar este producto? Se conservará el historial.');">{{ csrf_field() }}<button class="btn sm danger" type="submit">Eliminar</button></form>
+      </td>{% endif %}
+    </tr>
+  {% endfor %}
+  </tbody></table></div>
+<p class="muted vacio-tienda" id="vacio-tienda" hidden>Ningún producto coincide con tu búsqueda.</p>
+{% else %}<section class="card"><p class="muted">No hay productos con esos filtros.</p></section>{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/tienda.js') }}"></script>{% endblock %}

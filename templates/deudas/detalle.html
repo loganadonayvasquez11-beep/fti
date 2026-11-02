@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import estado_deuda_tag %}
+{% block titulo %}Deuda #{{ d.id }}{% endblock %}
+{% block acciones %}
+  {% if g.user.rol == 'admin' %}<a class="btn" href="{{ url_for('deudas.editar', deuda_id=d.id) }}">Editar deuda</a>{% endif %}
+{% endblock %}
+{% block contenido %}
+<section class="stats">
+  <div class="stat"><span>Monto de la deuda</span><b>$ {{ d.monto_usd|num }}</b></div>
+  <div class="stat"><span>Abonado</span><b class="pos">$ {{ d.abonado_usd|num }}</b></div>
+  <div class="stat {{ 'danger deuda-roja' if d.estado == 'activa' and d.saldo_usd > 0.005 }}"><span>Saldo pendiente</span><b>$ {{ (d.saldo_usd if d.saldo_usd > 0 else 0)|num }}</b></div>
+  <div class="stat"><span>Vence</span><b class="txt">{{ d.vencimiento|fecha }}</b><small>{{ d.dias_credito }} días de crédito · {{ estado_deuda_tag(d) }}</small></div>
+</section>
+
+<section class="card">
+  <div class="detail-head">
+    <div><span class="muted">Cliente</span><b><a href="{{ url_for('clientes.detalle', cliente_id=d.cliente_id) }}">{{ d.cliente_nombre }}</a></b><small class="muted">{{ d.cliente_documento }}</small></div>
+    <div><span class="muted">Vendedor</span><b>{{ d.vendedor_nombre }}</b></div>
+    <div><span class="muted">Concepto</span><b>{% if d.venta_id %}<a href="{{ url_for('ventas.detalle', venta_id=d.venta_id) }}">{{ d.concepto }}</a>{% else %}{{ d.concepto }}{% endif %}</b><small class="muted">Desde {{ d.fecha|fecha }}</small></div>
+  </div>
+  {% if d.estado == 'pendiente' %}<p class="flash warn">Esta deuda está esperando la aprobación de la venta por el administrador.</p>{% endif %}
+</section>
+
+{% if d.estado == 'activa' %}
+<section class="card form">
+  <h2>Registrar abono</h2>
+  <form method="post" action="{{ url_for('deudas.abonar', deuda_id=d.id) }}">
+    {{ csrf_field() }}
+    <div class="cols">
+      <label>Monto<input type="number" data-decimal-input step="0.01" min="0.01" name="monto" required></label>
+      <input type="hidden" name="moneda" value="USD">
+      <label>Método<select name="metodo">{% for m in ['Efectivo $', 'Transferencia', 'Zelle', 'Punto de venta', 'Otro'] %}<option>{{ m }}</option>{% endfor %}</select></label>
+      <label>Referencia<input name="referencia" placeholder="N° de operación"></label>
+    </div>
+    <label>Nota (opcional)<input name="nota"></label>
+    <p class="hint">Saldo: $ {{ d.saldo_usd|num }}</p>
+    <div class="actions"><button class="btn primary">Registrar abono</button></div>
+  </form>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Historial de abonos</h2>
+  {% if abonos %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Fecha</th><th class="r">Monto</th><th class="r">En $</th><th>Método</th><th>Registró</th><th></th></tr></thead>
+    <tbody>{% for a in abonos %}
+      <tr class="{{ 'inactivo' if a.anulado }}"><td data-label="Fecha">{{ a.fecha|fechahora }}</td>
+          <td data-label="Monto" class="r">{{ a.monto|money(a.moneda) }}</td><td data-label="En $" class="r">$ {{ a.monto_usd|num }}</td>
+          <td data-label="Método">{{ a.metodo or '—' }}{% if a.referencia %}<br><small class="muted">{{ a.referencia }}</small>{% endif %}</td>
+          <td data-label="Registró">{{ a.registrador or '—' }}</td>
+          <td class="r nowrap">{% if a.anulado %}<span class="badge mute">Anulado</span>{% endif %}
+            <a class="btn sm" href="{{ url_for('deudas.recibo_pdf', abono_id=a.id) }}">Descargar recibo PDF</a>
+            {% if g.user.rol == 'admin' and not a.anulado %}
+            <form method="post" action="{{ url_for('deudas.anular_abono', abono_id=a.id) }}" class="inline" onsubmit="return confirm('¿Anular este abono?');">{{ csrf_field() }}<button class="btn sm danger">Anular</button></form>{% endif %}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">Todavía no hay abonos.</p>{% endif %}
+</section>
+
+{% if g.user.rol == 'admin' %}
+<section class="card">
+  <h2>Administrar deuda</h2>
+  <div class="actions">
+    {% if d.estado == 'anulada' %}
+      <form method="post" action="{{ url_for('deudas.reactivar', deuda_id=d.id) }}">{{ csrf_field() }}<button class="btn primary">Volver a poner la deuda</button></form>
+    {% else %}
+      <form method="post" action="{{ url_for('deudas.anular', deuda_id=d.id) }}" onsubmit="return confirm('¿Quitar esta deuda? Podrás reactivarla después.');">{{ csrf_field() }}<button class="btn danger">Quitar deuda</button></form>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

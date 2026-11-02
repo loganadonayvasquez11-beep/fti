@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import color_cliente, cli_clase %}
+{% block titulo %}{{ 'Clientes' if g.user.rol == 'admin' else 'Mi cartera de clientes' }}{% endblock %}
+{% block acciones %}<a class="btn primary" href="{{ url_for('clientes.nuevo') }}">Nuevo cliente</a>{% endblock %}
+{% block contenido %}
+<form class="filters card" method="get">
+  <input name="q" value="{{ q }}" placeholder="Buscar por nombre, documento o teléfono">
+  {% if g.user.rol == 'admin' %}
+  <select name="vendedor"><option value="">Todos los vendedores</option>
+    {% for v in vendedores %}<option value="{{ v.id }}" {{ 'selected' if vendedor == v.id }}>{{ v.nombre }}</option>{% endfor %}</select>
+  {% endif %}
+  <button class="btn">Filtrar</button>
+</form>
+<section class="card">
+  {% if clientes %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Cliente</th><th>Documento</th>{% if g.user.rol == 'admin' %}<th>Vendedor</th>{% endif %}<th>Compras / deuda</th><th class="r">Debe</th><th></th></tr></thead>
+    <tbody>{% for c in clientes %}
+      <tr class="{{ cli_clase(c.color) }}"><td data-label="Cliente">{{ color_cliente(c.color) }}<a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}"><b>{{ c.nombre }}</b></a><br><small class="muted">{{ c.telefono }}</small></td>
+          <td data-label="Documento">{{ c.documento or '—' }}</td>
+          {% if g.user.rol == 'admin' %}<td data-label="Vendedor">{{ c.vendedor_nombre }}</td>{% endif %}
+          <td data-label="Compras / deuda" class="{{ 'deuda-roja' if c.deuda_usd > 0.005 }}">{{ 'Con saldo pendiente' if c.deuda_usd > 0.005 else 'Sin saldo pendiente' }}</td>
+          <td data-label="Debe" class="r {{ 'deuda-roja' if c.deuda_usd > 0.005 }}">{% if c.deuda_usd > 0.005 %}$ {{ c.deuda_usd|num }}{% else %}—{% endif %}</td>
+          <td class="r"><a class="btn sm" href="{{ url_for('clientes.editar', cliente_id=c.id) }}">Editar</a></td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">No hay clientes con esos filtros.</p>{% endif %}
+</section>
+{% endblock %}

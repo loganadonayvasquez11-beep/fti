@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import estado_venta, tipo_pago_tag, color_cliente, tipo_vendedor_tag, cli_clase %}
+{% block titulo %}{{ u.nombre }}{% endblock %}
+{% block acciones %}
+  <a class="btn" href="{{ url_for('clientes.nuevo') }}">Agregar cliente</a>
+  <a class="btn" href="{{ url_for('admin.vendedor_editar', vid=u.id) }}">Editar</a>
+{% endblock %}
+{% block contenido %}
+<section class="stats">
+  <div class="stat"><span>Clientes en su cartera</span><b>{{ clientes|length }}</b><small>{{ u.usuario }} · {{ u.telefono or 'sin teléfono' }} · Vendedor {{ 'especial' if u.tipo_vendedor == 'especial' else 'normal' }}</small></div>
+  <div class="stat {{ 'deuda-roja' if tot.por_cobrar > 0.005 }}"><span>Por cobrar</span><b>$ {{ tot.por_cobrar|num }}</b></div>
+  <div class="stat {{ 'danger deuda-roja' if tot.vencido > 0.005 }}"><span>Vencido</span><b>$ {{ tot.vencido|num }}</b></div>
+  <div class="stat"><span>Estado</span><b class="txt">{{ 'Activo' if u.activo else 'Fuera de la cartera' }}</b></div>
+</section>
+
+<section class="card">
+  <h2>Clientes y deudores</h2>
+  {% if clientes %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Cliente</th><th>Saldo del cliente</th><th>Próx. vencimiento</th><th class="r">Debe</th></tr></thead>
+    <tbody>{% for c in clientes %}
+      <tr class="{{ cli_clase(c.color) }}"><td data-label="Cliente">{{ color_cliente(c.color) }}<a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}"><b>{{ c.nombre }}</b></a></td>
+          <td data-label="Saldo del cliente" class="{{ 'deuda-roja' if c.deuda_usd > 0.005 }}">{{ ("Debe $ " ~ (c.deuda_usd|num)) if c.deuda_usd > 0.005 else "Sin saldo pendiente" }}</td>
+          <td data-label="Vence" class="{{ 'neg' if c.prox_venc and c.prox_venc < hoy }}">{{ c.prox_venc|fecha if c.prox_venc else '—' }}</td>
+          <td data-label="Debe" class="r {{ 'deuda-roja' if c.deuda_usd > 0.005 }}">{{ '$ ' ~ (c.deuda_usd|num) if c.deuda_usd > 0.005 else '—' }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">Este vendedor aún no tiene clientes.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Últimas ventas</h2>
+  {% if ventas %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>N°</th><th>Cliente</th><th class="r">Total</th><th>Estado</th></tr></thead>
+    <tbody>{% for v in ventas %}
+      <tr><td data-label="N°"><a href="{{ url_for('ventas.detalle', venta_id=v.id) }}">{{ v.numero }}</a></td><td data-label="Cliente">{{ v.cliente }}</td>
+          <td data-label="Total" class="r">{{ v.total|money(v.moneda) }}</td><td data-label="Estado">{{ estado_venta(v.estado) }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">Sin ventas todavía.</p>{% endif %}
+  <div class="actions"><a class="btn" href="{{ url_for('ventas.lista', vendedor=u.id) }}">Ver todas sus ventas</a> <a class="btn" href="{{ url_for('deudas.lista', vendedor=u.id) }}">Ver todas sus deudas</a></div>
+</section>
+
+<section class="card">
+  <h2>{{ 'Quitar de la cartera' if u.activo else 'Reactivar' }}</h2>
+  <form method="post" action="{{ url_for('admin.vendedor_estado', vid=u.id) }}" class="inline-form"
+        onsubmit="return confirm('{{ 'Quitar a este vendedor de tu cartera?' if u.activo else 'Reactivar vendedor?' }}');">
+    {{ csrf_field() }}
+    {% if u.activo %}
+      <select name="destino"><option value="">No traspasar su cartera</option>
+        {% for o in otros %}<option value="{{ o.id }}">Traspasar clientes y deudas a {{ o.nombre }}</option>{% endfor %}</select>
+      <button class="btn danger">Quitar vendedor</button>
+    {% else %}<button class="btn primary">Reactivar vendedor</button>{% endif %}
+  </form>
+  <p class="hint">El vendedor no se borra: se conserva todo su historial de ventas, pero deja de poder iniciar sesión.</p>
+</section>
+{% endblock %}

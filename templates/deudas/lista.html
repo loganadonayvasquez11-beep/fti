@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import estado_deuda_tag %}
+{% block titulo %}{{ 'Deudas' if g.user.rol == 'admin' else 'Mis deudores' }}{% endblock %}
+{% block acciones %}{% if g.user.rol == 'admin' %}<a class="btn primary" href="{{ url_for('deudas.nueva') }}">Poner deuda</a>{% endif %}{% endblock %}
+{% block contenido %}
+<form class="filters card" method="get">
+  <input name="q" value="{{ q }}" placeholder="Buscar por cliente">
+  <select name="estado">
+    {% for e, t in [('activas','Activas (por cobrar)'),('vencidas','Vencidas'),('pendiente','Por aprobar'),('pagada','Pagadas'),('anulada','Anuladas'),('todas','Todas')] %}
+    <option value="{{ e }}" {{ 'selected' if estado == e }}>{{ t }}</option>{% endfor %}</select>
+  {% if g.user.rol == 'admin' %}
+  <select name="vendedor"><option value="">Todos los responsables</option>
+    {% for v in vendedores %}<option value="{{ v.id }}" {{ 'selected' if vendedor == v.id }}>{{ v.nombre }}{% if v.id == g.user.id %} (mi perfil){% elif v.rol == 'admin' %} (administrador){% endif %}</option>{% endfor %}</select>
+  {% endif %}
+  <button class="btn">Filtrar</button>
+</form>
+<section class="card">
+  <div class="resumen-lista"><span class="muted">Total por cobrar en esta lista</span><b>$ {{ total|num }}</b></div>
+  {% if deudas %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Cliente</th>{% if g.user.rol == 'admin' %}<th>Vendedor</th>{% endif %}<th>Concepto</th><th>Vence</th><th class="r">Monto</th><th class="r">Saldo</th><th>Estado</th></tr></thead>
+    <tbody>{% for d in deudas %}
+      <tr><td data-label="Cliente"><a href="{{ url_for('deudas.detalle', deuda_id=d.id) }}"><b>{{ d.cliente_nombre }}</b></a></td>
+          {% if g.user.rol == 'admin' %}<td data-label="Vendedor">{{ d.vendedor_nombre }}</td>{% endif %}
+          <td data-label="Concepto">{{ d.concepto }}</td><td data-label="Vence">{{ d.vencimiento|fecha }}</td>
+          <td data-label="Monto" class="r {{ 'deuda-roja' if d.estado == 'activa' and d.saldo_usd > 0.005 }}">$ {{ d.monto_usd|num }}</td><td data-label="Saldo" class="r {{ 'deuda-roja' if d.estado == 'activa' and d.saldo_usd > 0.005 }}">$ {{ d.saldo_usd|num }}</td>
+          <td data-label="Estado">{{ estado_deuda_tag(d) }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">No hay deudas con esos filtros.</p>{% endif %}
+</section>
+{% endblock %}

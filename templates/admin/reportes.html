@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block titulo %}Reportes{% endblock %}
+{% block contenido %}
+<form class="filters card" method="get">
+  <label class="inline">Desde <input type="date" name="desde" value="{{ desde }}"></label>
+  <label class="inline">Hasta <input type="date" name="hasta" value="{{ hasta }}"></label>
+  <button class="btn">Ver reporte</button>
+</form>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Ventas aprobadas por vendedor</h2>
+    <div class="table-wrap"><table class="stack">
+      <thead><tr><th>Vendedor</th><th class="r">Ventas</th><th class="r">Total $</th></tr></thead>
+      <tbody>{% for v in por_vendedor %}<tr><td data-label="Vendedor">{{ v.nombre }}</td><td data-label="Ventas" class="r">{{ v.n }}</td><td data-label="Total" class="r">$ {{ v.total|num }}</td></tr>
+      {% else %}<tr><td colspan="3" class="muted">Sin datos.</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+  <section class="card">
+    <h2>Productos más vendidos</h2>
+    <div class="table-wrap"><table class="stack">
+      <thead><tr><th>Producto</th><th class="r">Cantidad</th></tr></thead>
+      <tbody>{% for p in top %}<tr><td data-label="Producto">{{ p.codigo }} · {{ p.nombre }}</td><td data-label="Cantidad" class="r">{{ p.cant|qty }}</td></tr>
+      {% else %}<tr><td colspan="2" class="muted">Sin datos.</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+</div>
+
+<section class="card">
+  <h2>Almacén valorizado</h2>
+  <p>Valor a precio mayor: <b>$ {{ valor.mayor|num }}</b></p>
+</section>
+
+<section class="card">
+  <h2>Ventas con precio modificado por el vendedor</h2>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Venta</th><th>Vendedor</th><th>Cliente</th><th>Producto</th><th class="r">Precio base</th><th class="r">Cobrado</th></tr></thead>
+    <tbody>{% for m in modificadas %}
+      <tr><td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=m.id) }}">{{ m.numero }}</a></td><td data-label="Vendedor">{{ m.vendedor }}</td>
+          <td data-label="Cliente">{{ m.cliente }}</td><td data-label="Producto">{{ m.producto }}</td>
+          <td data-label="Precio base" class="r">{{ m.precio_lista|money(m.moneda) }}</td>
+          <td data-label="Cobrado" class="r {{ 'neg' if m.precio_unit < m.precio_lista else 'pos' }}">{{ m.precio_unit|money(m.moneda) }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">Ningún precio fue modificado en este periodo.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}
