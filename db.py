@@ -1,7 +1,6 @@
-"""Acceso a PostgreSQL/SQLite y creación inicial del esquema."""
+"""Acceso PostgreSQL y creación inicial del esquema."""
 import os
 import re
-import sqlite3
 
 from flask import current_app, g
 from werkzeug.security import generate_password_hash
@@ -55,27 +54,24 @@ class PostgreSQLConnection:
 
 
 def get_db():
-    """Devuelve la conexión configurada para la petición actual."""
+    """Devuelve la conexión PostgreSQL configurada para la petición actual."""
     if "db" not in g:
         database_url = current_app.config.get("DATABASE_URL")
-        if database_url:
-            try:
-                import psycopg
-                from psycopg.rows import dict_row
-            except ImportError as exc:
-                raise RuntimeError(
-                    "PostgreSQL requiere psycopg. Instala las dependencias con "
-                    "'pip install -r requirements.txt'."
-                ) from exc
-            if database_url.startswith("postgres://"):
-                database_url = "postgresql://" + database_url[len("postgres://"):]
-            g.db = PostgreSQLConnection(
-                psycopg.connect(database_url, row_factory=dict_row)
-            )
-        else:
-            g.db = sqlite3.connect(current_app.config["DATABASE"])
-            g.db.row_factory = sqlite3.Row
-            g.db.execute("PRAGMA foreign_keys = ON")
+        if not database_url:
+            raise RuntimeError("DATABASE_URL no está configurada; esta aplicación requiere PostgreSQL.")
+        try:
+            import psycopg
+            from psycopg.rows import dict_row
+        except ImportError as exc:
+            raise RuntimeError(
+                "PostgreSQL requiere psycopg. Instala las dependencias con "
+                "'pip install -r requirements.txt'."
+            ) from exc
+        if database_url.startswith("postgres://"):
+            database_url = "postgresql://" + database_url[len("postgres://"):]
+        g.db = PostgreSQLConnection(
+            psycopg.connect(database_url, row_factory=dict_row)
+        )
     return g.db
 
 
@@ -110,7 +106,7 @@ def table_columns(db, table):
             "SELECT column_name AS name FROM information_schema.columns "
             "WHERE table_schema = current_schema() AND table_name = ?", (table,)
         ).fetchall()}
-    return {r["name"] for r in db.execute(f"PRAGMA table_info({table})").fetchall()}
+    raise TypeError("Se requiere una conexión PostgreSQL.")
 
 
 def table_exists(db, table):
@@ -119,9 +115,7 @@ def table_exists(db, table):
             "SELECT 1 FROM information_schema.tables "
             "WHERE table_schema = current_schema() AND table_name = ?", (table,)
         ).fetchone())
-    return bool(db.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
-    ).fetchone())
+    raise TypeError("Se requiere una conexión PostgreSQL.")
 
 
 # Valores por defecto de la tabla de configuración

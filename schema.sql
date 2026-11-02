@@ -1,5 +1,5 @@
 -- ============================================================
---  ESQUEMA DE LA BASE DE DATOS (SQLite)
+--  ESQUEMA DE LA BASE DE DATOS
 --  Todos los montos monetarios internos se guardan en USD
 --  (columna *_usd) y las ventas/abonos guardan además la moneda
 --  original y la tasa (Bs por 1 USD) usada en ese momento.

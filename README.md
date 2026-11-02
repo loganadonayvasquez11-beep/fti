@@ -1,10 +1,10 @@
 # Sistema de Inventario y Ventas a Crédito
 
-Flask + PostgreSQL para uso en red (SQLite sigue disponible para uso local) + CSS (estilo Windows 11 modo oscuro) con muy poco JavaScript.
+Flask + PostgreSQL obligatorio + CSS (estilo Windows 11 modo oscuro) con muy poco JavaScript.
 
 ## PostgreSQL para uso en red
 
-Los teléfonos y otros equipos **no se conectan directamente a la base de datos**: se conectan a Flask en el PC servidor. PostgreSQL queda local en ese PC, lo que evita compartir el archivo SQLite entre dispositivos y mejora el manejo de escrituras simultáneas. SQLite se conserva como alternativa local y como origen intacto de la migración.
+Los teléfonos y otros equipos **no se conectan directamente a la base de datos**: se conectan a Flask en el PC servidor. La aplicación requiere PostgreSQL y no crea ni utiliza archivos SQLite.
 
 1. Instala PostgreSQL en el PC servidor. Durante la instalación elige una contraseña fuerte para el usuario `postgres`; no la compartas.
 2. Instala las dependencias desde PowerShell en la carpeta del sistema:
@@ -19,14 +19,14 @@ Los teléfonos y otros equipos **no se conectan directamente a la base de datos*
    python configurar_postgresql.py
    ```
 
-   El asistente pide la contraseña de `postgres` sin mostrarla, crea un usuario de aplicación sin permisos de superusuario y la base `fti_db`, valida/copia SQLite y guarda las conexiones localmente para tu usuario de Windows. Si `fti_db` ya existe, se detiene sin modificarla. Mantén Flask cerrado mientras haces la migración.
+   El asistente pide la contraseña de `postgres` sin mostrarla, crea un usuario de aplicación sin permisos de superusuario y la base `fti_db`, y guarda la conexión localmente para tu usuario de Windows. Si `fti_db` ya existe, se detiene sin modificarla.
 4. Cierra y vuelve a abrir PowerShell, y luego inicia el servidor:
 
    ```powershell
    python app.py
    ```
 
-   `DATABASE_URL` y `SECRET_KEY` quedan configuradas para tu usuario; no compartas esos valores. El archivo `inventario.db` se conserva como respaldo sin cambios.
+   `DATABASE_URL` y `SECRET_KEY` quedan configuradas para tu usuario; no compartas esos valores.
 
 PostgreSQL debe aceptar conexiones solo desde el PC servidor (`127.0.0.1`); **no abras su puerto en el router ni en el firewall para los teléfonos**. Para el acceso Wi-Fi, permite solo el servidor web de Flask en la red privada, siguiendo los pasos de abajo.
 
@@ -38,9 +38,7 @@ En el PC que tiene la base de datos, abre PowerShell en esta carpeta y ejecuta:
 python app.py
 ```
 
-En una instalación SQLite nueva, configura `INITIAL_ADMIN_PASSWORD` de forma privada antes del primer arranque; no se crea una cuenta con contraseña predeterminada. Si la base ya tiene un administrador, no hace falta definirla.
-
-La primera vez, si Windows pregunta por el acceso de red, permite Python **solo en redes privadas**. No habilites redes públicas ni crees una regla para Internet. Si usas PostgreSQL, conserva `DATABASE_URL` definida en esa misma sesión.
+La primera vez, si Windows pregunta por el acceso de red, permite Python **solo en redes privadas**. No habilites redes públicas ni crees una regla para Internet. `DATABASE_URL` debe estar disponible para el proceso; si falta, Flask se detiene en vez de usar SQLite.
 
 Para entrar desde un teléfono o desde otro PC:
 
@@ -110,10 +108,10 @@ Nota de venta, recibo de abono y estado de cuenta del cliente (botones en cada p
 
 ```
 app.py          fábrica de la app, filtros, seguridad CSRF
-config.py       configuración (SECRET_KEY, DATABASE_URL o ruta SQLite)
-db.py / schema.sql   conexión PostgreSQL/SQLite, tablas y datos demo
-migrar_postgresql.py copia validada de SQLite a PostgreSQL
-configurar_postgresql.py   prepara PostgreSQL local y ejecuta la migración inicial
+config.py       configuración (SECRET_KEY y DATABASE_URL obligatoria)
+db.py / schema.sql   conexión PostgreSQL y esquema
+migrar_postgresql.py utilidad opcional para importar una base SQLite externa
+configurar_postgresql.py   prepara PostgreSQL local
 services.py     reglas de negocio (ventas, aprobación, stock, deudas, abonos)
 pdf.py          generación de PDF (ReportLab)
 utils.py        fechas, formatos, login/roles/CSRF

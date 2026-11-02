@@ -17,19 +17,18 @@ def create_app():
     """Crea y configura la aplicación: base de datos, filtros, seguridad y rutas."""
     app = Flask(__name__)
     app.config.from_object(Config)
+    if not app.config.get("DATABASE_URL"):
+        raise RuntimeError(
+            "DATABASE_URL no está configurada. Esta aplicación requiere PostgreSQL y no usa SQLite."
+        )
     db.init_app(app)
 
     # Actualiza el esquema existente y elimina los campos de venta al detal.
-    if app.config.get("DATABASE_URL"):
-        with app.app_context():
-            connection = db.get_db()
-            if db.table_exists(connection, "usuarios"):
-                db.migrar_roles_y_colores(connection)
-                db.migrar_solo_mayor(connection)
-    elif os.path.exists(app.config["DATABASE"]):
-        with app.app_context():
-            db.migrar_roles_y_colores(db.get_db())
-            db.migrar_solo_mayor(db.get_db())
+    with app.app_context():
+        connection = db.get_db()
+        if db.table_exists(connection, "usuarios"):
+            db.migrar_roles_y_colores(connection)
+            db.migrar_solo_mayor(connection)
 
     # ----------------------------------------------------------- filtros Jinja
     app.add_template_filter(fmt_num, "num")            # {{ 1234.5|num }} -> 1.234,50
@@ -141,8 +140,7 @@ def create_app():
         click.echo(("PDF generado: " if creado else "PDF actualizado: ") + fila["ruta"])
 
     @app.cli.command("migrate-sqlite-to-postgresql")
-    @click.option("--source", default=app.config["DATABASE"], show_default=True,
-                  help="Archivo SQLite que se va a copiar; nunca se modifica.")
+    @click.option("--source", required=True, help="Archivo SQLite de origen; nunca se modifica.")
     def migrate_sqlite_to_postgresql_cmd(source):
         """Copia los datos SQLite a una base PostgreSQL vacía."""
         if not app.config.get("DATABASE_URL"):
@@ -158,12 +156,8 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    # PostgreSQL se inicializa de forma idempotente; SQLite solo al primer arranque.
+    # PostgreSQL se inicializa de forma idempotente.
     if app.config.get("DATABASE_URL"):
         with app.app_context():
             db.init_db()
-    elif not os.path.exists(app.config["DATABASE"]):
-        with app.app_context():
-            db.init_db()
-        print("Base de datos creada.")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)
