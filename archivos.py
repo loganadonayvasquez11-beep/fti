@@ -1,6 +1,6 @@
 """Archivo diario de reportes PDF. Los registros fuente se conservan para auditoría."""
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from io import BytesIO
 import os
 
@@ -21,6 +21,19 @@ GRIS = colors.HexColor("#555555")
 GRIS_CLARO = colors.HexColor("#f0f0f0")
 
 
+def resolver_ruta_archivo_historico(ruta):
+    """Resuelve rutas guardadas en otro sistema operativo dentro del archivo persistente."""
+    carpeta = (Path(current_app.instance_path) / "archivos_historicos").resolve()
+    ruta_original = str(ruta)
+    ruta_local = Path(ruta_original)
+    if ruta_local.is_absolute():
+        resuelta = ruta_local.resolve()
+        if carpeta in resuelta.parents:
+            return resuelta
+    nombre = PureWindowsPath(ruta_original).name if "\\" in ruta_original else ruta_local.name
+    return (carpeta / nombre).resolve()
+
+
 def limpiar_archivos_historicos_vencidos(fecha_actual=None):
     """Conserva únicamente el PDF diario vigente y sus metadatos."""
     db = get_db()
@@ -32,7 +45,7 @@ def limpiar_archivos_historicos_vencidos(fecha_actual=None):
         (fecha_actual,),
     ).fetchone()
     id_actual = fila_actual["id"] if fila_actual else None
-    ruta_actual = Path(fila_actual["ruta"]).resolve() if fila_actual else None
+    ruta_actual = resolver_ruta_archivo_historico(fila_actual["ruta"]) if fila_actual else None
     filas_vencidas = db.execute(
         "SELECT id, ruta FROM archivos_historicos WHERE id != ?",
         (id_actual if id_actual is not None else -1,),
@@ -44,7 +57,7 @@ def limpiar_archivos_historicos_vencidos(fecha_actual=None):
     db.commit()
 
     carpeta = (Path(current_app.instance_path) / "archivos_historicos").resolve()
-    rutas = {Path(fila["ruta"]).resolve() for fila in filas_vencidas}
+    rutas = {resolver_ruta_archivo_historico(fila["ruta"]) for fila in filas_vencidas}
     rutas.update(carpeta.glob("historial_*.pdf"))
     for ruta in rutas:
         ruta = ruta.resolve()
@@ -223,9 +236,9 @@ def generar_archivo_diario(usuario_id=None):
             ("Archivo histórico diario", desde, hasta, ahora(), str(ruta), usuario_id, archivo_id))
     else:
         cur = db.execute("""INSERT INTO archivos_historicos(titulo,tipo,desde,hasta,generado,ruta,usuario_id,estado)
-            VALUES(?,?,?,?,?,?,?,'listo') RETURNING id""",
+            VALUES(?,?,?,?,?,?,?,'listo')""",
             ("Archivo histórico diario", "diario", desde, hasta, ahora(), str(ruta), usuario_id))
-        archivo_id = cur.fetchone()["id"]
+        archivo_id = cur.lastrowid
     db.commit()
     limpiar_archivos_historicos_vencidos(fecha_dia)
     fila = db.execute("SELECT * FROM archivos_historicos WHERE id=?", (archivo_id,)).fetchone()

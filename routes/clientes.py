@@ -86,11 +86,11 @@ def nuevo():
         db = get_db()
         cur = db.execute(
             """INSERT INTO clientes (vendedor_id, nombre, documento, telefono, direccion, tipo_pago,
-               dias_credito, limite_credito_usd, creado) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id""",
+               dias_credito, limite_credito_usd, creado) VALUES (?,?,?,?,?,?,?,?,?)""",
             (vendedor_id, datos["nombre"], datos["documento"], datos["telefono"], datos["direccion"],
              datos["tipo_pago"], datos["dias_credito"] or 0, datos["limite"], ahora()))
         db.commit()
-        cliente_id = cur.fetchone()["id"]
+        cliente_id = cur.lastrowid
         audit("cliente_creado", datos["nombre"])
         aviso("Cliente agregado a la cartera.")
         siguiente = request.args.get("volver_a_venta")

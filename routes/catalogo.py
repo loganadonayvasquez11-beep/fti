@@ -128,10 +128,10 @@ def producto_nuevo():
         with db:
             cur = db.execute(
                 """INSERT INTO productos (codigo, nombre, imagen, categoria_id, unidad, precio_mayor_usd,
-                   stock_minimo, creado) VALUES (?,?,?,?,?,?,?,?) RETURNING id""",
+                   stock_minimo, creado) VALUES (?,?,?,?,?,?,?,?)""",
                 (d["codigo"], d["nombre"], imagen, d["categoria_id"], d["unidad"], d["mayor"],
                  d["minimo"], ahora()))
-        producto_id = cur.fetchone()["id"]
+        producto_id = cur.lastrowid
         inicial = to_float(request.form.get("stock_inicial"))
         if inicial > 0:
             registrar_movimiento_manual(producto_id, "entrada", inicial, "Stock inicial", g.user["id"])

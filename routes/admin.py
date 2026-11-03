@@ -5,7 +5,8 @@ from werkzeug.security import generate_password_hash
 from db import get_db, query
 from services import audit, get_config, set_config
 from utils import ahora, aviso, hoy, roles_required, to_float, to_int
-from archivos import generar_archivo_diario, limpiar_archivos_historicos_vencidos
+from archivos import (generar_archivo_diario, limpiar_archivos_historicos_vencidos,
+                      resolver_ruta_archivo_historico)
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -51,11 +52,11 @@ def vendedor_nuevo():
             db = get_db()
             cur = db.execute(
                 "INSERT INTO usuarios (usuario, nombre, clave_hash, rol, telefono, email, creado, tipo_vendedor) "
-                "VALUES (?,?,?,?,?,?,?,?) RETURNING id",
+                "VALUES (?,?,?,?,?,?,?,?)",
                 (usuario, nombre, generate_password_hash(clave), "vendedor", f.get("telefono", "").strip(),
                  f.get("email", "").strip(), ahora(), _tipo_vendedor(f)))
             db.commit()
-            vendedor_id = cur.fetchone()["id"]
+            vendedor_id = cur.lastrowid
             audit("vendedor_creado", usuario)
             aviso("Vendedor agregado a tu cartera.")
             return redirect(url_for("admin.vendedor_detalle", vid=vendedor_id))
@@ -238,7 +239,7 @@ def historial_descargar(archivo_id):
     fila = query("SELECT * FROM archivos_historicos WHERE id=? AND estado='listo'", (archivo_id,), one=True)
     if not fila:
         abort(404)
-    ruta = Path(fila["ruta"]).resolve()
+    ruta = resolver_ruta_archivo_historico(fila["ruta"])
     carpeta = (Path(current_app.instance_path) / "archivos_historicos").resolve()
     if carpeta not in ruta.parents or not ruta.is_file():
         abort(404)

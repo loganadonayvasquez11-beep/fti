@@ -310,12 +310,12 @@ def crear_venta(vendedor_id, form, items):
                (fecha, cliente_id, vendedor_id, tipo_pago, dias_credito, moneda, tasa,
                 metodo_pago, subtotal, descuento, total, total_usd, estado, pagada, nota,
                 fecha_aprobacion)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (ahora(), cliente["id"], vendedor_id, tipo_pago, dias, moneda, tasa,
              form.get("metodo_pago", "").strip(), subtotal, descuento, total, total_usd, estado,
              1 if auto else 0, form.get("nota", "").strip(), ahora() if auto else None),
         )
-        venta_id = cur.fetchone()["id"]
+        venta_id = cur.lastrowid
         db.execute("UPDATE ventas SET numero = ? WHERE id = ?", (f"V-{venta_id:06d}", venta_id))
         for l in lineas:
             db.execute(
@@ -340,7 +340,7 @@ def crear_venta(vendedor_id, form, items):
             if cuota_inicial_usd > 0:
                 db.execute(
                     """INSERT INTO abonos (deuda_id, fecha, monto, moneda, tasa, monto_usd, metodo, referencia,
-                       nota, registrado_por) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id""",
+                       nota, registrado_por) VALUES (?,?,?,?,?,?,?,?,?,?)""",
                     (deuda_id, ahora(), cuota_inicial, moneda, tasa, cuota_inicial_usd,
                      form.get("metodo_pago", "").strip(), f"Cuota inicial V-{venta_id:06d}",
                      "Cuota inicial recibida al registrar la venta", vendedor_id),
@@ -502,11 +502,11 @@ def crear_deuda_manual(admin_id, cliente_id, concepto, monto_usd, dias):
     with db:
         cur = db.execute(
             """INSERT INTO deudas (cliente_id, vendedor_id, venta_id, concepto, monto_usd, fecha,
-               dias_credito, vencimiento, estado, creado_por) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id""",
+               dias_credito, vencimiento, estado, creado_por) VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (cliente_id, c["vendedor_id"], None, concepto or "Deuda manual", round(monto_usd, 2), hoy(),
              dias, sumar_dias(hoy(), dias), "activa", admin_id),
         )
-    deuda_id = cur.fetchone()["id"]
+    deuda_id = cur.lastrowid
     audit("deuda_manual", f"deuda #{deuda_id} cliente={c['nombre']} monto_usd={monto_usd}")
     return deuda_id
 

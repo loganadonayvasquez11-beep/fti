@@ -17,10 +17,6 @@ def create_app():
     """Crea y configura la aplicación: base de datos, filtros, seguridad y rutas."""
     app = Flask(__name__)
     app.config.from_object(Config)
-    if not app.config.get("DATABASE_URL"):
-        raise RuntimeError(
-            "DATABASE_URL no está configurada. Esta aplicación requiere PostgreSQL y no usa SQLite."
-        )
     db.init_app(app)
 
     # Actualiza el esquema existente y elimina los campos de venta al detal.
@@ -132,6 +128,24 @@ def create_app():
         db.init_db(demo=demo)
         click.echo("Base de datos lista.")
 
+    @app.cli.command("migrate-postgresql-to-sqlite")
+    @click.option("--destination", help="Archivo SQLite de destino; por defecto DATABASE_PATH.")
+    def migrate_postgresql_to_sqlite_cmd(destination):
+        """Copia los datos de PostgreSQL a una base SQLite vacía."""
+        source_url = (os.environ.get("POSTGRESQL_SOURCE_URL")
+                      or os.environ.get("DATABASE_URL", "")).strip()
+        if not source_url:
+            raise click.ClickException(
+                "Define POSTGRESQL_SOURCE_URL (o DATABASE_URL) para leer la base PostgreSQL."
+            )
+        from migrar_postgresql_sqlite import migrate_postgresql_to_sqlite
+        ruta = destination or app.config["DATABASE_PATH"]
+        try:
+            migrate_postgresql_to_sqlite(source_url, ruta)
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise click.ClickException(str(exc)) from exc
+        click.echo(f"Migración verificada. Base SQLite creada en: {ruta}")
+
     @app.cli.command("archive-daily")
     def archive_daily_cmd():
         """Genera o actualiza manualmente el PDF histórico de hoy."""
@@ -139,25 +153,12 @@ def create_app():
         fila, creado = generar_archivo_diario(None)
         click.echo(("PDF generado: " if creado else "PDF actualizado: ") + fila["ruta"])
 
-    @app.cli.command("migrate-sqlite-to-postgresql")
-    @click.option("--source", required=True, help="Archivo SQLite de origen; nunca se modifica.")
-    def migrate_sqlite_to_postgresql_cmd(source):
-        """Copia los datos SQLite a una base PostgreSQL vacía."""
-        if not app.config.get("DATABASE_URL"):
-            raise click.ClickException("Define DATABASE_URL para conectar con PostgreSQL.")
-        from migrar_postgresql import migrate_sqlite_to_postgresql
-        with app.app_context():
-            migrate_sqlite_to_postgresql(source, db.get_db())
-        click.echo("Migración terminada. SQLite se conservó sin cambios.")
-
     return app
 
 
 app = create_app()
 
 if __name__ == "__main__":
-    # PostgreSQL se inicializa de forma idempotente.
-    if app.config.get("DATABASE_URL"):
-        with app.app_context():
-            db.init_db()
+    with app.app_context():
+        db.init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)

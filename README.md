@@ -1,44 +1,36 @@
 # Sistema de Inventario y Ventas a Crédito
 
-Flask + PostgreSQL obligatorio + CSS (estilo Windows 11 modo oscuro) con muy poco JavaScript.
+Flask + SQLite + CSS (estilo Windows 11 modo oscuro) con muy poco JavaScript.
 
-## PostgreSQL para uso en red
+La aplicación guarda por defecto la base en `instance/inventario.db`. Esa carpeta y sus datos no se versionan. Puedes cambiar la ruta mediante la variable de entorno `DATABASE_PATH`.
 
-Los teléfonos y otros equipos **no se conectan directamente a la base de datos**: se conectan a Flask en el PC servidor. La aplicación requiere PostgreSQL y no crea ni utiliza archivos SQLite.
+## Instalación y uso local
 
-1. Instala PostgreSQL en el PC servidor. Durante la instalación elige una contraseña fuerte para el usuario `postgres`; no la compartas.
-2. Instala las dependencias desde PowerShell en la carpeta del sistema:
+Instala las dependencias desde PowerShell en la carpeta del sistema:
 
-   ```powershell
-   pip install -r requirements.txt
-   ```
+```powershell
+pip install -r requirements.txt
+```
 
-3. En PowerShell, ejecuta el asistente de configuración:
+Define `INITIAL_ADMIN_PASSWORD` al crear una base vacía y arranca la aplicación:
 
-   ```powershell
-   python configurar_postgresql.py
-   ```
+```powershell
+$env:INITIAL_ADMIN_PASSWORD = "elige-una-clave-segura"
+python app.py
+Remove-Item Env:INITIAL_ADMIN_PASSWORD
+```
 
-   El asistente pide la contraseña de `postgres` sin mostrarla, crea un usuario de aplicación sin permisos de superusuario y la base `fti_db`, y guarda la conexión localmente para tu usuario de Windows. Si `fti_db` ya existe, se detiene sin modificarla.
-4. Cierra y vuelve a abrir PowerShell, y luego inicia el servidor:
-
-   ```powershell
-   python app.py
-   ```
-
-   `DATABASE_URL` y `SECRET_KEY` quedan configuradas para tu usuario; no compartas esos valores.
-
-PostgreSQL debe aceptar conexiones solo desde el PC servidor (`127.0.0.1`); **no abras su puerto en el router ni en el firewall para los teléfonos**. Para el acceso Wi-Fi, permite solo el servidor web de Flask en la red privada, siguiendo los pasos de abajo.
+La clave solo se necesita cuando todavía no existe un administrador. No uses una contraseña real de otros servicios.
 
 ## Cómo arrancarlo en la red local
 
-En el PC que tiene la base de datos, abre PowerShell en esta carpeta y ejecuta:
+Abre PowerShell en esta carpeta y ejecuta:
 
-```bash
+```powershell
 python app.py
 ```
 
-La primera vez, si Windows pregunta por el acceso de red, permite Python **solo en redes privadas**. No habilites redes públicas ni crees una regla para Internet. `DATABASE_URL` debe estar disponible para el proceso; si falta, Flask se detiene en vez de usar SQLite.
+La primera vez, si Windows pregunta por el acceso de red, permite Python **solo en redes privadas**. No habilites redes públicas ni crees una regla para Internet.
 
 Para entrar desde un teléfono o desde otro PC:
 
@@ -51,25 +43,32 @@ El servidor debe permanecer abierto en el PC mientras se use la aplicación. La 
 
 Si quieres conservar las sesiones iniciadas al reiniciar el servidor, define una variable de entorno `SECRET_KEY` persistente y privada antes de arrancarlo. Si no se define, se genera una clave aleatoria al iniciar y las sesiones se cierran cuando el proceso se reinicia. Se puede cambiar el puerto con la variable `PORT` (5000 por defecto).
 
-Al crear una base nueva, define `INITIAL_ADMIN_PASSWORD` en el entorno antes de ejecutar `flask --app app init-db`. No se proporciona una contraseña predeterminada. Para cargar datos de prueba con `--demo`, define también `DEMO_USER_PASSWORD`; no uses cuentas de demostración en producción. Cambia las claves desde el sistema y configura una `SECRET_KEY` privada antes de usarlo en serio.
+Para inicializar la base sin arrancar el servidor, define `INITIAL_ADMIN_PASSWORD` y ejecuta `flask --app app init-db`. No se proporciona una contraseña predeterminada. Para cargar datos de prueba con `--demo`, define también `DEMO_USER_PASSWORD`; no uses cuentas de demostración en producción. Configura una `SECRET_KEY` privada antes de publicar la app.
 Después entra a **Configuración** y coloca los datos de tu empresa (salen en los PDF).
 
 ## Despliegue en PythonAnywhere
 
 1. Crea un entorno virtual con una versión de Python compatible con `requirements.txt` e instala las dependencias con `pip install -r requirements.txt`.
-2. Configura `DATABASE_URL` y `SECRET_KEY` en el archivo WSGI de PythonAnywhere, que está fuera del repositorio. Usa valores aleatorios/fuertes y no los guardes en Git.
-3. Antes de publicar el sitio, en una consola Bash solicita las credenciales de forma oculta e inicializa una base vacía:
+2. En la configuración WSGI de PythonAnywhere, configura una clave privada para `SECRET_KEY` y la ruta permanente del archivo SQLite:
 
-   ```bash
-   cd ~/fti
-   source ~/.virtualenvs/fti/bin/activate
-   read -s -p "DATABASE_URL: " DATABASE_URL; export DATABASE_URL; echo
-   read -s -p "Clave inicial de admin: " INITIAL_ADMIN_PASSWORD; export INITIAL_ADMIN_PASSWORD; echo
-   flask --app app init-db
-   unset INITIAL_ADMIN_PASSWORD
+   ```python
+   import os
+   os.environ["SECRET_KEY"] = "reemplaza-por-una-clave-larga-y-aleatoria"
+   os.environ["DATABASE_PATH"] = "/home/tu_usuario/fti/instance/inventario.db"
    ```
 
-4. En la configuración WSGI de PythonAnywhere, agrega la carpeta del proyecto a `sys.path` y expón la aplicación:
+   No guardes esos valores en Git. La carpeta `instance` debe existir y ser escribible por la aplicación.
+3. Migra primero los datos PostgreSQL desde el PC que puede acceder a la base. Conserva la base original y genera una copia SQLite:
+
+   ```powershell
+   $env:POSTGRESQL_SOURCE_URL = $env:DATABASE_URL
+   flask --app app migrate-postgresql-to-sqlite --destination instance/inventario.db
+   Remove-Item Env:POSTGRESQL_SOURCE_URL
+   ```
+
+   La migración solo lee PostgreSQL, valida cantidades, contenido, integridad y relaciones, y rechaza destinos con tablas existentes. Si no tienes `DATABASE_URL` configurada, define `POSTGRESQL_SOURCE_URL` con la URL privada de PostgreSQL. No publiques ni compartas esa URL.
+4. Sube el archivo `instance/inventario.db` generado a PythonAnywhere, a la ruta configurada en `DATABASE_PATH`. No ejecutes `init-db` sobre una base que ya contiene datos.
+5. En la configuración WSGI agrega la carpeta del proyecto a `sys.path` y expón la aplicación:
 
    ```python
    import sys
@@ -81,9 +80,9 @@ Después entra a **Configuración** y coloca los datos de tu empresa (salen en l
    from app import app as application
    ```
 
-5. Configura los archivos estáticos y recarga la aplicación desde el panel de PythonAnywhere. El repositorio incluye el catálogo `productos_nuevos.json` y las imágenes de `static/uploads/productos/`; las imágenes nuevas que agregues a esa carpeta se versionan. Las bases de datos, respaldos, otros archivos subidos y datos de clientes/ventas quedan fuera del repositorio y deben restaurarse o importarse por un procedimiento separado y seguro.
+6. Sube también las imágenes en `static/uploads/productos/` y los PDFs históricos de `instance/archivos_historicos/`, si los necesitas. Configura los archivos estáticos y recarga la aplicación desde el panel.
 
-No ejecutes `init-db --demo` en producción. Si importas una base que ya tiene administrador, `INITIAL_ADMIN_PASSWORD` no cambia las credenciales de las cuentas existentes.
+SQLite guarda la base junto a los archivos de la aplicación y es adecuada para un uso de bajo volumen; permite una escritura a la vez. Conserva copias de seguridad regulares y no ejecutes la aplicación en varios servidores compartiendo el mismo archivo. No ejecutes `init-db --demo` en producción.
 
 ## Reglas de negocio
 
@@ -108,10 +107,10 @@ Nota de venta, recibo de abono y estado de cuenta del cliente (botones en cada p
 
 ```
 app.py          fábrica de la app, filtros, seguridad CSRF
-config.py       configuración (SECRET_KEY y DATABASE_URL obligatoria)
-db.py / schema.sql   conexión PostgreSQL y esquema
-migrar_postgresql.py utilidad opcional para importar una base SQLite externa
-configurar_postgresql.py   prepara PostgreSQL local
+config.py       configuración (SECRET_KEY y ruta de SQLite)
+db.py / schema.sql   conexión SQLite y esquema
+migrar_postgresql_sqlite.py   copia PostgreSQL a SQLite sin alterar el origen
+configurar_postgresql.py   utilidad antigua para instalaciones PostgreSQL
 services.py     reglas de negocio (ventas, aprobación, stock, deudas, abonos)
 pdf.py          generación de PDF (ReportLab)
 utils.py        fechas, formatos, login/roles/CSRF
