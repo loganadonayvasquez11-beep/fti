@@ -44,7 +44,7 @@ ESTILO = {
     "der": ParagraphStyle("d", parent=_base["Normal"], fontSize=9, leading=12, fontName="Helvetica-Bold", alignment=2),
     "vencimiento": ParagraphStyle(
         "vencimiento", parent=_base["Normal"], fontSize=13, leading=16,
-        fontName="Helvetica-Bold", textColor=colors.HexColor("#fa0303"),
+        fontName="Helvetica-Bold", textColor=colors.black,
     ),
 }
 
