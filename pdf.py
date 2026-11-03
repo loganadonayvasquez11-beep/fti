@@ -15,7 +15,7 @@ from db import query
 from services import get_config, estado_vencimiento
 from utils import ahora, fmt_fecha, fmt_fechahora, fmt_money, fmt_num, fmt_qty
 
-AZUL = colors.HexColor("#850b0b")
+AZUL = colors.HexColor("#ff0000")
 GRIS = colors.HexColor("#555555")
 GRIS_CLARO = colors.HexColor("#f0f0f0")
 ESCALA_IMPRESION = 1.04
@@ -38,11 +38,15 @@ class CanvasEscalaImpresion(ReportLabCanvas):
 
 _base = getSampleStyleSheet()
 ESTILO = {
-    "normal": ParagraphStyle("n", parent=_base["Normal"], fontSize=9, leading=12),
-    "pequeno": ParagraphStyle("p", parent=_base["Normal"], fontSize=8, leading=10, textColor=GRIS),
-    "titulo": ParagraphStyle("t", parent=_base["Title"], fontSize=16, leading=19, textColor=AZUL, alignment=0),
+    "normal": ParagraphStyle("n", parent=_base["Normal"], fontSize=9, leading=12, fontName="Helvetica-Bold"),
+    "pequeno": ParagraphStyle("p", parent=_base["Normal"], fontSize=8, leading=10, fontName="Helvetica-Bold", textColor=GRIS),
+    "titulo": ParagraphStyle("t", parent=_base["Title"], fontSize=16, leading=19, fontName="Helvetica-Bold", textColor=AZUL, alignment=0),
     "empresa": ParagraphStyle("e", parent=_base["Normal"], fontSize=13, leading=16, fontName="Helvetica-Bold"),
-    "der": ParagraphStyle("d", parent=_base["Normal"], fontSize=9, alignment=2),
+    "der": ParagraphStyle("d", parent=_base["Normal"], fontSize=9, leading=12, fontName="Helvetica-Bold", alignment=2),
+    "vencimiento": ParagraphStyle(
+        "vencimiento", parent=_base["Normal"], fontSize=13, leading=16,
+        fontName="Helvetica-Bold", textColor=colors.HexColor("#fa0303"),
+    ),
 }
 
 
@@ -60,10 +64,10 @@ def _encabezado(titulo, numero):
         "logo_pdf.png"
     )
     if os.path.isfile(logo_path):
-        logo = Image(logo_path, width=28 * mm, height=23 * mm, kind="proportional")
+        logo = Image(logo_path, width=36 * mm, height=30 * mm, kind="proportional")
         logo.hAlign = "LEFT"
     else:
-        logo = Spacer(28 * mm, 20 * mm)
+        logo = Spacer(36 * mm, 30 * mm)
 
     empresa = [
         _p(get_config("empresa_nombre", "Mi Empresa"), "empresa"),
@@ -71,7 +75,7 @@ def _encabezado(titulo, numero):
         _p(get_config("empresa_direccion"), "pequeno"),
         _p(get_config("empresa_telefono"), "pequeno"),
     ]
-    izquierda = Table([[logo, empresa]], colWidths=[30 * mm, 80 * mm], hAlign="CENTER")
+    izquierda = Table([[logo, empresa]], colWidths=[38 * mm, 72 * mm], hAlign="CENTER")
     izquierda.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
@@ -83,7 +87,8 @@ def _encabezado(titulo, numero):
     estilo_titulo_derecha = ParagraphStyle(
         "encabezado_titulo_derecha",
         parent=ESTILO["titulo"],
-        alignment=2
+        alignment=2,
+        fontName="Helvetica-Bold",
     )
     derecha = Table([
         [Paragraph(titulo, estilo_titulo_derecha)],
@@ -122,13 +127,13 @@ def _encabezado_nota(titulo, numero):
     if os.path.isfile(logo_path):
         logo = Image(
             logo_path,
-            width=28 * mm,
-            height=23 * mm,
+            width=36 * mm,
+            height=30 * mm,
             kind="proportional"
         )
         logo.hAlign = "LEFT"
     else:
-        logo = Spacer(28 * mm, 20 * mm)
+        logo = Spacer(36 * mm, 30 * mm)
 
     empresa = [
         _p(get_config("empresa_nombre", "FT Import"), "empresa"),
@@ -143,7 +148,7 @@ def _encabezado_nota(titulo, numero):
 
     izquierda = Table(
         [[logo, empresa]],
-        colWidths=[30 * mm, 80 * mm],
+        colWidths=[38 * mm, 72 * mm],
         hAlign="CENTER"
     )
     izquierda.setStyle(TableStyle([
@@ -157,7 +162,8 @@ def _encabezado_nota(titulo, numero):
     estilo_titulo_derecha = ParagraphStyle(
         "nota_titulo_derecha",
         parent=ESTILO["titulo"],
-        alignment=2
+        alignment=2,
+        fontName="Helvetica-Bold",
     )
 
     # AQUÍ SE USA EL TÍTULO QUE LE PASES POR PARÁMETRO:
@@ -196,6 +202,7 @@ def _tabla(datos, anchos, alinear_der=(), cabecera=True):
     t = Table(datos, colWidths=anchos, repeatRows=1 if cabecera else 0, hAlign="CENTER")
     estilo = [
         ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
         ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#cccccc")),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
@@ -279,6 +286,7 @@ def nota_venta(venta_id):
     fila_total = 2 if v["descuento"] else 1
     tt.setStyle(TableStyle([
         ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
         ("RIGHTPADDING", (0, 0), (-1, -1), 8),
@@ -295,7 +303,7 @@ def nota_venta(venta_id):
         d = query("SELECT * FROM v_deudas WHERE venta_id = ?", (venta_id,), one=True)
         if d and d["estado"] != "anulada":
             el += [Spacer(1, 8),
-                   Paragraph(f'<font color="#fa0303">Fecha de vencimiento:</font> {fmt_fecha(d["vencimiento"])}', ESTILO["pequeno"])]
+                   _p(f"Fecha de vencimiento: {fmt_fecha(d['vencimiento'])}", "vencimiento")]
                    
     if v["nota"]:
         el += [Spacer(1, 6), _p(f"Nota: {v['nota']}", "pequeno")]
