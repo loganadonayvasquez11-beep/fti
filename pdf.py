@@ -16,7 +16,6 @@ from services import get_config, estado_vencimiento
 from utils import ahora, fmt_fecha, fmt_fechahora, fmt_money, fmt_num, fmt_qty
 
 AZUL = colors.HexColor("#ff0000")
-GRIS = colors.HexColor("#555555")
 GRIS_CLARO = colors.HexColor("#f0f0f0")
 ESCALA_IMPRESION = 1.04
 
@@ -39,7 +38,7 @@ class CanvasEscalaImpresion(ReportLabCanvas):
 _base = getSampleStyleSheet()
 ESTILO = {
     "normal": ParagraphStyle("n", parent=_base["Normal"], fontSize=9, leading=12, fontName="Helvetica-Bold"),
-    "pequeno": ParagraphStyle("p", parent=_base["Normal"], fontSize=8, leading=10, fontName="Helvetica-Bold", textColor=GRIS),
+    "pequeno": ParagraphStyle("p", parent=_base["Normal"], fontSize=8, leading=10, fontName="Helvetica-Bold", textColor=colors.black),
     "titulo": ParagraphStyle("t", parent=_base["Title"], fontSize=16, leading=19, fontName="Helvetica-Bold", textColor=AZUL, alignment=0),
     "empresa": ParagraphStyle("e", parent=_base["Normal"], fontSize=13, leading=16, fontName="Helvetica-Bold"),
     "der": ParagraphStyle("d", parent=_base["Normal"], fontSize=9, leading=12, fontName="Helvetica-Bold", alignment=2),
@@ -229,7 +228,7 @@ def _firmas():
     """Líneas de firma al pie del documento."""
     t = Table([[_p("_______________________"), _p("_______________________")],
                [_p("Vendedor", "pequeno"), _p("Recibí conforme (cliente)", "pequeno")]],
-              colWidths=[95 * mm, 95 * mm], hAlign="CENTER")
+              colWidths=[70 * mm, 70 * mm], hAlign="CENTER")
     t.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
     return t
 
