@@ -224,11 +224,18 @@ def _construir(elementos):
     return buf.getvalue()
 
 
-def _firmas():
-    """Líneas de firma al pie del documento."""
-    t = Table([[_p("_______________________"), _p("_______________________")],
-               [_p("Vendedor", "pequeno"), _p("Recibí conforme (cliente)", "pequeno")]],
-              colWidths=[70 * mm, 70 * mm], hAlign="CENTER")
+def _firmas(desplazar_cliente=0):
+    """Líneas de firma al pie del documento.
+
+    desplazar_cliente (en mm) mueve la firma del cliente hacia la derecha."""
+    if desplazar_cliente:
+        t = Table([["", _p("_______________________"), "", _p("_______________________")],
+                   ["", _p("Vendedor", "pequeno"), "", _p("Recibí conforme (cliente)", "pequeno")]],
+                  colWidths=[25 * mm, 70 * mm, desplazar_cliente * mm, 70 * mm], hAlign="CENTER")
+    else:
+        t = Table([[_p("_______________________"), _p("_______________________")],
+                   [_p("Vendedor", "pequeno"), _p("Recibí conforme (cliente)", "pequeno")]],
+                  colWidths=[70 * mm, 70 * mm], hAlign="CENTER")
     t.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
     return t
 
@@ -286,6 +293,7 @@ def nota_venta(venta_id):
     tt.setStyle(TableStyle([
         ("FONTSIZE", (0, 0), (-1, -1), 9),
         ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 11),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
         ("RIGHTPADDING", (0, 0), (-1, -1), 8),
@@ -294,22 +302,32 @@ def nota_venta(venta_id):
         ("LINEABOVE", (0, fila_total), (-1, fila_total), 1, AZUL),
         ("BACKGROUND", (0, fila_total), (-1, fila_total), colors.HexColor("#eaf3fb")),
         ("FONTNAME", (0, fila_total), (-1, fila_total), "Helvetica-Bold"),
+        ("FONTSIZE", (0, fila_total), (-1, fila_total), 12),
         ("TEXTCOLOR", (0, fila_total), (-1, fila_total), colors.black),
     ]))
-    el.append(tt)
-
+    # Fecha de vencimiento a la izquierda, al mismo nivel que Subtotal/TOTAL
+    venc = ""
     if v["tipo_pago"] == "credito":
         d = query("SELECT * FROM v_deudas WHERE venta_id = ?", (venta_id,), one=True)
         if d and d["estado"] != "anulada":
-            el += [Spacer(1, 8),
-                   _p(f"Fecha de vencimiento: {fmt_fecha(d['vencimiento'])}", "vencimiento")]
-                   
+            venc = _p(f"Fecha de vencimiento: {fmt_fecha(d['vencimiento'])}", "vencimiento")
+
+    fila_totales = Table([[venc, tt]], colWidths=[100 * mm, 90 * mm], hAlign="CENTER")
+    fila_totales.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (0, 0), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    el.append(fila_totales)
+
     if v["nota"]:
         el += [Spacer(1, 6), _p(f"Nota: {v['nota']}", "pequeno")]
     if v["motivo"]:
         el += [Spacer(1, 4), _p(f"Motivo: {v['motivo']}", "pequeno")]
         
-    el += [Spacer(1, 22), _firmas()]
+    el += [Spacer(1, 22), _firmas(desplazar_cliente=25)]
     return _construir(el)
 
 # ========================================================== recibo de abono
