@@ -294,7 +294,7 @@ def nota_venta(venta_id):
         ("LINEABOVE", (0, fila_total), (-1, fila_total), 1, AZUL),
         ("BACKGROUND", (0, fila_total), (-1, fila_total), colors.HexColor("#eaf3fb")),
         ("FONTNAME", (0, fila_total), (-1, fila_total), "Helvetica-Bold"),
-        ("TEXTCOLOR", (0, fila_total), (-1, fila_total), AZUL),
+        ("TEXTCOLOR", (0, fila_total), (-1, fila_total), colors.black),
     ]))
     el.append(tt)
 
