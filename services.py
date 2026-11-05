@@ -712,20 +712,30 @@ def resumen_panel(usuario):
     es_aprobador = es_admin or (usuario["rol"] == "vendedor" and usuario["tipo_vendedor"] == "especial")
     filtro_v = "" if es_admin else " AND vendedor_id = ?"
     args = () if es_admin else (usuario["id"],)
-    filtro_pendientes = "" if es_aprobador else " AND vendedor_id = ?"
-    args_pendientes = () if es_aprobador else (usuario["id"],)
     mes = hoy()[:7]
 
     def uno(sql, extra=()):
         return query(sql, extra, one=True)
 
     r = {}
-    r["ventas_mes"] = uno(
-        f"SELECT COALESCE(SUM(total_usd),0) AS t, COUNT(*) AS n FROM ventas "
-        f"WHERE estado='aprobada' AND substr(fecha,1,7)=?{filtro_v}", (mes,) + args)
-    r["pendientes"] = uno(
-            f"SELECT COUNT(*) AS n, COALESCE(SUM(total_usd),0) AS t FROM ventas "
-            f"WHERE estado='pendiente'{filtro_pendientes}", args_pendientes)
+    if es_admin:
+        r["ventas_mes"] = uno(
+            """SELECT COALESCE(SUM(total_usd),0) AS t, COUNT(*) AS n FROM ventas
+                WHERE estado='aprobada' AND substr(fecha,1,7)=?""", (mes,))
+    else:
+        r["ventas_mes"] = uno(
+            """SELECT COALESCE(SUM(v.total_usd),0) AS t, COUNT(*) AS n
+                 FROM ventas v JOIN clientes c ON c.id = v.cliente_id
+                WHERE v.estado='aprobada' AND substr(v.fecha,1,7)=? AND c.vendedor_id=?""",
+            (mes, usuario["id"]))
+    if es_aprobador:
+        r["pendientes"] = uno(
+            "SELECT COUNT(*) AS n, COALESCE(SUM(total_usd),0) AS t FROM ventas WHERE estado='pendiente'")
+    else:
+        r["pendientes"] = uno(
+            """SELECT COUNT(*) AS n, COALESCE(SUM(v.total_usd),0) AS t
+                 FROM ventas v JOIN clientes c ON c.id = v.cliente_id
+                WHERE v.estado='pendiente' AND c.vendedor_id=?""", (usuario["id"],))
     r["por_cobrar"] = uno(
         f"SELECT COALESCE(SUM(saldo_usd),0) AS t, COUNT(*) AS n FROM v_deudas WHERE estado='activa'{filtro_v}", args)
     r["vencidas"] = uno(
@@ -737,16 +747,17 @@ def resumen_panel(usuario):
     r["ultimas"] = query(
         f"""SELECT v.id, v.numero, v.fecha, v.total, v.moneda, v.estado, c.nombre AS cliente
               FROM ventas v JOIN clientes c ON c.id = v.cliente_id
-             WHERE 1=1{filtro_v.replace('vendedor_id', 'v.vendedor_id')}
-             ORDER BY v.id DESC LIMIT 6""", args)
+             WHERE 1=1{" AND c.vendedor_id = ?" if not es_admin else ""}
+             ORDER BY v.id DESC LIMIT 6""", () if es_admin else (usuario["id"],))
     r["proximas"] = query(
         f"""SELECT id, cliente_nombre, vencimiento, saldo_usd FROM v_deudas
              WHERE estado='activa'{filtro_v} ORDER BY vencimiento ASC LIMIT 6""", args)
     if es_admin:
         r["por_vendedor"] = query(
             """SELECT u.id, u.nombre,
-                      COALESCE((SELECT SUM(total_usd) FROM ventas
-                                 WHERE vendedor_id=u.id AND estado='aprobada' AND substr(fecha,1,7)=?),0) AS vendido,
+                      COALESCE((SELECT SUM(v.total_usd) FROM ventas v
+                                 JOIN clientes c ON c.id = v.cliente_id
+                                WHERE c.vendedor_id=u.id AND v.estado='aprobada' AND substr(v.fecha,1,7)=?),0) AS vendido,
                       COALESCE((SELECT SUM(saldo_usd) FROM v_deudas
                                  WHERE vendedor_id=u.id AND estado='activa'),0) AS por_cobrar
                  FROM usuarios u WHERE u.rol='vendedor' AND u.activo=1 ORDER BY vendido DESC LIMIT 6""", (mes,))

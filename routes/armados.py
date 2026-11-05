@@ -1,8 +1,8 @@
 """Pedidos para armar.
 
 El admin, al aprobar una venta (o después, si fue de contado), decide qué vendedor ESPECIAL arma el pedido,
-o elige "cualquiera" para que llegue a todos los especiales. La venta sigue siendo del vendedor original:
-cuando el pedido se arma y se confirma, a él le aparece como "Armado".
+o elige "cualquiera" para que llegue a todos los especiales. El vendedor que aparece es el responsable actual
+del cliente; el pedido sigue asociado a la venta original.
 """
 from flask import Blueprint, abort, g, redirect, render_template, request, url_for
 
@@ -16,10 +16,10 @@ bp = Blueprint("armados", __name__, url_prefix="/armados")
 def _lista_armados(donde, args):
     """Armados con datos de la venta y de las personas implicadas; cada uno trae sus productos."""
     filas = query(
-        f"""SELECT a.*, v.numero, v.fecha AS venta_fecha, v.vendedor_id, uv.nombre AS vendedor, c.nombre AS cliente,
+        f"""SELECT a.*, v.numero, v.fecha AS venta_fecha, c.vendedor_id, uv.nombre AS vendedor, c.nombre AS cliente,
                    ua.nombre AS asignado_nombre, ub.nombre AS armador_nombre
               FROM armados a JOIN ventas v ON v.id = a.venta_id AND v.estado = 'aprobada'
-              JOIN usuarios uv ON uv.id = v.vendedor_id JOIN clientes c ON c.id = v.cliente_id
+              JOIN clientes c ON c.id = v.cliente_id JOIN usuarios uv ON uv.id = c.vendedor_id
               LEFT JOIN usuarios ua ON ua.id = a.asignado_a LEFT JOIN usuarios ub ON ub.id = a.armado_por
              WHERE {donde} ORDER BY (a.estado = 'pendiente') DESC, a.id DESC LIMIT 100""", args)
     return [{"a": f, "lineas": services.lineas_armado(f["venta_id"])} for f in filas]
@@ -37,7 +37,7 @@ def lista():
         donde, args = ("1=1", []) if estado == "todos" else ("a.estado = ?", [estado if estado in ("pendiente", "armado") else "pendiente"])
         sin_asignar = query(
             """SELECT v.id, v.numero, v.fecha, uv.nombre AS vendedor, c.nombre AS cliente
-                 FROM ventas v JOIN usuarios uv ON uv.id = v.vendedor_id JOIN clientes c ON c.id = v.cliente_id
+                 FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios uv ON uv.id = c.vendedor_id
                 WHERE v.estado = 'aprobada' AND v.id > ? AND NOT EXISTS (SELECT 1 FROM armados a WHERE a.venta_id = v.id)
                 ORDER BY v.id DESC LIMIT 100""", (services.armado_desde_venta(),))
         return render_template("armados/lista.html", pedidos=_lista_armados(donde, args), sin_asignar=sin_asignar,
@@ -49,7 +49,7 @@ def lista():
     hechos = _lista_armados("a.estado = 'armado' AND a.armado_por = ?", [uid])[:20]
     sin_asignar = query(
         """SELECT v.id, v.numero, v.fecha, uv.nombre AS vendedor, c.nombre AS cliente
-             FROM ventas v JOIN usuarios uv ON uv.id = v.vendedor_id JOIN clientes c ON c.id = v.cliente_id
+             FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios uv ON uv.id = c.vendedor_id
             WHERE v.estado = 'aprobada' AND v.id > ? AND NOT EXISTS (SELECT 1 FROM armados a WHERE a.venta_id = v.id)
             ORDER BY v.id DESC LIMIT 100""", (services.armado_desde_venta(),))
     return render_template("armados/lista.html", pedidos=pendientes, hechos=hechos, sin_asignar=sin_asignar,

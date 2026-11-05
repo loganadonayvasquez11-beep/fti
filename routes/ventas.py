@@ -14,13 +14,13 @@ bp = Blueprint("ventas", __name__, url_prefix="/ventas")
 
 
 def _venta_o_404(venta_id):
-    """Devuelve la venta visible: admin todas, vendedor las suyas y especial pendientes/aprobadas."""
+    """Devuelve la venta visible según el vendedor actual del cliente."""
     v = query(
-        """SELECT v.*, c.nombre AS cliente, c.documento, c.telefono, u.nombre AS vendedor,
-                  a.nombre AS aprobador
-             FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = v.vendedor_id
+        """SELECT v.*, c.vendedor_id AS cartera_vendedor_id, c.nombre AS cliente, c.documento, c.telefono,
+                  u.nombre AS vendedor, a.nombre AS aprobador
+             FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = c.vendedor_id
              LEFT JOIN usuarios a ON a.id = v.aprobado_por WHERE v.id = ?""", (venta_id,), one=True)
-    if v is None or (g.user["rol"] == "vendedor" and v["vendedor_id"] != g.user["id"]
+    if v is None or (g.user["rol"] == "vendedor" and v["cartera_vendedor_id"] != g.user["id"]
                      and not (es_especial() and v["estado"] in ("pendiente", "aprobada"))):
         abort(404)
     return v
@@ -36,16 +36,16 @@ def lista():
     sql = """SELECT v.*, c.nombre AS cliente, u.nombre AS vendedor,
                     ar.estado AS armado_estado, (v.id > ?) AS req_armado
                FROM ventas v
-               JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = v.vendedor_id
+               JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = c.vendedor_id
                LEFT JOIN armados ar ON ar.venta_id = v.id WHERE 1=1"""
     args = [services.armado_desde_venta()]
     if g.user["rol"] == "vendedor":
         if es_especial():
-            sql += " AND (v.vendedor_id = ? OR v.estado IN ('pendiente', 'aprobada'))"; args.append(g.user["id"])
+            sql += " AND (c.vendedor_id = ? OR v.estado IN ('pendiente', 'aprobada'))"; args.append(g.user["id"])
         else:
-            sql += " AND v.vendedor_id = ?"; args.append(g.user["id"])
+            sql += " AND c.vendedor_id = ?"; args.append(g.user["id"])
     elif vendedor:
-        sql += " AND v.vendedor_id = ?"; args.append(vendedor)
+        sql += " AND c.vendedor_id = ?"; args.append(vendedor)
     if estado in ("pendiente", "aprobada", "rechazada", "anulada"):
         sql += " AND v.estado = ?"; args.append(estado)
     if q:

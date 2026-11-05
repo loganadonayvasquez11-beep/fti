@@ -5,7 +5,7 @@
 {% block contenido %}
 <section class="card">
   <div class="detail-head">
-    <div><span class="muted">Cliente</span><b>{% if g.user.rol == 'admin' or v.vendedor_id == g.user.id %}<a href="{{ url_for('clientes.detalle', cliente_id=v.cliente_id) }}">{{ v.cliente }}</a>{% else %}{{ v.cliente }}{% endif %}</b><small class="muted">{{ v.documento }}</small></div>
+    <div><span class="muted">Cliente</span><b>{% if g.user.rol == 'admin' or v.cartera_vendedor_id == g.user.id %}<a href="{{ url_for('clientes.detalle', cliente_id=v.cliente_id) }}">{{ v.cliente }}</a>{% else %}{{ v.cliente }}{% endif %}</b><small class="muted">{{ v.documento }}</small></div>
     <div><span class="muted">Vendedor</span><b>{{ v.vendedor }}</b><small class="muted">{{ v.fecha|fechahora }}</small></div>
     <div><span class="muted">Condiciones</span><b>{{ tipo_pago_tag(v.tipo_pago) }}</b>
       <small class="muted">{% if v.tipo_pago == 'credito' %}{{ v.dias_credito }} días de crédito{% else %}{{ v.metodo_pago or 'Contado' }}{% endif %}</small></div>
@@ -57,7 +57,7 @@
 <section class="card">
   <h2>Deuda generada</h2>
   <p>Vence el <b>{{ deuda.vencimiento|fecha }}</b> · Saldo <b>$ {{ deuda.saldo_usd|num }}</b> {{ estado_deuda_tag(deuda) }}
-    {% if g.user.rol == 'admin' or v.vendedor_id == g.user.id %}<a class="btn sm" href="{{ url_for('deudas.detalle', deuda_id=deuda.id) }}">Ver deuda y abonos</a>{% endif %}</p>
+    {% if g.user.rol == 'admin' or v.cartera_vendedor_id == g.user.id %}<a class="btn sm" href="{{ url_for('deudas.detalle', deuda_id=deuda.id) }}">Ver deuda y abonos</a>{% endif %}</p>
 </section>
 {% endif %}
 

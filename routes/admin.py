@@ -28,9 +28,11 @@ def vendedores():
                   COALESCE((SELECT SUM(saldo_usd) FROM v_deudas d WHERE d.vendedor_id = u.id AND d.estado='activa'), 0) AS por_cobrar,
                   COALESCE((SELECT SUM(saldo_usd) FROM v_deudas d WHERE d.vendedor_id = u.id AND d.estado='activa'
                              AND d.vencimiento < ?), 0) AS vencido,
-                  COALESCE((SELECT SUM(total_usd) FROM ventas v WHERE v.vendedor_id = u.id AND v.estado='aprobada'
-                             AND substr(v.fecha,1,7) = ?), 0) AS vendido_mes,
-                  (SELECT COUNT(*) FROM ventas v WHERE v.vendedor_id = u.id AND v.estado='pendiente') AS pendientes
+                  COALESCE((SELECT SUM(v.total_usd) FROM ventas v JOIN clientes c ON c.id = v.cliente_id
+                             WHERE c.vendedor_id = u.id AND v.estado='aprobada'
+                               AND substr(v.fecha,1,7) = ?), 0) AS vendido_mes,
+                  (SELECT COUNT(*) FROM ventas v JOIN clientes c ON c.id = v.cliente_id
+                    WHERE c.vendedor_id = u.id AND v.estado='pendiente') AS pendientes
              FROM usuarios u WHERE u.rol = 'vendedor' ORDER BY u.activo DESC, u.nombre""", (hoy(), mes))
     return render_template("admin/vendedores.html", vendedores=filas)
 
@@ -86,7 +88,7 @@ def vendedor_detalle(vid):
                   (SELECT MIN(vencimiento) FROM v_deudas d WHERE d.cliente_id = c.id AND d.estado='activa' AND d.saldo_usd > 0.005) AS prox_venc
              FROM clientes c WHERE c.vendedor_id = ? AND c.activo = 1 ORDER BY deuda_usd DESC, c.nombre""", (vid,))
     ventas = query("""SELECT v.*, c.nombre AS cliente FROM ventas v JOIN clientes c ON c.id = v.cliente_id
-                       WHERE v.vendedor_id = ? ORDER BY v.id DESC LIMIT 10""", (vid,))
+                       WHERE c.vendedor_id = ? ORDER BY v.id DESC LIMIT 10""", (vid,))
     otros = query("SELECT id, nombre FROM usuarios WHERE rol='vendedor' AND activo=1 AND id != ? ORDER BY nombre", (vid,))
     totales = query(
         """SELECT COALESCE(SUM(saldo_usd),0) AS por_cobrar,
@@ -205,7 +207,8 @@ def reportes():
     hasta = request.args.get("hasta") or hoy()
     por_vendedor = query(
         """SELECT u.nombre, COUNT(v.id) AS n, COALESCE(SUM(v.total_usd),0) AS total
-             FROM usuarios u LEFT JOIN ventas v ON v.vendedor_id = u.id AND v.estado='aprobada'
+             FROM usuarios u LEFT JOIN clientes c ON c.vendedor_id = u.id
+              LEFT JOIN ventas v ON v.cliente_id = c.id AND v.estado='aprobada'
               AND substr(v.fecha,1,10) BETWEEN ? AND ?
             WHERE u.rol='vendedor' GROUP BY u.id ORDER BY total DESC""", (desde, hasta))
     top_productos = query(
@@ -216,8 +219,8 @@ def reportes():
     modificadas = query(
         """SELECT v.id, v.numero, v.fecha, u.nombre AS vendedor, c.nombre AS cliente, p.nombre AS producto,
                   v.moneda, d.precio_lista, d.precio_unit
-             FROM venta_detalles d JOIN ventas v ON v.id = d.venta_id JOIN usuarios u ON u.id = v.vendedor_id
-             JOIN clientes c ON c.id = v.cliente_id JOIN productos p ON p.id = d.producto_id
+             FROM venta_detalles d JOIN ventas v ON v.id = d.venta_id JOIN clientes c ON c.id = v.cliente_id
+             JOIN usuarios u ON u.id = c.vendedor_id JOIN productos p ON p.id = d.producto_id
             WHERE d.modificado = 1 AND v.estado IN ('pendiente','aprobada')
               AND substr(v.fecha,1,10) BETWEEN ? AND ? ORDER BY v.id DESC LIMIT 100""", (desde, hasta))
     valor = query("SELECT COALESCE(SUM(stock*precio_mayor_usd),0) AS mayor FROM productos WHERE activo=1", one=True)
