@@ -313,6 +313,48 @@ def presupuesto_pdf():
     return responder_pdf(archivo, nombre)
 
 
+@bp.route("/<int:venta_id>/editar", methods=["GET", "POST"])
+@roles_required("vendedor")
+def editar(venta_id):
+    """Permite al vendedor modificar su pedido mientras siga pendiente."""
+    venta = _venta_o_404(venta_id)
+    if venta["vendedor_id"] != g.user["id"] or venta["estado"] != "pendiente":
+        abort(404)
+
+    if request.method == "POST":
+        producto_ids = request.form.getlist("producto_id")
+        cantidades = request.form.getlist("cantidad")
+        precios = request.form.getlist("precio")
+        if not producto_ids or len(producto_ids) != len(cantidades) or len(producto_ids) != len(precios):
+            aviso("El pedido debe tener al menos un producto válido.", "error")
+            return redirect(url_for("ventas.editar", venta_id=venta_id))
+        items = [
+            {"producto_id": pid, "cantidad": cantidad, "precio": precio}
+            for pid, cantidad, precio in zip(producto_ids, cantidades, precios)
+        ]
+        try:
+            services.editar_venta_pendiente(
+                venta_id, g.user["id"], items,
+                request.form.get("descuento", ""), request.form.get("nota", ""),
+            )
+        except ValueError as e:
+            aviso(str(e), "error")
+            return redirect(url_for("ventas.editar", venta_id=venta_id))
+        aviso("Pedido actualizado. Los cambios se aplicarán al aprobarlo.")
+        return redirect(url_for("ventas.detalle", venta_id=venta_id))
+
+    lineas = query(
+        """SELECT d.*, p.codigo, p.nombre, p.unidad FROM venta_detalles d
+             JOIN productos p ON p.id = d.producto_id WHERE d.venta_id = ? ORDER BY d.id""",
+        (venta_id,),
+    )
+    productos = query(
+        "SELECT id, codigo, nombre, unidad, precio_mayor_usd FROM productos WHERE activo = 1 ORDER BY nombre"
+    )
+    return render_template("ventas/editar.html", v=venta, lineas=lineas,
+                           productos=productos, paso=2)
+
+
 @bp.route("/<int:venta_id>")
 @login_required
 def detalle(venta_id):

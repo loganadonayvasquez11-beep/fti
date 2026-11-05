@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% from '_macros.html' import estado_venta, tipo_pago_tag, estado_deuda_tag, armado_tag %}
 {% block titulo %}Venta {{ v.numero }}{% endblock %}
-{% block acciones %}<a class="btn" href="{{ url_for('ventas.nota_pdf', venta_id=v.id) }}">Abrir nota de venta PDF</a>{% endblock %}
+{% block acciones %}
+  {% if v.estado == 'pendiente' and v.vendedor_id == g.user.id %}
+    <a class="btn primary" href="{{ url_for('ventas.editar', venta_id=v.id) }}">Editar pedido pendiente</a>
+  {% endif %}
+  <a class="btn" href="{{ url_for('ventas.nota_pdf', venta_id=v.id) }}">Abrir nota de venta PDF</a>
+{% endblock %}
 {% block contenido %}
 <section class="card">
   <div class="detail-head">
