@@ -154,8 +154,13 @@ def vendedor_estado(vid):
                 return redirect(url_for("admin.vendedor_detalle", vid=vid))
         with db:
             if destino:
+                db.execute(
+                    """UPDATE ventas SET vendedor_id=? WHERE cliente_id IN
+                       (SELECT id FROM clientes WHERE vendedor_id=?)""", (destino, vid))
+                db.execute(
+                    """UPDATE deudas SET vendedor_id=? WHERE cliente_id IN
+                       (SELECT id FROM clientes WHERE vendedor_id=?)""", (destino, vid))
                 db.execute("UPDATE clientes SET vendedor_id=? WHERE vendedor_id=?", (destino, vid))
-                db.execute("UPDATE deudas SET vendedor_id=? WHERE vendedor_id=?", (destino, vid))
             if accion == "congelar":
                 db.execute("UPDATE usuarios SET activo=0 WHERE id=?", (vid,))
         if accion == "congelar":

@@ -93,6 +93,7 @@
   const nSel = document.getElementById('n-sel');
   const btnAnadir = document.getElementById('btn-anadir');
   const marcarTodos = document.getElementById('marcar-todos');
+  const ordenSeleccion = [];
 
   function actualizarSeleccion() {
     if (!form) return;
@@ -110,7 +111,13 @@
     filas.forEach(f => {
       const chk = f.querySelector('input[name=sel]');
       if (chk.disabled) return;   // producto agotado: no se puede elegir
-      chk.addEventListener('change', () => { f.classList.toggle('elegido', chk.checked); actualizarSeleccion(); });
+      chk.addEventListener('change', () => {
+        f.classList.toggle('elegido', chk.checked);
+        const index = ordenSeleccion.indexOf(chk.value);
+        if (chk.checked && index === -1) ordenSeleccion.push(chk.value);
+        else if (!chk.checked && index !== -1) ordenSeleccion.splice(index, 1);
+        actualizarSeleccion();
+      });
       // clic en cualquier parte de la fila (menos en controles) marca / desmarca
       f.addEventListener('click', e => {
         if (e.target.closest('input, button, a, label')) return;
@@ -122,11 +129,16 @@
       if (cant) cant.addEventListener('input', () => { if (!chk.checked) { chk.checked = true; chk.dispatchEvent(new Event('change')); } });
     });
     if (marcarTodos) marcarTodos.addEventListener('change', () => {
-      filas.filter(f => !f.hidden).forEach(f => {
+      const visibles = filas.filter(f => !f.hidden);
+      visibles.forEach(f => {
         const chk = f.querySelector('input[name=sel]');
         if (chk.disabled) return;
         chk.checked = marcarTodos.checked;
         f.classList.toggle('elegido', chk.checked);
+        const id = chk.value;
+        const index = ordenSeleccion.indexOf(id);
+        if (chk.checked && index === -1) ordenSeleccion.push(id);
+        else if (!chk.checked && index !== -1) ordenSeleccion.splice(index, 1);
       });
       actualizarSeleccion();
     });
@@ -135,7 +147,14 @@
       e.preventDefault();
       btnAnadir.disabled = true;
       try {
-        const r = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'fetch' } });
+        const datos = new FormData(form);
+        datos.delete('sel');
+        ordenSeleccion.forEach(id => {
+          const fila = filas.find(f => f.querySelector('input[name=sel]').value === id);
+          const chk = fila && fila.querySelector('input[name=sel]');
+          if (chk && chk.checked && !chk.disabled) datos.append('sel', id);
+        });
+        const r = await fetch(form.action, { method: 'POST', body: datos, headers: { 'X-Requested-With': 'fetch' } });
         const d = await r.json();
         if (d.errores && d.errores.length) alert(d.errores.join('\n'));
         // refresca la columna "En carrito", desmarca lo añadido y actualiza la barra
@@ -152,6 +171,9 @@
               const c = f.querySelector('.c-cant input'); if (c) c.value = 1;
             }
           });
+          for (let i = ordenSeleccion.length - 1; i >= 0; i--) {
+            if ((d.ids || []).includes(ordenSeleccion[i])) ordenSeleccion.splice(i, 1);
+          }
         }
         document.getElementById('carrito-n').textContent = d.items;
         document.getElementById('btn-carrito').hidden = !d.items;

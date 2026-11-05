@@ -61,16 +61,21 @@ def lista():
 # Paso 2: /ventas/carrito   → cantidades, precios, cliente y condiciones.
 # Paso 3: /ventas/confirmar → resumen final y se genera la solicitud o la venta.
 # El carrito vive en la sesión del vendedor; al final services.crear_venta vuelve a validar todo.
-CARRITO, BORRADOR = "carrito", "venta_borrador"
+CARRITO, ORDEN_CARRITO, BORRADOR = "carrito", "carrito_orden", "venta_borrador"
 
 
 def _carrito():
     """Carrito actual {producto_id (texto): cantidad}."""
-    return dict(session.get(CARRITO, {}))
+    carrito = session.get(CARRITO, {})
+    orden = session.get(ORDEN_CARRITO, list(carrito))
+    ids = [str(pid) for pid in orden if str(pid) in carrito]
+    ids.extend(pid for pid in carrito if pid not in ids)
+    return {pid: carrito[pid] for pid in ids}
 
 
 def _guardar_carrito(c):
     session[CARRITO] = c
+    session[ORDEN_CARRITO] = list(c)
     session.modified = True
 
 
@@ -86,6 +91,7 @@ def _guardar_borrador(b):
 
 def _limpiar_venta():
     session.pop(CARRITO, None)
+    session.pop(ORDEN_CARRITO, None)
     session.pop(BORRADOR, None)
 
 

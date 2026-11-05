@@ -685,7 +685,7 @@ def lineas_armado(venta_id):
     return query(
         """SELECT p.id, p.codigo, p.nombre, p.imagen, p.unidad, SUM(d.cantidad) AS cantidad
              FROM venta_detalles d JOIN productos p ON p.id = d.producto_id
-            WHERE d.venta_id = ? GROUP BY p.id ORDER BY p.nombre""", (venta_id,))
+            WHERE d.venta_id = ? GROUP BY p.id ORDER BY MIN(d.id)""", (venta_id,))
 
 
 def contar_por_armar(usuario):

@@ -136,8 +136,11 @@ def editar(cliente_id):
                    dias_credito=?, limite_credito_usd=?, vendedor_id=? WHERE id=?""",
                 (datos["nombre"], datos["documento"], datos["telefono"], datos["direccion"], datos["tipo_pago"],
                  dias, datos["limite"], vendedor_id, cliente_id))
-            if vendedor_id != c["vendedor_id"]:   # sus deudas también pasan al nuevo vendedor
+            if vendedor_id != c["vendedor_id"]:
+                db.execute("UPDATE ventas SET vendedor_id=? WHERE cliente_id=?", (vendedor_id, cliente_id))
                 db.execute("UPDATE deudas SET vendedor_id=? WHERE cliente_id=?", (vendedor_id, cliente_id))
+        if vendedor_id != c["vendedor_id"]:
+            audit("cliente_traspasado", f"{datos['nombre']}: vendedor #{c['vendedor_id']} -> #{vendedor_id}")
         if dias != c["dias_credito"]:
             audit("cliente_plazo_credito", f"{datos['nombre']}: {c['dias_credito']} -> {dias} días (0 = automático)")
         audit("cliente_editado", datos["nombre"])

@@ -193,6 +193,7 @@ legend { padding: 0 6px; font-size: 12.5px; color: var(--muted); }
 }
 .quantity-control input[type=number]::-webkit-inner-spin-button,
 .quantity-control input[type=number]::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+.ptabla .c-cant { text-align: center; }
 .ptabla .c-cant .quantity-control input[type=number] { width: 48px; min-width: 48px; }
 .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
 .hint { color: var(--muted); font-size: 12.5px; margin: 0; }
@@ -381,7 +382,7 @@ tr.modificado td { background: rgba(252, 211, 77, .07); }
 .ptabla .c-foto { width: 72px; }
 .ptabla .c-sel { width: 44px; text-align: center; }
 .ptabla .c-nombre { min-width: 200px; overflow-wrap: anywhere; }
-.ptabla .c-cant input { width: 96px; min-width: 0; text-align: right; }
+.ptabla .c-cant input { width: 96px; min-width: 0; text-align: center; }
 .ptabla .pfoto { width: 56px; height: 56px; object-fit: contain; background: #fff; border-radius: 8px; display: block; transition: transform .3s cubic-bezier(.2, .7, .2, 1); }
 .ptabla tbody tr:hover .pfoto { transform: scale(1.12); }
 .ptabla .psinfoto { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 8px; background: var(--card-2);
