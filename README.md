@@ -90,6 +90,8 @@ SQLite guarda la base junto a los archivos de la aplicación y es adecuada para 
   de la cartera de vendedores (agregar, traspasar clientes y deudas manteniendo activo al vendedor o congelándolo); aprueba, rechaza y anula ventas.
 - **Vendedor**: tiene su cartera de clientes (puede agregar), genera ventas con productos del catálogo,
   vende **al mayor**, contado o crédito y puede **cambiar el precio unitario** de cada línea.
+- Desde el carrito también puede generar un **presupuesto PDF** sin cliente asociado; no se guarda como
+  venta, no reserva ni descuenta existencias.
 - **Vendedor especial**: conserva sus funciones de venta y armado, puede aprobar o rechazar las ventas pendientes de todos los vendedores, asignar quién arma los pedidos y anular ventas aprobadas, pero no puede crear ni editar productos, cambiar precios ni modificar el stock.
 - **Contado**: la venta se aprueba y se cobra sola, y descuenta el stock en el acto
   (en Configuración puedes exigir también tu aprobación).
@@ -101,7 +103,7 @@ SQLite guarda la base junto a los archivos de la aplicación y es adecuada para 
 
 ## PDF
 
-Nota de venta, recibo de abono y estado de cuenta del cliente (botones en cada pantalla).
+Nota de venta, presupuesto temporal, recibo de abono y estado de cuenta del cliente (botones en cada pantalla).
 
 ## Estructura
 

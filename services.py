@@ -71,23 +71,9 @@ def precio_lista(prod):
     return round(prod["precio_mayor_usd"], 2)
 
 
-def resumen_venta(vendedor_id, borrador, carrito):
-    """Calcula SIN guardar lo que sería la venta (para la pantalla de confirmación).
-
-    borrador: dict con cliente_id, tipo_pago, metodo_pago, cuota_inicial,
-              descuento, nota y precios {producto_id: precio escrito a mano}.
-    carrito : {producto_id: cantidad}.
-    Lanza ValueError si falta algo (cliente, productos).
-    """
+def _lineas_carrito(borrador, carrito):
+    """Calcula las líneas actuales del carrito sin guardar ni modificar existencias."""
     db = get_db()
-    cliente = db.execute(
-        "SELECT * FROM clientes WHERE id = ? AND vendedor_id = ? AND activo = 1",
-        (to_int(borrador.get("cliente_id")), vendedor_id)).fetchone()
-    if cliente is None:
-        raise ValueError("Selecciona un cliente válido de tu cartera.")
-    moneda = "USD"
-    tipo_pago = borrador.get("tipo_pago", "contado")
-    tasa = tasa_actual()
     lineas = []
     for pid, cant in carrito.items():
         prod = db.execute("SELECT * FROM productos WHERE id = ? AND activo = 1", (to_int(pid),)).fetchone()
@@ -105,9 +91,35 @@ def resumen_venta(vendedor_id, borrador, carrito):
                        "excede": cant > prod["stock"] + 1e-9, "agotado": prod["stock"] <= 0})
     if not lineas:
         raise ValueError("Tu carrito está vacío.")
+    return lineas
+
+
+def _totales_presupuesto(borrador, lineas):
     subtotal = round(sum(l["subtotal"] for l in lineas), 2)
     descuento = round(parse_decimal_input(borrador.get("descuento"), "El descuento", 0), 2)
     total = round(subtotal - descuento, 2)
+    return subtotal, descuento, total
+
+
+def resumen_venta(vendedor_id, borrador, carrito):
+    """Calcula SIN guardar lo que sería la venta (para la pantalla de confirmación).
+
+    borrador: dict con cliente_id, tipo_pago, metodo_pago, cuota_inicial,
+              descuento, nota y precios {producto_id: precio escrito a mano}.
+    carrito : {producto_id: cantidad}.
+    Lanza ValueError si falta algo (cliente, productos).
+    """
+    db = get_db()
+    cliente = db.execute(
+        "SELECT * FROM clientes WHERE id = ? AND vendedor_id = ? AND activo = 1",
+        (to_int(borrador.get("cliente_id")), vendedor_id)).fetchone()
+    if cliente is None:
+        raise ValueError("Selecciona un cliente válido de tu cartera.")
+    moneda = "USD"
+    tipo_pago = borrador.get("tipo_pago", "contado")
+    tasa = tasa_actual()
+    lineas = _lineas_carrito(borrador, carrito)
+    subtotal, descuento, total = _totales_presupuesto(borrador, lineas)
     total_usd = a_usd(total, moneda, tasa)
     cuota = round(parse_decimal_input(borrador.get("cuota_inicial"), "La cuota inicial", 0), 2) if tipo_pago == "credito" else 0.0
     return {
@@ -117,6 +129,18 @@ def resumen_venta(vendedor_id, borrador, carrito):
         "nota": borrador.get("nota", ""),
         "dias": dias_credito_para(cliente, total_usd) if tipo_pago == "credito" else 0,
         "auto": tipo_pago == "contado" and get_config("contado_requiere_aprobacion", "0") != "1",
+    }
+
+
+def resumen_presupuesto(borrador, carrito):
+    """Calcula un presupuesto temporal sin requerir cliente ni validar/reservar stock."""
+    lineas = _lineas_carrito(borrador, carrito)
+    subtotal, descuento, total = _totales_presupuesto(borrador, lineas)
+    if descuento > subtotal:
+        raise ValueError("El descuento no puede ser mayor que el subtotal.")
+    return {
+        "lineas": lineas, "moneda": "USD", "subtotal": subtotal,
+        "descuento": descuento, "total": total, "nota": borrador.get("nota", ""),
     }
 
 

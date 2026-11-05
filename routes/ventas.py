@@ -252,6 +252,8 @@ def carrito():
         if not cart:
             aviso("Tu carrito quedó vacío.", "warn")
             return redirect(url_for("ventas.nueva"))
+        if f.get("accion") == "presupuesto":
+            return redirect(url_for("ventas.presupuesto_pdf"))
         try:
             services.resumen_venta(g.user["id"], _borrador(), cart)
             return redirect(url_for("ventas.confirmar"))
@@ -291,6 +293,24 @@ def confirmar():
         aviso(str(e), "error")
         return redirect(url_for("ventas.carrito"))
     return render_template("ventas/confirmar.html", r=r, paso=3)
+
+
+@bp.route("/presupuesto.pdf")
+@roles_required("vendedor")
+def presupuesto_pdf():
+    """Genera un presupuesto temporal desde el carrito, sin cliente ni cambios en el inventario."""
+    cart = _carrito()
+    if not cart:
+        aviso("Tu carrito está vacío: elige primero los productos.", "warn")
+        return redirect(url_for("ventas.nueva"))
+    try:
+        r = services.resumen_presupuesto(_borrador(), cart)
+    except ValueError as e:
+        aviso(str(e), "error")
+        return redirect(url_for("ventas.carrito"))
+    archivo = BytesIO(pdf.presupuesto(r, g.user["nombre"]))
+    nombre = nombre_pdf_cliente(g.user["nombre"], "Presupuesto")
+    return responder_pdf(archivo, nombre)
 
 
 @bp.route("/<int:venta_id>")

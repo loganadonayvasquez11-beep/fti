@@ -347,6 +347,64 @@ def nota_venta(venta_id):
     el += [Spacer(1, 22), _firmas(desplazar_cliente=25)]
     return _construir(el)
 
+
+def presupuesto(datos, vendedor):
+    """Genera en memoria un presupuesto temporal sin cliente ni número de venta."""
+    el = [_encabezado_nota("PRESUPUESTO", ""), Spacer(1, 10)]
+    info = Table([
+        [_p(f"Fecha: {fmt_fechahora(ahora())}"), _p(f"Vendedor: {vendedor}")],
+    ], colWidths=[95 * mm, 95 * mm], hAlign="CENTER")
+    info.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("BACKGROUND", (0, 0), (-1, -1), GRIS_CLARO),
+    ]))
+    el += [info, Spacer(1, 10)]
+
+    moneda = datos["moneda"]
+    filas = [["Código", "Producto", "Cant.", f"Precio ({moneda})", f"Subtotal ({moneda})"]]
+    for linea in datos["lineas"]:
+        producto = linea["producto"]
+        filas.append([
+            producto["codigo"], _p(producto["nombre"]), fmt_qty(linea["cantidad"]),
+            fmt_num(linea["precio_unit"]), fmt_num(linea["subtotal"]),
+        ])
+    el.append(_tabla(filas, [27 * mm, 72 * mm, 26 * mm, 32 * mm, 33 * mm], alinear_der=(2, 3, 4)))
+    el.append(Spacer(1, 8))
+
+    totales = [["Subtotal", fmt_money(datos["subtotal"], moneda)]]
+    if datos["descuento"]:
+        totales.append(["Descuento", "- " + fmt_money(datos["descuento"], moneda)])
+    totales.append(["TOTAL", fmt_money(datos["total"], moneda)])
+    fila_total = len(totales) - 1
+    tabla_totales = Table(totales, colWidths=[45 * mm, 45 * mm], hAlign="RIGHT")
+    tabla_totales.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LINEABOVE", (0, fila_total), (-1, fila_total), 1, AZUL),
+        ("BACKGROUND", (0, fila_total), (-1, fila_total), colors.HexColor("#eaf3fb")),
+        ("FONTSIZE", (0, fila_total), (-1, fila_total), 12),
+    ]))
+    el.append(tabla_totales)
+
+    if datos["nota"]:
+        el += [Spacer(1, 6), _p(f"Nota: {datos['nota']}", "pequeno")]
+    el += [
+        Spacer(1, 8),
+        _p("Este presupuesto no reserva productos ni modifica el inventario.", "pequeno"),
+        Spacer(1, 22),
+        _firmas(desplazar_cliente=25),
+    ]
+    return _construir(el)
+
 # ========================================================== recibo de abono
 # ========================================================== recibo de abono
 def recibo_abono(abono_id):

@@ -77,7 +77,7 @@
   document.getElementById('descuento').addEventListener('input', recalcular);
   document.getElementById('cliente').addEventListener('change', actualizarPlazo);
 
-  // Antes de enviar: no se permite continuar sin cliente (el navegador ya marca el campo como obligatorio)
+  // El servidor exige cliente para la venta; el presupuesto puede generarse sin cliente.
   recalcular();
   actualizarPago();
 })();
