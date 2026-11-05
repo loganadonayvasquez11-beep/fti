@@ -97,6 +97,8 @@ def _lineas_carrito(borrador, carrito):
 def _totales_presupuesto(borrador, lineas):
     subtotal = round(sum(l["subtotal"] for l in lineas), 2)
     descuento = round(parse_decimal_input(borrador.get("descuento"), "El descuento", 0), 2)
+    if descuento > subtotal:
+        raise ValueError("El descuento no puede ser mayor que el subtotal.")
     total = round(subtotal - descuento, 2)
     return subtotal, descuento, total
 
@@ -122,6 +124,8 @@ def resumen_venta(vendedor_id, borrador, carrito):
     subtotal, descuento, total = _totales_presupuesto(borrador, lineas)
     total_usd = a_usd(total, moneda, tasa)
     cuota = round(parse_decimal_input(borrador.get("cuota_inicial"), "La cuota inicial", 0), 2) if tipo_pago == "credito" else 0.0
+    if cuota > total + 0.005:
+        raise ValueError("La cuota inicial no puede superar el total de la venta.")
     return {
         "cliente": cliente, "lineas": lineas, "tipo_pago": tipo_pago,
         "moneda": moneda, "tasa": tasa, "subtotal": subtotal, "descuento": descuento, "total": total,
@@ -132,16 +136,9 @@ def resumen_venta(vendedor_id, borrador, carrito):
     }
 
 
-def resumen_presupuesto(borrador, carrito):
-    """Calcula un presupuesto temporal sin requerir cliente ni validar/reservar stock."""
-    lineas = _lineas_carrito(borrador, carrito)
-    subtotal, descuento, total = _totales_presupuesto(borrador, lineas)
-    if descuento > subtotal:
-        raise ValueError("El descuento no puede ser mayor que el subtotal.")
-    return {
-        "lineas": lineas, "moneda": "USD", "subtotal": subtotal,
-        "descuento": descuento, "total": total, "nota": borrador.get("nota", ""),
-    }
+def resumen_presupuesto(vendedor_id, borrador, carrito):
+    """Calcula los datos completos de una venta para un presupuesto, sin modificar stock."""
+    return resumen_venta(vendedor_id, borrador, carrito)
 
 
 def dias_credito_automatico(total_usd):
@@ -376,21 +373,26 @@ def crear_venta(vendedor_id, form, items):
     return venta_id
 
 
-def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota):
-    """Actualiza los productos y condiciones editables de una venta aún pendiente."""
+def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota, admin=False):
+    """Actualiza una venta pendiente o, para el admin, una venta aprobada."""
     db = get_db()
     with db:
-        # La actualización condicional impide editar una venta ya aprobada.
+        venta = db.execute("SELECT * FROM ventas WHERE id = ?", (venta_id,)).fetchone()
+        if venta is None:
+            raise ValueError("Venta no encontrada.")
+        if admin:
+            if venta["estado"] not in ("pendiente", "aprobada"):
+                raise ValueError("Solo se pueden editar ventas pendientes o aprobadas.")
+        elif venta["vendedor_id"] != vendedor_id or venta["estado"] != "pendiente":
+            raise ValueError("Solo puedes editar tus pedidos pendientes.")
         cur = db.execute(
-            "UPDATE ventas SET nota = nota WHERE id = ? AND vendedor_id = ? AND estado = 'pendiente'",
-            (venta_id, vendedor_id),
+            "UPDATE ventas SET nota = nota WHERE id = ? AND estado = ?",
+            (venta_id, venta["estado"]),
         )
         if cur.rowcount != 1:
-            venta = db.execute("SELECT vendedor_id, estado FROM ventas WHERE id = ?", (venta_id,)).fetchone()
-            if venta is None or venta["vendedor_id"] != vendedor_id:
-                raise ValueError("No puedes editar este pedido.")
-            raise ValueError("Este pedido ya no está pendiente y no se puede editar.")
-        venta = db.execute("SELECT * FROM ventas WHERE id = ?", (venta_id,)).fetchone()
+            raise ValueError("La venta cambió de estado; vuelve a cargarla e inténtalo de nuevo.")
+
+        originales = _detalles_agrupados(db, venta_id)
         cliente = db.execute("SELECT * FROM clientes WHERE id = ?", (venta["cliente_id"],)).fetchone()
         if cliente is None:
             raise ValueError("El cliente de este pedido ya no está disponible.")
@@ -402,9 +404,9 @@ def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota):
                 raise ValueError("El pedido contiene productos repetidos o inválidos.")
             ids.add(producto_id)
             prod = db.execute(
-                "SELECT * FROM productos WHERE id = ? AND activo = 1", (producto_id,)
+                "SELECT * FROM productos WHERE id = ?", (producto_id,)
             ).fetchone()
-            if prod is None:
+            if prod is None or (not prod["activo"] and producto_id not in originales):
                 raise ValueError("Uno de los productos ya no está disponible en el catálogo.")
             cantidad = to_float(item.get("cantidad"))
             if not cantidad.is_integer() or cantidad <= 0:
@@ -428,8 +430,9 @@ def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota):
 
         for producto_id, cantidad in pedido.items():
             prod = db.execute("SELECT nombre, stock FROM productos WHERE id = ?", (producto_id,)).fetchone()
-            if cantidad > prod["stock"] + 1e-9:
-                raise ValueError(msg_sin_stock(vendedor_id, prod["nombre"], prod["stock"]))
+            disponible = prod["stock"] + (originales.get(producto_id, 0) if venta["estado"] == "aprobada" else 0)
+            if cantidad > disponible + 1e-9:
+                raise ValueError(f"Stock insuficiente de «{prod['nombre']}» (disponible: {disponible:g}).")
 
         subtotal = round(sum(linea["subtotal"] for linea in lineas), 2)
         descuento = round(parse_decimal_input(descuento, "El descuento", 0), 2)
@@ -438,27 +441,46 @@ def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota):
         total = round(subtotal - descuento, 2)
         total_usd = a_usd(total, venta["moneda"], venta["tasa"])
 
-        deuda = db.execute(
-            "SELECT id, fecha FROM deudas WHERE venta_id = ? AND estado = 'pendiente'", (venta_id,)
-        ).fetchone()
+        deuda = db.execute("SELECT * FROM deudas WHERE venta_id = ?", (venta_id,)).fetchone()
         dias_credito = venta["dias_credito"]
+        abono_inicial = 0.0
+        armado = db.execute("SELECT * FROM armados WHERE venta_id = ?", (venta_id,)).fetchone()
+        armado_requerido = venta_id > armado_desde_venta()
+        cantidades_cambiaron = any(
+            abs(originales.get(producto_id, 0) - pedido.get(producto_id, 0)) > 1e-9
+            for producto_id in sorted(originales.keys() | pedido.keys())
+        )
+        reiniciar_armado = (
+            admin and venta["estado"] == "aprobada" and armado_requerido and cantidades_cambiaron
+        )
         if venta["tipo_pago"] == "credito":
             if deuda is None:
-                raise ValueError("No se encontró la deuda pendiente asociada a este pedido.")
+                raise ValueError("No se encontró la deuda asociada a esta venta a crédito.")
             dias_credito = dias_credito_para(cliente, total_usd)
             abono_inicial = db.execute(
                 "SELECT COALESCE(SUM(monto_usd), 0) AS total FROM abonos WHERE deuda_id = ? AND anulado = 0",
                 (deuda["id"],),
             ).fetchone()["total"]
             if abono_inicial > total_usd + 0.005:
-                raise ValueError("El total nuevo no puede ser menor que la cuota inicial ya registrada.")
+                raise ValueError(
+                    f"El total nuevo no puede ser menor que los abonos ya registrados "
+                    f"({abono_inicial:.2f} USD)."
+                )
 
         db.execute(
             """UPDATE ventas SET subtotal = ?, descuento = ?, total = ?, total_usd = ?,
-               dias_credito = ?, nota = ?
-               WHERE id = ? AND estado = 'pendiente'""",
+               dias_credito = ?, nota = ? WHERE id = ?""",
             (subtotal, descuento, total, total_usd, dias_credito, (nota or "").strip(), venta_id),
         )
+        if venta["estado"] == "aprobada":
+            for producto_id in sorted(originales.keys() | pedido.keys()):
+                delta = originales.get(producto_id, 0) - pedido.get(producto_id, 0)
+                if abs(delta) > 1e-9:
+                    tipo = "devolucion" if delta > 0 else "salida"
+                    mover_stock(
+                        db, producto_id, delta, tipo,
+                        f"Ajuste por edición admin de {venta['numero']}", venta_id, vendedor_id,
+                    )
         db.execute("DELETE FROM venta_detalles WHERE venta_id = ?", (venta_id,))
         for linea in lineas:
             db.execute(
@@ -469,12 +491,35 @@ def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota):
                  linea["precio_unit"], linea["modificado"], linea["subtotal"]),
             )
         if deuda:
+            if venta["estado"] == "pendiente" or reiniciar_armado:
+                nuevo_estado = "pendiente"
+            elif deuda["estado"] == "anulada":
+                nuevo_estado = "anulada"
+            elif armado_requerido and (armado is None or not armado["fecha_salida"]):
+                nuevo_estado = "pendiente"
+            else:
+                nuevo_estado = "pagada" if total_usd - abono_inicial <= 0.005 else "activa"
+            if deuda["estado"] == "anulada":
+                nuevo_estado = "anulada"
             db.execute(
-                "UPDATE deudas SET monto_usd = ?, dias_credito = ?, vencimiento = ? WHERE id = ?",
-                (total_usd, dias_credito, sumar_dias(deuda["fecha"], dias_credito), deuda["id"]),
+                """UPDATE deudas SET monto_usd = ?, dias_credito = ?, vencimiento = ?, estado = ?
+                   WHERE id = ?""",
+                (total_usd, dias_credito, sumar_dias(deuda["fecha"], dias_credito),
+                 nuevo_estado, deuda["id"]),
+            )
+        if reiniciar_armado and armado is not None:
+            db.execute(
+                """UPDATE armados SET asignado_a = NULL, estado = 'pendiente', asignado_por = NULL,
+                   armado_por = NULL, fecha_armado = NULL, fecha_salida = NULL, fecha_asignacion = ?
+                   WHERE id = ?""",
+                (ahora(), armado["id"]),
             )
 
-    audit("venta_pendiente_editada", f"{venta['numero']} total_usd={total_usd} productos={len(lineas)}")
+    accion = "venta_editada_admin" if admin else "venta_pendiente_editada"
+    detalle = f"{venta['numero']} total_usd={total_usd} productos={len(lineas)}"
+    if reiniciar_armado:
+        detalle += " armado_reiniciado=1"
+    audit(accion, detalle)
 
 
 def _detalles_agrupados(db, venta_id):
@@ -504,7 +549,9 @@ def aprobar_venta(venta_id, admin_id):
             raise ValueError("La venta ya no está pendiente de aprobación.")
         for pid, cant in _detalles_agrupados(db, venta_id).items():
             mover_stock(db, pid, -cant, "salida", f"Venta {v['numero']}", venta_id, admin_id)
-        db.execute("UPDATE deudas SET estado='activa' WHERE venta_id=? AND estado='pendiente'", (venta_id,))
+        estado_deuda = "pendiente" if venta_id > armado_desde_venta() else "activa"
+        db.execute("UPDATE deudas SET estado=? WHERE venta_id=? AND estado='pendiente'",
+                   (estado_deuda, venta_id))
         for deuda in db.execute("SELECT id FROM deudas WHERE venta_id = ?", (venta_id,)).fetchall():
             recalcular_deuda(db, deuda["id"])
     audit("venta_aprobada", v["numero"])
@@ -806,6 +853,43 @@ def confirmar_armado(armado_id, usuario):
                            (armado_id,)).fetchone()
         raise ValueError(f"Ese pedido ya fue armado por {quien['nombre'] if quien else 'otro vendedor'}.")
     audit("pedido_armado", a["numero"])
+
+
+def programar_salida(armado_id, fecha_salida, usuario_id):
+    """Registra la fecha de salida de un pedido armado e inicia el plazo de crédito."""
+    try:
+        fecha = datetime.strptime(str(fecha_salida), "%Y-%m-%d").date().isoformat()
+    except (TypeError, ValueError):
+        raise ValueError("Selecciona una fecha de salida válida.") from None
+
+    db = get_db()
+    armado = db.execute(
+        """SELECT a.*, v.numero, v.estado AS venta_estado, v.tipo_pago
+             FROM armados a JOIN ventas v ON v.id = a.venta_id
+            WHERE a.id = ?""", (armado_id,)
+    ).fetchone()
+    if armado is None or armado["venta_estado"] != "aprobada":
+        raise ValueError("El pedido no está disponible para programar su salida.")
+    if armado["estado"] != "armado" or not armado["fecha_armado"]:
+        raise ValueError("Solo se puede programar la salida después de armar el pedido.")
+
+    with db:
+        db.execute("UPDATE armados SET fecha_salida = ? WHERE id = ?", (fecha, armado_id))
+        if armado["tipo_pago"] == "credito":
+            deuda = db.execute(
+                "SELECT id, dias_credito FROM deudas WHERE venta_id = ? AND estado != 'anulada'",
+                (armado["venta_id"],),
+            ).fetchone()
+            if deuda is None:
+                raise ValueError("No se encontró la deuda activa asociada a esta venta a crédito.")
+            vencimiento = sumar_dias(fecha, deuda["dias_credito"])
+            db.execute(
+                """UPDATE deudas SET fecha = ?, vencimiento = ?, estado = 'activa'
+                   WHERE id = ?""",
+                (fecha, vencimiento, deuda["id"]),
+            )
+            recalcular_deuda(db, deuda["id"])
+    audit("fecha_salida_programada", f"{armado['numero']} fecha={fecha}")
 
 
 def lineas_armado(venta_id):

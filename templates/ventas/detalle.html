@@ -2,8 +2,8 @@
 {% from '_macros.html' import estado_venta, tipo_pago_tag, estado_deuda_tag, armado_tag %}
 {% block titulo %}Venta {{ v.numero }}{% endblock %}
 {% block acciones %}
-  {% if v.estado == 'pendiente' and v.vendedor_id == g.user.id %}
-    <a class="btn primary" href="{{ url_for('ventas.editar', venta_id=v.id) }}">Editar pedido pendiente</a>
+  {% if (g.user.rol == 'admin' and v.estado in ('pendiente', 'aprobada')) or (g.user.rol == 'vendedor' and v.estado == 'pendiente' and v.vendedor_id == g.user.id) %}
+    <a class="btn primary" href="{{ url_for('ventas.editar', venta_id=v.id) }}">{{ 'Editar venta' if g.user.rol == 'admin' else 'Editar pedido pendiente' }}</a>
   {% endif %}
   <a class="btn" href="{{ url_for('ventas.nota_pdf', venta_id=v.id) }}">Abrir nota de venta PDF</a>
 {% endblock %}
@@ -47,6 +47,11 @@
   <h2>Pedido para armar</h2>
   {% if armado and armado.estado == 'armado' %}
     <p><span class="badge ok">Armado ✓</span> por <b>{{ armado.armador_nombre }}</b> el {{ armado.fecha_armado|fechahora }}.</p>
+    {% if g.user.rol == 'admin' or es_especial %}
+      {% with tipo_pago=v.tipo_pago, volver=url_for('ventas.detalle', venta_id=v.id) %}{% include 'armados/_salida.html' %}{% endwith %}
+    {% elif armado.fecha_salida %}
+      <p class="hint">Fecha de salida: {{ armado.fecha_salida|fecha }}</p>
+    {% endif %}
   {% else %}
     <p><span class="badge warn">Aún no se ha armado</span>
       {% if armado %}<small class="muted">Asignado a: <b>{{ armado.asignado_nombre or 'Cualquiera de los vendedores especiales' }}</b></small>
@@ -61,7 +66,14 @@
 {% if deuda and deuda.estado != 'anulada' %}
 <section class="card">
   <h2>Deuda generada</h2>
-  <p>Vence el <b>{{ deuda.vencimiento|fecha }}</b> · Saldo <b>$ {{ deuda.saldo_usd|num }}</b> {{ estado_deuda_tag(deuda) }}
+  <p>{% if v.tipo_pago == 'credito' and v.estado == 'pendiente' %}
+      El crédito comenzará después de aprobar la venta{% if req_armado %} y registrar la fecha de salida del pedido armado{% endif %}.
+    {% elif v.tipo_pago == 'credito' and req_armado and (not armado or not armado.fecha_salida) %}
+      El crédito empezará cuando se registre la fecha de salida del pedido armado.
+    {% else %}
+      Inicio del crédito: <b>{{ deuda.fecha|fecha }}</b> · Vence el <b>{{ deuda.vencimiento|fecha }}</b>
+    {% endif %}
+    · Saldo <b>$ {{ deuda.saldo_usd|num }}</b> {{ estado_deuda_tag(deuda) }}
     {% if g.user.rol == 'admin' or v.cartera_vendedor_id == g.user.id %}<a class="btn sm" href="{{ url_for('deudas.detalle', deuda_id=deuda.id) }}">Ver deuda y abonos</a>{% endif %}</p>
 </section>
 {% endif %}
@@ -70,7 +82,7 @@
   {% if v.estado == 'pendiente' %}
   <section class="card">
     <h2>Aprobación</h2>
-    <p class="muted">Al aprobar se descuenta el stock del almacén central{% if v.tipo_pago == 'credito' %} y la deuda pasa a estar activa{% endif %}.</p>
+    <p class="muted">Al aprobar se descuenta el stock del almacén central{% if v.tipo_pago == 'credito' %}; el crédito y su vencimiento empezarán desde la fecha de salida que se seleccione después de armar{% endif %}.</p>
     <div class="actions">
       <form method="post" action="{{ url_for('ventas.aprobar', venta_id=v.id) }}" class="inline-form">{{ csrf_field() }}
         {% if g.user.rol == 'admin' or es_especial %}<select name="armador" title="Quién arma el pedido (la venta sigue siendo del vendedor)">

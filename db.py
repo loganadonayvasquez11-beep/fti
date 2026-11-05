@@ -169,9 +169,12 @@ def migrar_armados_y_precios(db):
         asignado_por INTEGER REFERENCES usuarios(id),
         fecha_asignacion TEXT NOT NULL,
         armado_por INTEGER REFERENCES usuarios(id),
-        fecha_armado TEXT);
+        fecha_armado TEXT,
+        fecha_salida TEXT);
     CREATE INDEX IF NOT EXISTS ix_armados_estado ON armados(estado, asignado_a);
     """)
+    if "fecha_salida" not in table_columns(db, "armados"):
+        db.execute("ALTER TABLE armados ADD COLUMN fecha_salida TEXT")
     db.execute("INSERT OR IGNORE INTO configuracion(clave, valor) "
                "VALUES ('armado_desde_venta', CAST(COALESCE((SELECT MAX(id) FROM ventas), 0) AS TEXT))")
 

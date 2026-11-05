@@ -6,7 +6,7 @@
   {% set a = p.a %}
   <article class="card armado {{ 'armado-ok' if a.estado == 'armado' }}">
     <header class="armado-cab">
-      <div><b>{{ a.numero }}</b> <small class="muted">· {{ a.venta_fecha|fechahora }} · Vendedor: {{ a.vendedor }}{% if modo == 'admin' %} · Cliente: {{ a.cliente }}{% endif %}</small></div>
+      <div><a href="{{ url_for('ventas.detalle', venta_id=a.venta_id) }}"><b>{{ a.numero }}</b></a> <small class="muted">· {{ a.venta_fecha|fechahora }} · Vendedor: {{ a.vendedor }}{% if modo == 'admin' %} · Cliente: {{ a.cliente }}{% endif %}</small></div>
       <div>
         {% if a.estado == 'armado' %}<span class="badge ok">Armado ✓ por {{ a.armador_nombre }}</span>
         {% else %}<span class="badge warn">Aún no se ha armado</span>
@@ -29,6 +29,9 @@
     {% if a.estado == 'pendiente' %}
       {% with venta_id=a.venta_id, actual=a, volver=url_for('armados.lista') %}{% include 'armados/_asignar.html' %}{% endwith %}
     {% endif %}
+    {% if a.estado == 'armado' %}
+      {% with armado=a, tipo_pago=a.tipo_pago, volver=url_for('armados.lista') %}{% include 'armados/_salida.html' %}{% endwith %}
+    {% endif %}
   </article>
 {% endmacro %}
 
@@ -38,6 +41,8 @@
   <select name="estado">
     {% for e, t in [('pendiente','Por armar'),('armado','Ya armados'),('todos','Todos')] %}<option value="{{ e }}" {{ 'selected' if estado == e }}>{{ t }}</option>{% endfor %}
   </select>
+  <label class="inline"><input type="checkbox" name="esperando_salida" value="1" {{ 'checked' if esperando_salida }}>
+    Esperando por fecha de salida</label>
   <button class="btn">Filtrar</button>
 </form>
 {% endif %}

@@ -16,7 +16,7 @@ bp = Blueprint("armados", __name__, url_prefix="/armados")
 def _lista_armados(donde, args):
     """Armados con datos de la venta y de las personas implicadas; cada uno trae sus productos."""
     filas = query(
-        f"""SELECT a.*, v.numero, v.fecha AS venta_fecha, c.vendedor_id, uv.nombre AS vendedor, c.nombre AS cliente,
+        f"""SELECT a.*, v.numero, v.tipo_pago, v.fecha AS venta_fecha, c.vendedor_id, uv.nombre AS vendedor, c.nombre AS cliente,
                    ua.nombre AS asignado_nombre, ub.nombre AS armador_nombre
               FROM armados a JOIN ventas v ON v.id = a.venta_id AND v.estado = 'aprobada'
               JOIN clientes c ON c.id = v.cliente_id JOIN usuarios uv ON uv.id = c.vendedor_id
@@ -34,14 +34,20 @@ def lista():
     Admin: todos, más las ventas aprobadas que aún no tienen a nadie asignado. Vendedor normal: no aplica (403)."""
     if g.user["rol"] == "admin":
         estado = request.args.get("estado", "pendiente")
-        donde, args = ("1=1", []) if estado == "todos" else ("a.estado = ?", [estado if estado in ("pendiente", "armado") else "pendiente"])
-        sin_asignar = query(
-            """SELECT v.id, v.numero, v.fecha, uv.nombre AS vendedor, c.nombre AS cliente
-                 FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios uv ON uv.id = c.vendedor_id
-                WHERE v.estado = 'aprobada' AND v.id > ? AND NOT EXISTS (SELECT 1 FROM armados a WHERE a.venta_id = v.id)
-                ORDER BY v.id DESC LIMIT 100""", (services.armado_desde_venta(),))
+        esperando_salida = request.args.get("esperando_salida") == "1"
+        if esperando_salida:
+            estado = "armado"
+            donde, args = ("a.estado = 'armado' AND COALESCE(a.fecha_salida, '') = ''", [])
+            sin_asignar = []
+        else:
+            donde, args = ("1=1", []) if estado == "todos" else ("a.estado = ?", [estado if estado in ("pendiente", "armado") else "pendiente"])
+            sin_asignar = query(
+                """SELECT v.id, v.numero, v.fecha, uv.nombre AS vendedor, c.nombre AS cliente
+                     FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios uv ON uv.id = c.vendedor_id
+                    WHERE v.estado = 'aprobada' AND v.id > ? AND NOT EXISTS (SELECT 1 FROM armados a WHERE a.venta_id = v.id)
+                    ORDER BY v.id DESC LIMIT 100""", (services.armado_desde_venta(),))
         return render_template("armados/lista.html", pedidos=_lista_armados(donde, args), sin_asignar=sin_asignar,
-                               estado=estado, modo="admin")
+                               estado=estado, esperando_salida=esperando_salida, modo="admin")
     if not es_especial():
         abort(403)
     uid = g.user["id"]
@@ -82,3 +88,17 @@ def confirmar(armado_id):
     except ValueError as e:
         aviso(str(e), "error")
     return redirect(url_for("armados.lista"))
+
+
+@bp.route("/<int:armado_id>/salida", methods=["POST"])
+@especial_o_admin_required
+def salida(armado_id):
+    """El admin o un vendedor especial elige cuándo sale un pedido ya armado."""
+    try:
+        services.programar_salida(armado_id, request.form.get("fecha_salida", ""), g.user["id"])
+        aviso("Fecha de salida guardada. El crédito y su vencimiento se calcularon desde esa fecha.")
+    except ValueError as e:
+        aviso(str(e), "error")
+    destino = request.form.get("volver", "")
+    return redirect(destino if destino.startswith("/") and not destino.startswith("//")
+                    else url_for("armados.lista"))

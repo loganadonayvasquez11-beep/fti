@@ -84,6 +84,7 @@
 {% else %}
   <main class="auth">{{ flashes() }}{{ self.contenido() }}</main>
 {% endif %}
+<footer class="site-footer">By Logan Vasquez</footer>
 {% if g.user %}<script src="{{ url_for('static', filename='js/decimal-inputs.js') }}"></script>{% endif %}
 {% block scripts %}{% endblock %}
 {% if g.user %}<script src="{{ url_for('static', filename='js/lightbox.js') }}"></script>{% endif %}

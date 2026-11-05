@@ -298,27 +298,31 @@ def confirmar():
 @bp.route("/presupuesto.pdf")
 @roles_required("vendedor")
 def presupuesto_pdf():
-    """Genera un presupuesto temporal desde el carrito, sin cliente ni cambios en el inventario."""
+    """Genera un presupuesto temporal con los datos de venta, sin modificar inventario."""
     cart = _carrito()
     if not cart:
         aviso("Tu carrito está vacío: elige primero los productos.", "warn")
         return redirect(url_for("ventas.nueva"))
     try:
-        r = services.resumen_presupuesto(_borrador(), cart)
+        r = services.resumen_presupuesto(g.user["id"], _borrador(), cart)
     except ValueError as e:
         aviso(str(e), "error")
         return redirect(url_for("ventas.carrito"))
     archivo = BytesIO(pdf.presupuesto(r, g.user["nombre"]))
-    nombre = nombre_pdf_cliente(g.user["nombre"], "Presupuesto")
+    nombre = nombre_pdf_cliente(r["cliente"]["nombre"], "Presupuesto")
     return responder_pdf(archivo, nombre)
 
 
 @bp.route("/<int:venta_id>/editar", methods=["GET", "POST"])
-@roles_required("vendedor")
+@login_required
 def editar(venta_id):
-    """Permite al vendedor modificar su pedido mientras siga pendiente."""
+    """Permite editar pedidos propios pendientes o cualquier venta pendiente/aprobada como admin."""
     venta = _venta_o_404(venta_id)
-    if venta["vendedor_id"] != g.user["id"] or venta["estado"] != "pendiente":
+    admin = g.user["rol"] == "admin"
+    if admin:
+        if venta["estado"] not in ("pendiente", "aprobada"):
+            abort(404)
+    elif venta["vendedor_id"] != g.user["id"] or venta["estado"] != "pendiente":
         abort(404)
 
     if request.method == "POST":
@@ -336,11 +340,15 @@ def editar(venta_id):
             services.editar_venta_pendiente(
                 venta_id, g.user["id"], items,
                 request.form.get("descuento", ""), request.form.get("nota", ""),
+                admin=admin,
             )
         except ValueError as e:
             aviso(str(e), "error")
             return redirect(url_for("ventas.editar", venta_id=venta_id))
-        aviso("Pedido actualizado. Los cambios se aplicarán al aprobarlo.")
+        if admin and venta["estado"] == "aprobada":
+            aviso("Venta aprobada actualizada. Stock y deuda se ajustaron según los cambios.")
+        else:
+            aviso("Pedido actualizado. Los cambios se aplicarán al aprobarlo.")
         return redirect(url_for("ventas.detalle", venta_id=venta_id))
 
     lineas = query(
@@ -352,7 +360,7 @@ def editar(venta_id):
         "SELECT id, codigo, nombre, unidad, precio_mayor_usd FROM productos WHERE activo = 1 ORDER BY nombre"
     )
     return render_template("ventas/editar.html", v=venta, lineas=lineas,
-                           productos=productos, paso=2)
+                           productos=productos, paso=2, admin_edit=admin)
 
 
 @bp.route("/<int:venta_id>")

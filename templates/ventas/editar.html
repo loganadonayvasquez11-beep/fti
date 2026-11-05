@@ -1,14 +1,18 @@
 {% extends 'base.html' %}
-{% block titulo %}Editar pedido {{ v.numero }}{% endblock %}
+{% block titulo %}{{ 'Editar venta' if admin_edit else 'Editar pedido' }} {{ v.numero }}{% endblock %}
 {% block contenido %}
 <section class="card">
   <div class="detail-head">
     <div><span class="muted">Pedido</span><b>{{ v.numero }}</b></div>
     <div><span class="muted">Cliente</span><b>{{ v.cliente }}</b></div>
     <div><span class="muted">Forma de pago</span><b>{{ 'Crédito' if v.tipo_pago == 'credito' else 'Contado' }}</b></div>
-    <div><span class="muted">Estado</span><b>Pendiente de aprobación</b></div>
+    <div><span class="muted">Estado</span><b>{{ 'Pendiente de aprobación' if v.estado == 'pendiente' else 'Aprobada' }}</b></div>
   </div>
+  {% if admin_edit and v.estado == 'aprobada' %}
+  <p class="flash warn">La venta ya fue aprobada. Los cambios de productos o cantidades ajustarán el stock. Si el pedido requiere armado, esos cambios reiniciarán el armado y la fecha de salida. Los abonos se conservan y el total no puede quedar por debajo de lo abonado.</p>
+  {% else %}
   <p class="hint">Puedes modificar productos, cantidades, precios, descuento y nota mientras el pedido siga pendiente. El cliente y la forma de pago se mantienen.</p>
+  {% endif %}
 </section>
 
 <form method="post" id="editar-pedido" class="venta">
@@ -48,7 +52,7 @@
         </tbody>
       </table>
     </div>
-    <p class="muted">El pedido debe conservar al menos un producto y las cantidades no pueden superar el stock disponible.</p>
+    <p class="muted">La venta debe conservar al menos un producto y las cantidades no pueden superar el stock disponible.</p>
   </section>
 
   <section class="card form">
@@ -67,7 +71,7 @@
     </div>
     <div class="actions">
       <a class="btn" href="{{ url_for('ventas.detalle', venta_id=v.id) }}">Cancelar</a>
-      <button class="btn primary lg">Guardar cambios del pedido</button>
+      <button class="btn primary lg">{{ 'Guardar cambios de la venta' if admin_edit else 'Guardar cambios del pedido' }}</button>
     </div>
   </section>
 </form>

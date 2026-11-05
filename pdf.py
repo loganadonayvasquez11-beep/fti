@@ -264,14 +264,28 @@ def nota_venta(venta_id):
     det = query(
         """SELECT d.*, p.codigo, p.nombre, p.unidad FROM venta_detalles d
              JOIN productos p ON p.id = d.producto_id WHERE d.venta_id = ? ORDER BY d.id""", (venta_id,))
+    deuda = query("SELECT * FROM v_deudas WHERE venta_id = ?", (venta_id,), one=True) if v["tipo_pago"] == "credito" else None
+    return _pdf_venta(v, det, deuda)
+
+
+def _pdf_venta(v, det, deuda=None, titulo="NOTA DE ENTREGA", numero=None, es_presupuesto=False):
+    """Renderiza la nota o presupuesto con el mismo formato y datos del comprador."""
     m = "USD"   # todo se factura en dólares
-    el = [_encabezado_nota("NOTA DE ENTREGA", v["numero"]), Spacer(1, 10)]
+    el = [_encabezado_nota(titulo, numero if numero is not None else v["numero"]), Spacer(1, 10)]
 
     info = [
         [_p(f"Fecha: {fmt_fechahora(v['fecha'])}"), _p(f"Vendedor: {v['vendedor']}")],
         [_p(f"Cliente: {v['cliente']}"), _p(f"RIF: {v['documento'] or '—'}")],
         [_p(f"Dirección: {v['direccion'] or '—'}"), _p(f"Teléfono: {v['telefono'] or '—'}")],
     ]
+    if es_presupuesto:
+        pago = "Crédito" if v["tipo_pago"] == "credito" else "Contado"
+        if v["metodo_pago"]:
+            pago += f" · {v['metodo_pago']}"
+        info.append([_p(f"Forma de pago: {pago}"),
+                     _p(f"Plazo: {v['dias']} días" if v["tipo_pago"] == "credito" else "")])
+        if v["tipo_pago"] == "credito" and v["cuota_inicial"] > 0:
+            info.append([_p(f"Cuota inicial: {fmt_money(v['cuota_inicial'], m)}"), ""])
     ti = Table(info, colWidths=[95 * mm, 95 * mm], hAlign="CENTER")
     ti.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -319,10 +333,8 @@ def nota_venta(venta_id):
     ]))
     # Fecha de vencimiento a la izquierda, al mismo nivel que Subtotal/TOTAL
     venc = ""
-    if v["tipo_pago"] == "credito":
-        d = query("SELECT * FROM v_deudas WHERE venta_id = ?", (venta_id,), one=True)
-        if d and d["estado"] != "anulada":
-            venc = _p(f"Fecha de vencimiento: {fmt_fecha(d['vencimiento'])}", "vencimiento")
+    if deuda and deuda["estado"] != "anulada":
+        venc = _p(f"Fecha de vencimiento: {fmt_fecha(deuda['vencimiento'])}", "vencimiento")
 
     # Centra verticalmente el texto de vencimiento sobre la línea roja de la tabla de totales
     tt.wrap(90 * mm, 0)
@@ -341,69 +353,37 @@ def nota_venta(venta_id):
 
     if v["nota"]:
         el += [Spacer(1, 6), _p(f"Nota: {v['nota']}", "pequeno")]
-    if v["motivo"]:
+    if not es_presupuesto and v["motivo"]:
         el += [Spacer(1, 4), _p(f"Motivo: {v['motivo']}", "pequeno")]
+    if es_presupuesto:
+        el += [Spacer(1, 8), _p("Este presupuesto no registra una venta ni descuenta existencias.", "pequeno")]
         
     el += [Spacer(1, 22), _firmas(desplazar_cliente=25)]
     return _construir(el)
 
 
 def presupuesto(datos, vendedor):
-    """Genera en memoria un presupuesto temporal sin cliente ni número de venta."""
-    el = [_encabezado_nota("PRESUPUESTO", ""), Spacer(1, 10)]
-    info = Table([
-        [_p(f"Fecha: {fmt_fechahora(ahora())}"), _p(f"Vendedor: {vendedor}")],
-    ], colWidths=[95 * mm, 95 * mm], hAlign="CENTER")
-    info.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("BACKGROUND", (0, 0), (-1, -1), GRIS_CLARO),
-    ]))
-    el += [info, Spacer(1, 10)]
-
-    moneda = datos["moneda"]
-    filas = [["Código", "Producto", "Cant.", f"Precio ({moneda})", f"Subtotal ({moneda})"]]
-    for linea in datos["lineas"]:
-        producto = linea["producto"]
-        filas.append([
-            producto["codigo"], _p(producto["nombre"]), fmt_qty(linea["cantidad"]),
-            fmt_num(linea["precio_unit"]), fmt_num(linea["subtotal"]),
-        ])
-    el.append(_tabla(filas, [27 * mm, 72 * mm, 26 * mm, 32 * mm, 33 * mm], alinear_der=(2, 3, 4)))
-    el.append(Spacer(1, 8))
-
-    totales = [["Subtotal", fmt_money(datos["subtotal"], moneda)]]
-    if datos["descuento"]:
-        totales.append(["Descuento", "- " + fmt_money(datos["descuento"], moneda)])
-    totales.append(["TOTAL", fmt_money(datos["total"], moneda)])
-    fila_total = len(totales) - 1
-    tabla_totales = Table(totales, colWidths=[45 * mm, 45 * mm], hAlign="RIGHT")
-    tabla_totales.setStyle(TableStyle([
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LINEABOVE", (0, fila_total), (-1, fila_total), 1, AZUL),
-        ("BACKGROUND", (0, fila_total), (-1, fila_total), colors.HexColor("#eaf3fb")),
-        ("FONTSIZE", (0, fila_total), (-1, fila_total), 12),
-    ]))
-    el.append(tabla_totales)
-
-    if datos["nota"]:
-        el += [Spacer(1, 6), _p(f"Nota: {datos['nota']}", "pequeno")]
-    el += [
-        Spacer(1, 8),
-        _p("Este presupuesto no reserva productos ni modifica el inventario.", "pequeno"),
-        Spacer(1, 22),
-        _firmas(desplazar_cliente=25),
+    """Genera un presupuesto completo en memoria sin crear una venta."""
+    cliente = datos["cliente"]
+    v = {
+        "id": 0, "numero": "", "estado": "presupuesto", "fecha": ahora(),
+        "cliente": cliente["nombre"], "documento": cliente["documento"],
+        "direccion": cliente["direccion"], "telefono": cliente["telefono"],
+        "vendedor": vendedor, "tipo_pago": datos["tipo_pago"], "dias": datos["dias"],
+        "cuota_inicial": datos["cuota_inicial"], "metodo_pago": datos["metodo_pago"],
+        "subtotal": datos["subtotal"], "descuento": datos["descuento"],
+        "total": datos["total"], "moneda": datos["moneda"], "nota": datos["nota"],
+        "motivo": "",
+    }
+    detalles = [
+        {
+            "codigo": linea["producto"]["codigo"], "nombre": linea["producto"]["nombre"],
+            "cantidad": linea["cantidad"], "precio_unit": linea["precio_unit"],
+            "subtotal": linea["subtotal"],
+        }
+        for linea in datos["lineas"]
     ]
-    return _construir(el)
+    return _pdf_venta(v, detalles, titulo="PRESUPUESTO", numero="", es_presupuesto=True)
 
 # ========================================================== recibo de abono
 # ========================================================== recibo de abono

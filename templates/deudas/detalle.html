@@ -9,16 +9,16 @@
   <div class="stat"><span>Monto de la deuda</span><b>$ {{ d.monto_usd|num }}</b></div>
   <div class="stat"><span>Abonado</span><b class="pos">$ {{ d.abonado_usd|num }}</b></div>
   <div class="stat {{ 'danger deuda-roja' if d.estado == 'activa' and d.saldo_usd > 0.005 }}"><span>Saldo pendiente</span><b>$ {{ (d.saldo_usd if d.saldo_usd > 0 else 0)|num }}</b></div>
-  <div class="stat"><span>Vence</span><b class="txt">{{ d.vencimiento|fecha }}</b><small>{{ d.dias_credito }} días de crédito · {{ estado_deuda_tag(d) }}</small></div>
+  <div class="stat"><span>{{ 'Inicio del crédito' if espera_salida else ('Estado' if espera_aprobacion else 'Vence') }}</span><b class="txt">{% if espera_salida %}Al registrar salida{% elif espera_aprobacion %}Pendiente de aprobación{% else %}{{ d.vencimiento|fecha }}{% endif %}</b><small>{{ d.dias_credito }} días de crédito · {{ estado_deuda_tag(d) }}</small></div>
 </section>
 
 <section class="card">
   <div class="detail-head">
     <div><span class="muted">Cliente</span><b><a href="{{ url_for('clientes.detalle', cliente_id=d.cliente_id) }}">{{ d.cliente_nombre }}</a></b><small class="muted">{{ d.cliente_documento }}</small></div>
     <div><span class="muted">Vendedor</span><b>{{ d.vendedor_nombre }}</b></div>
-    <div><span class="muted">Concepto</span><b>{% if d.venta_id %}<a href="{{ url_for('ventas.detalle', venta_id=d.venta_id) }}">{{ d.concepto }}</a>{% else %}{{ d.concepto }}{% endif %}</b><small class="muted">Desde {{ d.fecha|fecha }}</small></div>
+    <div><span class="muted">Concepto</span><b>{% if d.venta_id %}<a href="{{ url_for('ventas.detalle', venta_id=d.venta_id) }}">{{ d.concepto }}</a>{% else %}{{ d.concepto }}{% endif %}</b><small class="muted">{% if espera_salida %}Pendiente de fecha de salida{% elif espera_aprobacion %}Pendiente de aprobación{% else %}{{ 'Inicio del crédito' if d.venta_id else 'Desde' }} {{ d.fecha|fecha }}{% endif %}</small></div>
   </div>
-  {% if d.estado == 'pendiente' %}<p class="flash warn">Esta deuda está esperando la aprobación de la venta por el administrador.</p>{% endif %}
+  {% if d.estado == 'pendiente' %}<p class="flash warn">{% if espera_salida %}El plazo y los abonos se activarán al registrar la fecha de salida del pedido armado.{% elif espera_aprobacion %}Esta deuda está esperando la aprobación de la venta por el administrador.{% else %}Esta deuda está pendiente de activación.{% endif %}</p>{% endif %}
 </section>
 
 {% if d.estado == 'activa' %}

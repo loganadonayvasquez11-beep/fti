@@ -95,6 +95,7 @@ small { font-size: 12px; }
 .icon-btn:hover { background: var(--hover); color: var(--text); text-decoration: none; }
 
 .content { flex: 1; min-width: 0; padding: 22px 28px 60px; max-width: 1400px; }
+.site-footer { padding: 8px 16px 12px; color: var(--muted); font-size: 11px; opacity: .55; text-align: center; }
 .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
 .topbar h1 { font-size: 26px; flex: 1; min-width: 160px; letter-spacing: -.01em; }
 .topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

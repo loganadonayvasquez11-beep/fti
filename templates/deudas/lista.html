@@ -6,7 +6,7 @@
 <form class="filters card" method="get">
   <input name="q" value="{{ q }}" placeholder="Buscar por cliente">
   <select name="estado">
-    {% for e, t in [('activas','Activas (por cobrar)'),('vencidas','Vencidas'),('pendiente','Por aprobar'),('pagada','Pagadas'),('anulada','Anuladas'),('todas','Todas')] %}
+    {% for e, t in [('activas','Activas (por cobrar)'),('vencidas','Vencidas'),('pendiente','Pendientes'),('pagada','Pagadas'),('anulada','Anuladas'),('todas','Todas')] %}
     <option value="{{ e }}" {{ 'selected' if estado == e }}>{{ t }}</option>{% endfor %}</select>
   {% if g.user.rol == 'admin' %}
   <select name="vendedor"><option value="">Todos los responsables</option>
@@ -22,7 +22,7 @@
     <tbody>{% for d in deudas %}
       <tr><td data-label="Cliente"><a href="{{ url_for('deudas.detalle', deuda_id=d.id) }}"><b>{{ d.cliente_nombre }}</b></a></td>
           {% if g.user.rol == 'admin' %}<td data-label="Vendedor">{{ d.vendedor_nombre }}</td>{% endif %}
-          <td data-label="Concepto">{{ d.concepto }}</td><td data-label="Vence">{{ d.vencimiento|fecha }}</td>
+          <td data-label="Concepto">{{ d.concepto }}</td><td data-label="Vence">{{ 'Por definir' if d.estado == 'pendiente' else d.vencimiento|fecha }}</td>
           <td data-label="Monto" class="r {{ 'deuda-roja' if d.estado == 'activa' and d.saldo_usd > 0.005 }}">$ {{ d.monto_usd|num }}</td><td data-label="Saldo" class="r {{ 'deuda-roja' if d.estado == 'activa' and d.saldo_usd > 0.005 }}">$ {{ d.saldo_usd|num }}</td>
           <td data-label="Estado">{{ estado_deuda_tag(d) }}</td></tr>
     {% endfor %}</tbody></table></div>

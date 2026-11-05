@@ -1,0 +1,11 @@
+{% if armado and armado.estado == 'armado' %}
+<form method="post" action="{{ url_for('armados.salida', armado_id=armado.id) }}" class="inline-form">
+  {{ csrf_field() }}
+  <input type="hidden" name="volver" value="{{ volver }}">
+  <label>Fecha de salida{% if tipo_pago == 'credito' %} / inicio del crédito{% endif %}
+    <input type="date" name="fecha_salida" value="{{ armado.fecha_salida or '' }}" required>
+  </label>
+  <button class="btn primary">{{ 'Actualizar fecha de salida' if armado.fecha_salida else 'Guardar fecha de salida' }}</button>
+</form>
+{% if tipo_pago == 'credito' %}<p class="hint">La fecha de compra en la nota se conserva. El vencimiento del crédito se recalcula desde la salida.</p>{% endif %}
+{% endif %}

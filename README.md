@@ -87,18 +87,22 @@ SQLite guarda la base junto a los archivos de la aplicación y es adecuada para 
 ## Reglas de negocio
 
 - **Admin**: dueño del almacén central (productos, precios al mayor, entradas, mermas, ajustes, kardex),
-  de la cartera de vendedores (agregar, traspasar clientes y deudas manteniendo activo al vendedor o congelándolo); aprueba, rechaza y anula ventas.
+  de la cartera de vendedores (agregar, traspasar clientes y deudas manteniendo activo al vendedor o congelándolo); aprueba, rechaza y anula ventas. Puede editar ventas pendientes y aprobadas de cualquier vendedor. Al editar una aprobada se ajusta el stock y la deuda; los abonos se conservan y no se permite reducir el total por debajo de lo abonado. Si cambian productos o cantidades de un pedido que requiere armado, este vuelve a quedar pendiente de armado y salida.
 - **Vendedor**: tiene su cartera de clientes (puede agregar), genera ventas con productos del catálogo,
   vende **al mayor**, contado o crédito y puede **cambiar el precio unitario** de cada línea.
 - Puede editar sus pedidos pendientes (productos, cantidades, precios, descuento y nota) hasta que
   sean aprobados; el cliente y la forma de pago no cambian.
-- Desde el carrito también puede generar un **presupuesto PDF** sin cliente asociado; no se guarda como
-  venta, no reserva ni descuenta existencias.
+- Desde el carrito también puede generar un **presupuesto PDF** con los datos del cliente seleccionado;
+  no se guarda como venta, no reserva ni descuenta existencias.
 - **Vendedor especial**: conserva sus funciones de venta y armado, puede aprobar o rechazar las ventas pendientes de todos los vendedores, asignar quién arma los pedidos y anular ventas aprobadas, pero no puede crear ni editar productos, cambiar precios ni modificar el stock.
 - **Contado**: la venta se aprueba y se cobra sola, y descuenta el stock en el acto
   (en Configuración puedes exigir también tu aprobación).
-- **Crédito**: queda *pendiente*, **no descuenta stock** hasta que el admin o un vendedor especial la aprueba; entonces nace la deuda activa
-  con vencimiento = fecha + días de crédito (los días varían por cliente y por venta).
+- **Crédito**: queda *pendiente* y **no descuenta stock** hasta que el admin o un vendedor especial la aprueba.
+  En pedidos que requieren armado, la deuda se activa al registrar la fecha de salida; el vencimiento se calcula
+  desde esa fecha más los días de crédito. En las demás ventas, se activa al aprobarse.
+- Tras armar un pedido aprobado, el admin o un vendedor especial elige su fecha de salida en el calendario.
+  Para ventas a crédito, esa fecha inicia el plazo y se usa para recalcular el vencimiento; la nota conserva
+  la fecha original de compra y muestra el vencimiento, pero no la fecha de inicio del crédito.
 - **Deudas**: el admin puede ponerlas, editarlas, quitarlas y reactivarlas a su gusto. Los abonos son en $; al llegar a saldo 0 la deuda pasa a pagada.
 - Los precios modificados por el vendedor quedan marcados y aparecen en **Reportes**.
 - Todo queda en **Auditoría**. Los clientes **no** inician sesión.

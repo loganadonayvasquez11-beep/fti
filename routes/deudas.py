@@ -53,10 +53,25 @@ def lista():
 def detalle(deuda_id):
     """Detalle de una deuda con su historial de abonos y el formulario para abonar."""
     d = _deuda_o_404(deuda_id)
+    espera_aprobacion = False
+    espera_salida = False
+    if d["estado"] == "pendiente" and d["venta_id"]:
+        venta = query(
+            """SELECT v.estado, v.id, a.fecha_salida FROM ventas v
+                 LEFT JOIN armados a ON a.venta_id = v.id WHERE v.id = ?""",
+            (d["venta_id"],), one=True,
+        )
+        espera_aprobacion = bool(venta and venta["estado"] == "pendiente")
+        espera_salida = bool(
+            venta and venta["estado"] == "aprobada"
+            and venta["id"] > services.armado_desde_venta()
+            and not venta["fecha_salida"]
+        )
     abonos = query(
         """SELECT a.*, u.nombre AS registrador FROM abonos a LEFT JOIN usuarios u ON u.id = a.registrado_por
             WHERE a.deuda_id = ? ORDER BY a.id DESC""", (deuda_id,))
-    return render_template("deudas/detalle.html", d=d, abonos=abonos)
+    return render_template("deudas/detalle.html", d=d, abonos=abonos,
+                           espera_aprobacion=espera_aprobacion, espera_salida=espera_salida)
 
 
 @bp.route("/deudas/<int:deuda_id>/abonar", methods=["POST"])
