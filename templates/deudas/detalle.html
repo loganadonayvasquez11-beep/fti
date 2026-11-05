@@ -50,7 +50,7 @@
           <td data-label="Método">{{ a.metodo or '—' }}{% if a.referencia %}<br><small class="muted">{{ a.referencia }}</small>{% endif %}</td>
           <td data-label="Registró">{{ a.registrador or '—' }}</td>
           <td class="r nowrap">{% if a.anulado %}<span class="badge mute">Anulado</span>{% endif %}
-            <a class="btn sm" href="{{ url_for('deudas.recibo_pdf', abono_id=a.id) }}">Descargar recibo PDF</a>
+            <a class="btn sm" href="{{ url_for('deudas.recibo_pdf', abono_id=a.id) }}">Abrir recibo PDF</a>
             {% if g.user.rol == 'admin' and not a.anulado %}
             <form method="post" action="{{ url_for('deudas.anular_abono', abono_id=a.id) }}" class="inline" onsubmit="return confirm('¿Anular este abono?');">{{ csrf_field() }}<button class="btn sm danger">Anular</button></form>{% endif %}</td></tr>
     {% endfor %}</tbody></table></div>

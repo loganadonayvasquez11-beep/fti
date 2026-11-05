@@ -3,11 +3,12 @@
 Solo el admin crea y edita productos, precios y stock; vendedores especiales pueden descargar la lista
 de mercancía. Cada cambio de precio queda en una lista temporal de 48 horas.
 """
-from flask import Blueprint, current_app, g, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, current_app, g, redirect, render_template, request, url_for
 
 from io import BytesIO
 
 import pdf
+from pdf_responses import responder_pdf
 from db import get_db, query
 from services import (audit, precios_recientes, registrar_cambio_precio, registrar_movimiento_manual,
                       stock_alerta_defecto)
@@ -60,8 +61,7 @@ def productos_pdf():
                        FROM productos p LEFT JOIN categorias c ON c.id = p.categoria_id
                       WHERE p.activo = 1 ORDER BY c.nombre IS NULL, c.nombre, p.nombre""")
     audit("lista_stock_pdf", f"{g.user['usuario']} ({len(filas)} productos)")
-    return send_file(BytesIO(pdf.lista_mercancia(filas)), mimetype="application/pdf",
-                     as_attachment=True, download_name=f"lista_mercancia_{ahora()[:10]}.pdf")
+    return responder_pdf(BytesIO(pdf.lista_mercancia(filas)), f"lista_mercancia_{ahora()[:10]}.pdf")
 
 
 def _leer_producto(f):

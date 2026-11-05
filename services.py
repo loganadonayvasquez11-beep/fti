@@ -93,6 +93,9 @@ def resumen_venta(vendedor_id, borrador, carrito):
         prod = db.execute("SELECT * FROM productos WHERE id = ? AND activo = 1", (to_int(pid),)).fetchone()
         if prod is None:
             raise ValueError("Uno de los productos ya no está disponible en el catálogo.")
+        cant = to_float(cant)
+        if not cant.is_integer() or cant <= 0:
+            raise ValueError(f"La cantidad de «{prod['nombre']}» debe ser un número entero mayor que cero.")
         lista = precio_lista(prod)
         precio_guardado = (borrador.get("precios") or {}).get(str(pid), "")
         escrito = "" if precio_guardado is None else str(precio_guardado).strip()
@@ -257,8 +260,8 @@ def crear_venta(vendedor_id, form, items):
         if prod is None:
             raise ValueError("Uno de los productos ya no está disponible en el catálogo.")
         cant = to_float(it["cantidad"])
-        if cant <= 0:
-            raise ValueError(f"Cantidad inválida para «{prod['nombre']}».")
+        if not cant.is_integer() or cant <= 0:
+            raise ValueError(f"La cantidad de «{prod['nombre']}» debe ser un número entero mayor que cero.")
         lista = round(prod["precio_mayor_usd"] * factor, 2)
         precio_raw = it.get("precio", "")
         precio_escrito = "" if precio_raw is None else str(precio_raw).strip()
@@ -686,8 +689,7 @@ def lineas_armado(venta_id):
 
 
 def contar_por_armar(usuario):
-    """Pedidos pendientes de armar: para un especial, los suyos o 'cualquiera'; para el admin, todos los pendientes
-    más las ventas aprobadas que aún no tienen a nadie asignado."""
+    """Pedidos pendientes: para un especial, sus pedidos y ventas sin asignar; para admin, todos."""
     desde = armado_desde_venta()
     if usuario["rol"] == "admin":
         pend = query("SELECT COUNT(*) AS n FROM armados a JOIN ventas v ON v.id=a.venta_id "
@@ -697,7 +699,10 @@ def contar_por_armar(usuario):
         return pend + sin
     return query("SELECT COUNT(*) AS n FROM armados a JOIN ventas v ON v.id=a.venta_id "
                  "WHERE a.estado='pendiente' AND v.estado='aprobada' AND (a.asignado_a = ? OR a.asignado_a IS NULL)",
-                 (usuario["id"],), one=True)["n"]
+                 (usuario["id"],), one=True)["n"] + query(
+        "SELECT COUNT(*) AS n FROM ventas v WHERE v.estado='aprobada' AND v.id > ? "
+        "AND NOT EXISTS (SELECT 1 FROM armados a WHERE a.venta_id=v.id)",
+        (desde,), one=True)["n"]
 
 
 # ==================================================================== panel

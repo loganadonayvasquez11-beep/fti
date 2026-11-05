@@ -64,7 +64,13 @@
   }
 
   filas.forEach(tr => {
-    tr.querySelector('.cant').addEventListener('input', recalcular);
+    const cantidad = tr.querySelector('.cant');
+    cantidad.addEventListener('input', recalcular);
+    cantidad.addEventListener('change', () => {
+      if (cantidad.value === '0') {
+        tr.querySelector('[name="producto_id"]').click();
+      }
+    });
     tr.querySelector('.precio').addEventListener('input', () => { tr.dataset.editado = '1'; recalcular(); });
   });
   form.querySelectorAll('[name=tipo_pago]').forEach(r => r.addEventListener('change', actualizarPago));

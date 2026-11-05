@@ -2,7 +2,7 @@
 {% from '_macros.html' import estado_deuda_tag, estado_venta, tipo_pago_tag, color_cliente, cli_clase %}
 {% block titulo %}{{ color_cliente(c.color) }}{{ c.nombre }}{% endblock %}
 {% block acciones %}
-  <a class="btn" href="{{ url_for('clientes.estado_cuenta_pdf', cliente_id=c.id) }}">Descargar estado de cuenta PDF</a>
+  <a class="btn" href="{{ url_for('clientes.estado_cuenta_pdf', cliente_id=c.id) }}">Abrir estado de cuenta PDF</a>
   <a class="btn" href="{{ url_for('clientes.editar', cliente_id=c.id) }}">Editar</a>
   {% if g.user.rol == 'admin' %}<a class="btn" href="{{ url_for('deudas.nueva', cliente=c.id) }}">Poner deuda</a>{% endif %}
 {% endblock %}

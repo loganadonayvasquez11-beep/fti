@@ -87,10 +87,10 @@ SQLite guarda la base junto a los archivos de la aplicación y es adecuada para 
 ## Reglas de negocio
 
 - **Admin**: dueño del almacén central (productos, precios al mayor, entradas, mermas, ajustes, kardex),
-  de la cartera de vendedores (agregar / quitar con traspaso de clientes y deudas); aprueba, rechaza y anula ventas.
+  de la cartera de vendedores (agregar, traspasar clientes y deudas manteniendo activo al vendedor o congelándolo); aprueba, rechaza y anula ventas.
 - **Vendedor**: tiene su cartera de clientes (puede agregar), genera ventas con productos del catálogo,
   vende **al mayor**, contado o crédito y puede **cambiar el precio unitario** de cada línea.
-- **Vendedor especial**: conserva sus funciones de venta y armado, puede aprobar o rechazar las ventas pendientes de todos los vendedores y anular ventas aprobadas, pero no puede crear ni editar productos, cambiar precios ni modificar el stock.
+- **Vendedor especial**: conserva sus funciones de venta y armado, puede aprobar o rechazar las ventas pendientes de todos los vendedores, asignar quién arma los pedidos y anular ventas aprobadas, pero no puede crear ni editar productos, cambiar precios ni modificar el stock.
 - **Contado**: la venta se aprueba y se cobra sola, y descuenta el stock en el acto
   (en Configuración puedes exigir también tu aprobación).
 - **Crédito**: queda *pendiente*, **no descuenta stock** hasta que el admin o un vendedor especial la aprueba; entonces nace la deuda activa

@@ -23,18 +23,24 @@
             <div><b>{{ p.nombre }}</b><br><small class="muted">{{ p.codigo }}{% if especial %} · Stock disponible: {{ p.stock|qty }}{% endif %}</small>
               {% if p.stock <= 0 %}<br><small class="neg"><b>Agotado: no hay más. Elige otro producto.</b></small>{% elif p.stock <= p.minimo_ef and not especial %}<br><small class="neg">Stock mínimo</small>{% endif %}
               <br><small class="stock-info"></small></div></div></td>
-          <td data-label="Cantidad"><input type="number" name="cant_{{ p.id }}" class="cant" min="0" step="any" value="{{ '%g' % cant }}"><small class="muted">0 = quitar</small></td>
+          <td data-label="Cantidad">
+            <div class="quantity-control" data-quantity-control>
+              <button type="button" class="quantity-btn" data-quantity-step="-1" aria-label="Quitar una unidad de {{ p.nombre }}">−</button>
+              <input type="number" name="cant_{{ p.id }}" class="cant" min="0" step="1" value="{{ '%g' % cant }}" aria-label="Cantidad de {{ p.nombre }}">
+              <button type="button" class="quantity-btn" data-quantity-step="1" aria-label="Agregar una unidad de {{ p.nombre }}">+</button>
+            </div>
+          </td>
           <td data-label="Unidad de venta">{{ p.unidad }}</td>
           <td data-label="Precio"><input type="number" name="precio_{{ p.id }}" class="precio" data-decimal-input min="0" step="0.01" value="{{ escrito or '' }}"><small class="lista-info muted"></small></td>
           <td data-label="Subtotal" class="r sub">0,00</td>
-          <td class="r"><button class="icon-btn" title="Quitar del carrito" formaction="{{ url_for('ventas.carrito_quitar') }}" name="producto_id" value="{{ p.id }}">✕</button></td>
+          <td class="r"><button type="submit" class="icon-btn" title="Quitar del carrito" aria-label="Quitar {{ p.nombre }} del carrito" formaction="{{ url_for('ventas.carrito_quitar') }}" formnovalidate name="producto_id" value="{{ p.id }}">✕</button></td>
         </tr>
       {% endfor %}
       </tbody>
     </table></div>
     <div class="actions">
       <a class="btn" href="{{ url_for('ventas.nueva') }}">← Seguir agregando productos</a>
-      <button class="btn danger" formaction="{{ url_for('ventas.carrito_quitar') }}" name="todo" value="1" onclick="return confirm('¿Vaciar el carrito?');">Vaciar carrito</button>
+      <button type="submit" class="btn danger" formaction="{{ url_for('ventas.carrito_quitar') }}" formnovalidate name="todo" value="1" onclick="return confirm('¿Vaciar el carrito?');">Vaciar carrito</button>
     </div>
     <p class="hint">El precio sale del precio base, pero puedes cambiarlo en cada línea; los precios cambiados se marcan para el administrador.</p>
   </section>
@@ -81,4 +87,7 @@
   </section>
 </form>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/venta.js') }}"></script>{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/quantity-controls.js') }}"></script>
+<script src="{{ url_for('static', filename='js/venta.js') }}"></script>
+{% endblock %}

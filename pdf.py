@@ -8,6 +8,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen.canvas import Canvas as ReportLabCanvas
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
@@ -229,9 +230,20 @@ def _firmas(desplazar_cliente=0):
 
     desplazar_cliente (en mm) mueve la firma del cliente hacia la derecha."""
     if desplazar_cliente:
-        t = Table([["", _p("_______________________"), "", _p("_______________________")],
-                   ["", _p("Vendedor", "pequeno"), "", _p("Recibí conforme (cliente)", "pequeno")]],
+        # Las líneas quedan igual; el texto de abajo se centra respecto al ancho de su línea.
+        linea = "_______________________"
+        ancho_linea = stringWidth(linea, "Helvetica-Bold", 9)
+        pad_der = 70 * mm - 6 - ancho_linea
+        estilo_centro = ParagraphStyle("pequeno_centro", parent=ESTILO["pequeno"], alignment=1)
+        t = Table([["", _p(linea), "", _p(linea)],
+                   ["", Paragraph("Vendedor", estilo_centro), "",
+                    Paragraph("Recibí conforme (cliente)", estilo_centro)]],
                   colWidths=[25 * mm, 70 * mm, desplazar_cliente * mm, 70 * mm], hAlign="CENTER")
+        t.setStyle(TableStyle([
+            ("LEFTPADDING", (1, 1), (1, 1), 6), ("RIGHTPADDING", (1, 1), (1, 1), pad_der),
+            ("LEFTPADDING", (3, 1), (3, 1), 6), ("RIGHTPADDING", (3, 1), (3, 1), pad_der),
+        ]))
+        return t
     else:
         t = Table([[_p("_______________________"), _p("_______________________")],
                    [_p("Vendedor", "pequeno"), _p("Recibí conforme (cliente)", "pequeno")]],
@@ -245,7 +257,7 @@ def nota_venta(venta_id):
     """PDF de una venta: datos del cliente, detalle, totales y condiciones de pago."""
     v = query(
         """SELECT v.*, c.nombre AS cliente, c.documento, c.telefono, c.direccion, u.nombre AS vendedor
-             FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = v.vendedor_id
+             FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = c.vendedor_id
             WHERE v.id = ?""", (venta_id,), one=True)
     if v is None:
         return None
@@ -273,7 +285,7 @@ def nota_venta(venta_id):
 
     filas = [["Código", "Producto", "Cant.", f"Precio ({m})", f"Subtotal ({m})"]]
     for d in det:
-        filas.append([d["codigo"], _p(d["nombre"]), f"{fmt_qty(d['cantidad'])} {d['unidad']}",
+        filas.append([d["codigo"], _p(d["nombre"]), fmt_qty(d["cantidad"]),
                       fmt_num(d["precio_unit"]), fmt_num(d["subtotal"])])
     el.append(
         _tabla(
@@ -312,12 +324,17 @@ def nota_venta(venta_id):
         if d and d["estado"] != "anulada":
             venc = _p(f"Fecha de vencimiento: {fmt_fecha(d['vencimiento'])}", "vencimiento")
 
+    # Centra verticalmente el texto de vencimiento sobre la línea roja de la tabla de totales
+    tt.wrap(90 * mm, 0)
+    y_linea = sum(tt._rowHeights[:fila_total])          # distancia desde el tope hasta la línea roja
+    pad_venc = max(y_linea - ESTILO["vencimiento"].leading / 2, 0) + 2
+
     fila_totales = Table([[venc, tt]], colWidths=[100 * mm, 90 * mm], hAlign="CENTER")
     fila_totales.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
         ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (0, 0), 5),
+        ("TOPPADDING", (0, 0), (0, 0), pad_venc),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
     ]))
     el.append(fila_totales)

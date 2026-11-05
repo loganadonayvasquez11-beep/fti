@@ -1,9 +1,10 @@
 """Deudas y abonos. El vendedor cobra sobre sus deudores; el admin además puede poner, editar y quitar deudas."""
 from io import BytesIO
 
-from flask import Blueprint, abort, g, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, g, redirect, render_template, request, url_for
 
 import pdf
+from pdf_responses import nombre_pdf_cliente, responder_pdf
 import services
 from db import query
 from utils import aviso, hoy, login_required, roles_required, to_int
@@ -79,12 +80,15 @@ def abonar(deuda_id):
 @login_required
 def recibo_pdf(abono_id):
     """Recibo de pago en PDF."""
-    a = query("SELECT deuda_id FROM abonos WHERE id = ?", (abono_id,), one=True)
+    a = query("""SELECT a.deuda_id, c.nombre AS cliente
+                   FROM abonos a JOIN deudas d ON d.id=a.deuda_id
+                   JOIN clientes c ON c.id=d.cliente_id
+                  WHERE a.id = ?""", (abono_id,), one=True)
     if a is None:
         abort(404)
     _deuda_o_404(a["deuda_id"])
-    return send_file(BytesIO(pdf.recibo_abono(abono_id)), mimetype="application/pdf",
-                     as_attachment=True, download_name=f"R-{abono_id:06d}.pdf")
+    nombre = nombre_pdf_cliente(a["cliente"], f"Recibo R-{abono_id:06d}")
+    return responder_pdf(BytesIO(pdf.recibo_abono(abono_id)), nombre)
 
 
 @bp.route("/abonos/<int:abono_id>/anular", methods=["POST"])

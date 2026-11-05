@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block titulo %}{{ 'Productos del almacén' if g.user.rol == 'admin' else 'Catálogo y stock' }}{% endblock %}
 {% block acciones %}
-  {% if puede_ver_stock %}<a class="btn" href="{{ url_for('catalogo.productos_pdf') }}" title="PDF con la lista de mercancía (sin precios ni cantidades)">Descargar lista PDF</a>{% endif %}
+  {% if puede_ver_stock %}<a class="btn" href="{{ url_for('catalogo.productos_pdf') }}" title="PDF con la lista de mercancía (sin precios ni cantidades)">Abrir lista PDF</a>{% endif %}
   {% if g.user.rol == 'admin' %}<a class="btn" href="{{ url_for('catalogo.categorias') }}">Categorías</a>{% endif %}
   {% if g.user.rol == 'admin' %}<a class="btn primary" href="{{ url_for('catalogo.producto_nuevo') }}">Nuevo producto</a>{% endif %}
 {% endblock %}

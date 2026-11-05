@@ -8,7 +8,7 @@ from flask import Blueprint, abort, g, redirect, render_template, request, url_f
 
 import services
 from db import query
-from utils import aviso, es_especial, login_required, roles_required
+from utils import aviso, es_especial, especial_o_admin_required, login_required
 
 bp = Blueprint("armados", __name__, url_prefix="/armados")
 
@@ -47,14 +47,19 @@ def lista():
     uid = g.user["id"]
     pendientes = _lista_armados("a.estado = 'pendiente' AND (a.asignado_a = ? OR a.asignado_a IS NULL)", [uid])
     hechos = _lista_armados("a.estado = 'armado' AND a.armado_por = ?", [uid])[:20]
-    return render_template("armados/lista.html", pedidos=pendientes, hechos=hechos, sin_asignar=[],
+    sin_asignar = query(
+        """SELECT v.id, v.numero, v.fecha, uv.nombre AS vendedor, c.nombre AS cliente
+             FROM ventas v JOIN usuarios uv ON uv.id = v.vendedor_id JOIN clientes c ON c.id = v.cliente_id
+            WHERE v.estado = 'aprobada' AND v.id > ? AND NOT EXISTS (SELECT 1 FROM armados a WHERE a.venta_id = v.id)
+            ORDER BY v.id DESC LIMIT 100""", (services.armado_desde_venta(),))
+    return render_template("armados/lista.html", pedidos=pendientes, hechos=hechos, sin_asignar=sin_asignar,
                            estado="pendiente", modo="especial")
 
 
 @bp.route("/asignar/<int:venta_id>", methods=["POST"])
-@roles_required("admin")
+@especial_o_admin_required
 def asignar(venta_id):
-    """El admin asigna (o reasigna, si aún no se armó) quién arma el pedido de una venta aprobada."""
+    """El admin o vendedor especial asigna (o reasigna) quién arma una venta aprobada."""
     try:
         services.asignar_armado(venta_id, request.form.get("armador", ""), g.user["id"])
         aviso("Pedido enviado a armar.")

@@ -3,6 +3,7 @@ from flask import Blueprint, current_app, g, redirect, render_template, request,
 from werkzeug.security import generate_password_hash
 
 from db import get_db, query
+from pdf_responses import responder_pdf
 from services import audit, get_config, set_config
 from utils import ahora, aviso, hoy, roles_required, to_float, to_int
 from archivos import (generar_archivo_diario, limpiar_archivos_historicos_vencidos,
@@ -126,24 +127,43 @@ def vendedor_editar(vid):
 @bp.route("/vendedores/<int:vid>/estado", methods=["POST"])
 @roles_required("admin")
 def vendedor_estado(vid):
-    """Quita (desactiva) o reactiva un vendedor de la cartera.
-
-    Al quitarlo se puede traspasar toda su cartera de clientes y deudas a otro vendedor.
-    No se borra para conservar el historial de ventas.
-    """
+    """Gestiona el estado del vendedor y, si se solicita, traspasa su cartera."""
     u = _vendedor_o_none(vid)
     if u is None:
         return redirect(url_for("admin.vendedores"))
     db = get_db()
     if u["activo"]:
-        destino = to_int(request.form.get("destino"))
+        accion = request.form.get("accion", "congelar")
+        destino_form = request.form.get("destino", "").strip()
+        try:
+            destino = int(destino_form) if destino_form else 0
+        except ValueError:
+            destino = 0
+        if accion not in ("traspasar", "congelar"):
+            aviso("Selecciona una acción válida.", "error")
+            return redirect(url_for("admin.vendedor_detalle", vid=vid))
+        if accion == "traspasar" and not destino_form:
+            aviso("Selecciona el vendedor que recibirá los clientes y deudas.", "error")
+            return redirect(url_for("admin.vendedor_detalle", vid=vid))
+        if destino_form:
+            receptor = query(
+                "SELECT id FROM usuarios WHERE id=? AND rol='vendedor' AND activo=1",
+                (destino,), one=True)
+            if not receptor or destino == vid:
+                aviso("Selecciona un vendedor destino activo y diferente.", "error")
+                return redirect(url_for("admin.vendedor_detalle", vid=vid))
         with db:
             if destino:
                 db.execute("UPDATE clientes SET vendedor_id=? WHERE vendedor_id=?", (destino, vid))
                 db.execute("UPDATE deudas SET vendedor_id=? WHERE vendedor_id=?", (destino, vid))
-            db.execute("UPDATE usuarios SET activo=0 WHERE id=?", (vid,))
-        audit("vendedor_desactivado", f"{u['usuario']} traspaso_a={destino or 'ninguno'}")
-        aviso("Vendedor quitado de la cartera." + (" Sus clientes y deudas fueron traspasados." if destino else ""))
+            if accion == "congelar":
+                db.execute("UPDATE usuarios SET activo=0 WHERE id=?", (vid,))
+        if accion == "congelar":
+            audit("vendedor_desactivado", f"{u['usuario']} traspaso_a={destino or 'ninguno'}")
+            aviso("Vendedor congelado." + (" Sus clientes y deudas fueron traspasados." if destino else ""))
+        else:
+            audit("vendedor_cartera_traspasada", f"{u['usuario']} traspaso_a={destino}")
+            aviso("Clientes y deudas traspasados. El vendedor sigue activo.")
     else:
         db.execute("UPDATE usuarios SET activo=1 WHERE id=?", (vid,))
         db.commit()
@@ -243,4 +263,4 @@ def historial_descargar(archivo_id):
     carpeta = (Path(current_app.instance_path) / "archivos_historicos").resolve()
     if carpeta not in ruta.parents or not ruta.is_file():
         abort(404)
-    return send_file(ruta, as_attachment=True, download_name=ruta.name, mimetype="application/pdf")
+    return responder_pdf(ruta, ruta.name)

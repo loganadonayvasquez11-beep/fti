@@ -26,12 +26,13 @@
           onsubmit="return confirm('¿Confirmas que ya armaste este pedido?');">{{ csrf_field() }}
       <button class="btn primary lg">Ya lo armé · Confirmar</button></form>
     {% endif %}
-    {% if modo == 'admin' and a.estado == 'pendiente' %}
+    {% if a.estado == 'pendiente' %}
       {% with venta_id=a.venta_id, actual=a, volver=url_for('armados.lista') %}{% include 'armados/_asignar.html' %}{% endwith %}
     {% endif %}
   </article>
 {% endmacro %}
 
+{% if modo == 'admin' or modo == 'especial' %}
 {% if modo == 'admin' %}
 <form class="filters card" method="get">
   <select name="estado">
@@ -39,6 +40,7 @@
   </select>
   <button class="btn">Filtrar</button>
 </form>
+{% endif %}
 {% if sin_asignar %}
 <section class="card">
   <h2>Ventas aprobadas sin asignar ({{ sin_asignar|length }})</h2>

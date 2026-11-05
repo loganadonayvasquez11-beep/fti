@@ -26,7 +26,7 @@
       <th class="r">Precio mayor</th><th class="r">{{ 'Disponible' if especial else 'Disponibilidad' }}</th><th>Unidad de venta</th><th class="r">En carrito</th><th class="r">Cantidad</th></tr></thead>
     <tbody>
     {% for p in productos %}
-      {% set agotado = p.stock <= 0 %}
+      {% set agotado = p.stock < 1 %}
       {% set minimo = p.stock <= p.minimo_ef %}
       <tr class="{{ 'agotado' if agotado }} {{ 'alerta-vend' if minimo and not agotado and not especial }}" data-id="{{ p.id }}" data-busqueda="{{ (p.codigo ~ ' ' ~ p.nombre ~ ' ' ~ (p.categoria or ''))|lower }}" data-cat="{{ p.categoria_id or '' }}">
         <td class="c-sel"><input type="checkbox" name="sel" value="{{ p.id }}" aria-label="Elegir {{ p.nombre }}" {{ 'disabled' if agotado }}></td>
@@ -43,7 +43,13 @@
         {% endif %}
         <td data-label="Unidad de venta">{{ p.unidad }}</td>
         <td data-label="En carrito" class="r en-carrito-cel">{% if carrito.get(p.id|string) %}<span class="badge ok">✓ {{ carrito.get(p.id|string)|qty }}</span>{% else %}—{% endif %}</td>
-        <td data-label="Cantidad" class="r c-cant"><input type="number" name="cant_{{ p.id }}" value="1" min="0.001" step="any" {% if especial %}max="{{ p.stock }}"{% endif %} aria-label="Cantidad de {{ p.nombre }}" {{ 'disabled' if agotado }}></td>
+        <td data-label="Cantidad" class="r c-cant">
+          <div class="quantity-control" data-quantity-control>
+            <button type="button" class="quantity-btn" data-quantity-step="-1" aria-label="Quitar una unidad de {{ p.nombre }}" {{ 'disabled' if agotado }}>−</button>
+            <input type="number" name="cant_{{ p.id }}" value="1" min="1" step="1" {% if especial %}max="{{ p.stock|int }}"{% endif %} aria-label="Cantidad de {{ p.nombre }}" {{ 'disabled' if agotado }}>
+            <button type="button" class="quantity-btn" data-quantity-step="1" aria-label="Agregar una unidad de {{ p.nombre }}" {{ 'disabled' if agotado }}>+</button>
+          </div>
+        </td>
       </tr>
     {% endfor %}
     </tbody></table></div>
@@ -62,4 +68,7 @@
 <div class="card empty"><p>No hay productos en el catálogo.</p></div>
 {% endif %}
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/tienda.js') }}"></script>{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/quantity-controls.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tienda.js') }}"></script>
+{% endblock %}

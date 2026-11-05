@@ -89,12 +89,18 @@ def generar_archivo_diario(usuario_id=None):
         WHERE v.fecha BETWEEN ? AND ? ORDER BY v.fecha,v.id,d.id""", (desde, hasta)).fetchall()
     deudas = db.execute("""SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.monto_usd,d.vencimiento,d.estado,
         COALESCE((SELECT SUM(a.monto_usd) FROM abonos a WHERE a.deuda_id=d.id AND a.anulado=0),0) abonado
-        FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=d.vendedor_id
+        FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=c.vendedor_id
         WHERE d.fecha BETWEEN ? AND ? ORDER BY d.fecha,d.id""", (desde, hasta)).fetchall()
-    deudas_pendientes = db.execute("""SELECT fecha,cliente_nombre,vendedor_nombre,concepto,vencimiento,
-        monto_usd,abonado_usd,saldo_usd,estado FROM v_deudas
-        WHERE estado IN ('activa','pendiente') AND saldo_usd > 0.005
-        ORDER BY vencimiento,cliente_nombre""").fetchall()
+    deudas_pendientes = db.execute("""SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.concepto,d.vencimiento,
+        d.monto_usd,
+        COALESCE((SELECT SUM(a.monto_usd) FROM abonos a WHERE a.deuda_id=d.id AND a.anulado=0),0) abonado_usd,
+        d.monto_usd - COALESCE((SELECT SUM(a.monto_usd) FROM abonos a
+            WHERE a.deuda_id=d.id AND a.anulado=0),0) saldo_usd,d.estado
+        FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=c.vendedor_id
+        WHERE d.estado IN ('activa','pendiente')
+          AND d.monto_usd - COALESCE((SELECT SUM(a.monto_usd) FROM abonos a
+            WHERE a.deuda_id=d.id AND a.anulado=0),0) > 0.005
+        ORDER BY d.vencimiento,c.nombre""").fetchall()
     abonos = db.execute("""SELECT a.fecha,c.nombre cliente,u.nombre vendedor,a.monto,a.moneda,a.monto_usd,a.metodo,
         a.referencia,a.anulado FROM abonos a JOIN deudas d ON d.id=a.deuda_id JOIN clientes c ON c.id=d.cliente_id
         LEFT JOIN usuarios u ON u.id=a.registrado_por WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha,a.id""", (desde, hasta)).fetchall()
@@ -193,8 +199,8 @@ def generar_archivo_diario(usuario_id=None):
                     f'{r["subtotal"]:.2f} {r["moneda"]}',f'{r["total_usd"]:.2f}',r["estado"]) for r in ventas])
     agregar_tabla("Deudas creadas en el período", ["Fecha/hora","Cliente","Vendedor","Monto USD","Vencimiento","Estado","Abonado USD"],
                   [(r["fecha"],r["cliente"],r["vendedor"],f'{r["monto_usd"]:.2f}',r["vencimiento"],r["estado"],f'{r["abonado"]:.2f}') for r in deudas])
-    agregar_tabla("Clientes que deben (saldo actual)", ["Fecha","Cliente","Vendedor","Concepto","Vencimiento","Monto USD","Abonado USD","Saldo USD","Estado"],
-                  [(r["fecha"],r["cliente_nombre"],r["vendedor_nombre"],r["concepto"],r["vencimiento"],
+    agregar_tabla("Clientes que deben (saldo actual)", ["Fecha","Cliente","Vendedor actual","Concepto","Vencimiento","Monto USD","Abonado USD","Saldo USD","Estado"],
+                  [(r["fecha"],r["cliente"],r["vendedor"],r["concepto"],r["vencimiento"],
                     f'{r["monto_usd"]:.2f}',f'{r["abonado_usd"]:.2f}',f'{r["saldo_usd"]:.2f}',r["estado"])
                    for r in deudas_pendientes])
     agregar_tabla("Abonos y recibos registrados", ["Fecha/hora","Cliente","Vendedor","Importe USD","Método","Referencia","Anulado"],

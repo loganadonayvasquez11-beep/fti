@@ -1,10 +1,11 @@
 """Clientes: cada vendedor administra su cartera; el admin ve y edita todas."""
 import re
 
-from flask import Blueprint, abort, g, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, g, redirect, render_template, request, url_for
 from io import BytesIO
 
 import pdf
+from pdf_responses import nombre_pdf_cliente, responder_pdf
 from db import get_db, query
 from services import audit, saldo_cliente_usd
 from utils import aviso, ahora, login_required, roles_required, to_int
@@ -172,10 +173,10 @@ def color(cliente_id):
 @login_required
 def estado_cuenta_pdf(cliente_id):
     """Descarga el estado de cuenta del cliente en PDF."""
-    _cliente_o_404(cliente_id)
+    c = _cliente_o_404(cliente_id)
     datos = pdf.estado_cuenta(cliente_id)
-    return send_file(BytesIO(datos), mimetype="application/pdf",
-                     as_attachment=True, download_name=f"estado-cuenta-{cliente_id}.pdf")
+    nombre = nombre_pdf_cliente(c["nombre"], "Estado de cuenta")
+    return responder_pdf(BytesIO(datos), nombre)
 
 
 @bp.route("/<int:cliente_id>/desactivar", methods=["POST"])

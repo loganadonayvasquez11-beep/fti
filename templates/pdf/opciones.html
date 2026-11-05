@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block titulo %}Documento PDF{% endblock %}
+{% block contenido %}
+<section class="card pdf-opciones">
+  <div class="pdf-opciones-icono" aria-hidden="true">PDF</div>
+  <div>
+    <h2>¿Qué deseas hacer con este PDF?</h2>
+    <p class="muted">{{ nombre }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn primary lg" href="{{ url_descargar }}">Descargar PDF</a>
+    <a class="btn lg" href="{{ url_visualizar }}" target="_blank" rel="noopener">Visualizar PDF</a>
+  </div>
+  <p class="hint">La visualización se abrirá en otra pestaña. Desde el visor del navegador puedes imprimir el documento.</p>
+</section>
+{% endblock %}

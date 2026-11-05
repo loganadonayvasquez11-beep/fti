@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% from '_macros.html' import estado_venta, tipo_pago_tag, estado_deuda_tag, armado_tag %}
 {% block titulo %}Venta {{ v.numero }}{% endblock %}
-{% block acciones %}<a class="btn" href="{{ url_for('ventas.nota_pdf', venta_id=v.id) }}">Descargar nota de venta PDF</a>{% endblock %}
+{% block acciones %}<a class="btn" href="{{ url_for('ventas.nota_pdf', venta_id=v.id) }}">Abrir nota de venta PDF</a>{% endblock %}
 {% block contenido %}
 <section class="card">
   <div class="detail-head">
@@ -45,8 +45,8 @@
   {% else %}
     <p><span class="badge warn">Aún no se ha armado</span>
       {% if armado %}<small class="muted">Asignado a: <b>{{ armado.asignado_nombre or 'Cualquiera de los vendedores especiales' }}</b></small>
-      {% elif g.user.rol == 'admin' %}<small class="muted">Todavía no se ha elegido quién lo arma.</small>{% endif %}</p>
-    {% if g.user.rol == 'admin' %}
+      {% elif g.user.rol == 'admin' or es_especial %}<small class="muted">Todavía no se ha elegido quién lo arma.</small>{% endif %}</p>
+    {% if g.user.rol == 'admin' or es_especial %}
       {% with venta_id=v.id, actual=armado, volver=url_for('ventas.detalle', venta_id=v.id) %}{% include 'armados/_asignar.html' %}{% endwith %}
     {% endif %}
   {% endif %}
@@ -68,7 +68,7 @@
     <p class="muted">Al aprobar se descuenta el stock del almacén central{% if v.tipo_pago == 'credito' %} y la deuda pasa a estar activa{% endif %}.</p>
     <div class="actions">
       <form method="post" action="{{ url_for('ventas.aprobar', venta_id=v.id) }}" class="inline-form">{{ csrf_field() }}
-        {% if g.user.rol == 'admin' %}<select name="armador" title="Quién arma el pedido (la venta sigue siendo del vendedor)">
+        {% if g.user.rol == 'admin' or es_especial %}<select name="armador" title="Quién arma el pedido (la venta sigue siendo del vendedor)">
           <option value="">Armado: decidir después</option>
           <option value="cualquiera">Armado: cualquiera de los especiales</option>
           {% for e in vendedores_especiales() %}<option value="{{ e.id }}">Armado: {{ e.nombre }}</option>{% endfor %}

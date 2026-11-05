@@ -1,9 +1,10 @@
 """Ventas: los vendedores las generan; admin y especiales aprueban, rechazan y anulan."""
 from io import BytesIO
 
-from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, send_file, session, url_for
+from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, session, url_for
 
 import pdf
+from pdf_responses import nombre_pdf_cliente, responder_pdf
 import services
 from db import query
 from utils import (aviso, es_especial, especial_o_admin_required, login_required, parse_decimal_input,
@@ -138,8 +139,8 @@ def carrito_agregar():
     error = None
     if prod is None:
         error = "Ese producto ya no está disponible."
-    elif cant <= 0:
-        error = "La cantidad debe ser mayor que cero."
+    elif not cant.is_integer() or cant <= 0:
+        error = "La cantidad debe ser un número entero mayor que cero."
     else:
         total = round(cart.get(str(prod["id"]), 0) + cant, 4)
         if total > prod["stock"] + 1e-9:
@@ -169,8 +170,8 @@ def carrito_agregar_varios():
         cant = to_float(request.form.get(f"cant_{pid}"), 1.0)
         if prod is None:
             errores.append("Un producto ya no está disponible.")
-        elif cant <= 0:
-            errores.append(f"Cantidad inválida para «{prod['nombre']}».")
+        elif not cant.is_integer() or cant <= 0:
+            errores.append(f"La cantidad de «{prod['nombre']}» debe ser un número entero mayor que cero.")
         else:
             total = round(cart.get(str(prod["id"]), 0) + cant, 4)
             if total > prod["stock"] + 1e-9:
@@ -218,7 +219,10 @@ def carrito():
         f = request.form
         cart = {}
         for pid, cant_actual in _carrito().items():
-            cant = to_float(f.get(f"cant_{pid}"), cant_actual)
+            cant = float(to_float(f.get(f"cant_{pid}"), cant_actual))
+            if not cant.is_integer() or cant < 0:
+                aviso("Las cantidades deben ser números enteros iguales o mayores que cero.", "error")
+                return redirect(url_for("ventas.carrito"))
             if cant > 0:
                 cart[pid] = cant
         _guardar_carrito(cart)
@@ -312,7 +316,7 @@ def aprobar(venta_id):
         aviso(str(e), "error")
         return redirect(url_for("ventas.detalle", venta_id=venta_id))
     # Opcional: quién arma el pedido ('' = decidir después, 'cualquiera' o el id de un vendedor especial).
-    armador = request.form.get("armador", "").strip() if g.user["rol"] == "admin" else ""
+    armador = request.form.get("armador", "").strip() if g.user["rol"] == "admin" or es_especial() else ""
     if armador:
         try:
             services.asignar_armado(venta_id, armador, g.user["id"])
@@ -365,5 +369,5 @@ def anular(venta_id):
 def nota_pdf(venta_id):
     """Nota de venta en PDF."""
     v = _venta_o_404(venta_id)
-    return send_file(BytesIO(pdf.nota_venta(venta_id)), mimetype="application/pdf",
-                     as_attachment=True, download_name=f"{v['numero']}.pdf")
+    nombre = nombre_pdf_cliente(v["cliente"], f"Venta {v['numero']}")
+    return responder_pdf(BytesIO(pdf.nota_venta(venta_id)), nombre)

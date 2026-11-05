@@ -41,16 +41,23 @@
 </section>
 
 <section class="card">
-  <h2>{{ 'Quitar de la cartera' if u.activo else 'Reactivar' }}</h2>
+  <h2>{{ 'Gestionar cartera' if u.activo else 'Reactivar vendedor' }}</h2>
   <form method="post" action="{{ url_for('admin.vendedor_estado', vid=u.id) }}" class="inline-form"
-        onsubmit="return confirm('{{ 'Quitar a este vendedor de tu cartera?' if u.activo else 'Reactivar vendedor?' }}');">
+        onsubmit="return confirm('{{ '¿Aplicar cambios a este vendedor?' if u.activo else '¿Reactivar vendedor?' }}');">
     {{ csrf_field() }}
     {% if u.activo %}
-      <select name="destino"><option value="">No traspasar su cartera</option>
+      <label for="destino-vendedor">Vendedor destino</label>
+      <select id="destino-vendedor" name="destino"><option value="">No traspasar su cartera</option>
         {% for o in otros %}<option value="{{ o.id }}">Traspasar clientes y deudas a {{ o.nombre }}</option>{% endfor %}</select>
-      <button class="btn danger">Quitar vendedor</button>
+      <label class="radio"><input type="radio" name="accion" value="traspasar"> Traspasar y mantener activo</label>
+      <label class="radio"><input type="radio" name="accion" value="congelar" checked> Congelar vendedor</label>
+      <button class="btn primary">Aplicar cambios</button>
     {% else %}<button class="btn primary">Reactivar vendedor</button>{% endif %}
   </form>
-  <p class="hint">El vendedor no se borra: se conserva todo su historial de ventas, pero deja de poder iniciar sesión.</p>
+  {% if u.activo %}
+    <p class="hint">“Traspasar y mantener activo” mueve sus clientes y deudas sin cambiar su acceso. “Congelar vendedor” también le impide iniciar sesión; si eliges un destino, la cartera se traspasa antes de congelarlo. Sin destino, solo se congela.</p>
+  {% else %}
+    <p class="hint">Al reactivarlo podrá volver a iniciar sesión. Su historial de ventas se conserva.</p>
+  {% endif %}
 </section>
 {% endblock %}
