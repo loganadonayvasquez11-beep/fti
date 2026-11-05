@@ -62,6 +62,7 @@ def lista():
 # Paso 3: /ventas/confirmar → resumen final y se genera la solicitud o la venta.
 # El carrito vive en la sesión del vendedor; al final services.crear_venta vuelve a validar todo.
 CARRITO, ORDEN_CARRITO, BORRADOR = "carrito", "carrito_orden", "venta_borrador"
+PRESUPUESTO_ORIGEN = "presupuesto_origen"
 
 
 def _carrito():
@@ -93,6 +94,7 @@ def _limpiar_venta():
     session.pop(CARRITO, None)
     session.pop(ORDEN_CARRITO, None)
     session.pop(BORRADOR, None)
+    session.pop(PRESUPUESTO_ORIGEN, None)
 
 
 def _productos_del_carrito():
@@ -254,6 +256,14 @@ def carrito():
             return redirect(url_for("ventas.nueva"))
         if f.get("accion") == "presupuesto":
             return redirect(url_for("ventas.presupuesto_pdf"))
+        if f.get("accion") == "guardar_presupuesto":
+            try:
+                presupuesto_id = services.guardar_presupuesto(g.user["id"], _borrador(), cart)
+            except ValueError as e:
+                aviso(str(e), "error")
+                return redirect(url_for("ventas.carrito"))
+            aviso(f"Presupuesto #{presupuesto_id} guardado en tu cartera y en la ficha del cliente.")
+            return redirect(url_for("ventas.presupuestos"))
         try:
             services.resumen_venta(g.user["id"], _borrador(), cart)
             return redirect(url_for("ventas.confirmar"))
@@ -262,7 +272,7 @@ def carrito():
             return redirect(url_for("ventas.carrito"))
     clientes = query("SELECT * FROM clientes WHERE vendedor_id = ? AND activo = 1 ORDER BY nombre", (g.user["id"],))
     return render_template("ventas/carrito.html", lineas=_productos_del_carrito(), clientes=clientes,
-                           b=_borrador(), paso=2)
+                           b=_borrador(), paso=2, presupuesto_origen=session.get(PRESUPUESTO_ORIGEN))
 
 
 @bp.route("/confirmar", methods=["GET", "POST"])
@@ -282,6 +292,15 @@ def confirmar():
         except ValueError as e:
             aviso(str(e), "error")
             return redirect(url_for("ventas.carrito"))
+        presupuesto_id = to_int(session.get(PRESUPUESTO_ORIGEN))
+        if presupuesto_id:
+            try:
+                services.marcar_presupuesto_convertido(
+                    presupuesto_id, g.user["id"], venta_id,
+                    cuota_inicial=to_float(b.get("cuota_inicial")),
+                )
+            except ValueError as e:
+                aviso(f"La venta se creó, pero no se pudo actualizar su presupuesto: {e}", "error")
         _limpiar_venta()
         v = query("SELECT estado FROM ventas WHERE id = ?", (venta_id,), one=True)
         aviso("Venta registrada y cobrada." if v["estado"] == "aprobada"
@@ -313,6 +332,119 @@ def presupuesto_pdf():
     return responder_pdf(archivo, nombre)
 
 
+@bp.route("/presupuestos")
+@roles_required("vendedor")
+def presupuestos():
+    """Presupuestos guardados por el vendedor, incluidos los ya convertidos."""
+    filas = query(
+        """SELECT p.*, c.nombre AS cliente
+             FROM presupuestos p JOIN clientes c ON c.id = p.cliente_id
+            WHERE p.vendedor_id = ? ORDER BY p.actualizado DESC, p.id DESC""",
+        (g.user["id"],),
+    )
+    return render_template("ventas/presupuestos.html", presupuestos=filas)
+
+
+@bp.route("/presupuestos/<int:presupuesto_id>/editar", methods=["GET", "POST"])
+@roles_required("vendedor")
+def editar_presupuesto(presupuesto_id):
+    """Edita el cliente, productos y condiciones de un presupuesto aún abierto."""
+    guardado = services.presupuesto_vendedor(presupuesto_id, g.user["id"])
+    if guardado is None or guardado["presupuesto"]["venta_id"] is not None:
+        abort(404)
+    p = guardado["presupuesto"]
+    if request.method == "POST":
+        ids = request.form.getlist("producto_id")
+        cantidades = request.form.getlist("cantidad")
+        precios = request.form.getlist("precio")
+        if not ids or len(ids) != len(cantidades) or len(ids) != len(precios):
+            aviso("El presupuesto debe conservar al menos un producto válido.", "error")
+            return redirect(url_for("ventas.editar_presupuesto", presupuesto_id=presupuesto_id))
+        items = [
+            {"producto_id": pid, "cantidad": cant, "precio": precio}
+            for pid, cant, precio in zip(ids, cantidades, precios)
+        ]
+        borrador = {
+            "cliente_id": request.form.get("cliente_id", ""),
+            "tipo_pago": request.form.get("tipo_pago", "contado"),
+            "metodo_pago": request.form.get("metodo_pago", ""),
+            "cuota_inicial": request.form.get("cuota_inicial", ""),
+            "descuento": request.form.get("descuento", ""),
+            "nota": request.form.get("nota", ""),
+        }
+        carrito = {str(item["producto_id"]): item["cantidad"] for item in items}
+        borrador["precios"] = {str(item["producto_id"]): item["precio"] for item in items}
+        try:
+            services.guardar_presupuesto(
+                g.user["id"], borrador, carrito, presupuesto_id=presupuesto_id
+            )
+        except ValueError as e:
+            aviso(str(e), "error")
+            return redirect(url_for("ventas.editar_presupuesto", presupuesto_id=presupuesto_id))
+        aviso(f"Presupuesto #{presupuesto_id} actualizado.")
+        return redirect(url_for("ventas.presupuestos"))
+
+    clientes = query(
+        """SELECT id, nombre FROM clientes
+            WHERE vendedor_id = ? AND (activo = 1 OR id = ?) ORDER BY nombre""",
+        (g.user["id"], p["cliente_id"]),
+    )
+    productos = query(
+        "SELECT id, codigo, nombre, unidad, precio_mayor_usd FROM productos WHERE activo = 1 ORDER BY nombre"
+    )
+    return render_template(
+        "ventas/presupuesto_editar.html", p=p, lineas=guardado["lineas"],
+        clientes=clientes, productos=productos,
+    )
+
+
+@bp.route("/presupuestos/<int:presupuesto_id>/eliminar", methods=["POST"])
+@roles_required("vendedor")
+def eliminar_presupuesto(presupuesto_id):
+    """Elimina definitivamente un presupuesto que todavía no se convirtió en venta."""
+    try:
+        services.eliminar_presupuesto(presupuesto_id, g.user["id"])
+        aviso("Presupuesto eliminado.")
+    except ValueError as e:
+        aviso(str(e), "error")
+    return redirect(url_for("ventas.presupuestos"))
+
+
+@bp.route("/presupuestos/<int:presupuesto_id>/convertir", methods=["POST"])
+@roles_required("vendedor")
+def convertir_presupuesto(presupuesto_id):
+    """Carga el presupuesto en el carrito para completar condiciones antes de crear la venta."""
+    guardado = services.presupuesto_vendedor(presupuesto_id, g.user["id"])
+    if guardado is None or guardado["presupuesto"]["venta_id"] is not None:
+        abort(404)
+    p = guardado["presupuesto"]
+    carrito = {str(l["producto_id"]): l["cantidad"] for l in guardado["lineas"]}
+    precios = {str(l["producto_id"]): str(l["precio_unit"]) for l in guardado["lineas"]}
+    session[CARRITO] = carrito
+    session[ORDEN_CARRITO] = list(carrito)
+    session[BORRADOR] = {
+        "cliente_id": str(p["cliente_id"]), "tipo_pago": p["tipo_pago"],
+        "metodo_pago": p["metodo_pago"] or "", "cuota_inicial": str(p["cuota_inicial"]),
+        "descuento": str(p["descuento"]), "nota": p["nota"] or "", "precios": precios,
+    }
+    session[PRESUPUESTO_ORIGEN] = presupuesto_id
+    session.modified = True
+    aviso("Revisa el cliente, productos y condiciones de pago. La compra se crea solo al confirmarla.")
+    return redirect(url_for("ventas.carrito"))
+
+
+@bp.route("/presupuestos/<int:presupuesto_id>/pdf")
+@roles_required("vendedor")
+def presupuesto_guardado_pdf(presupuesto_id):
+    """Descarga el PDF de un presupuesto guardado del vendedor."""
+    resumen = services.resumen_presupuesto_guardado(presupuesto_id, g.user["id"])
+    if resumen is None:
+        abort(404)
+    contenido = pdf.presupuesto(resumen, g.user["nombre"])
+    nombre = nombre_pdf_cliente(resumen["cliente"]["nombre"], f"Presupuesto {presupuesto_id}")
+    return responder_pdf(BytesIO(contenido), nombre)
+
+
 @bp.route("/<int:venta_id>/editar", methods=["GET", "POST"])
 @login_required
 def editar(venta_id):
@@ -341,6 +473,7 @@ def editar(venta_id):
                 venta_id, g.user["id"], items,
                 request.form.get("descuento", ""), request.form.get("nota", ""),
                 admin=admin,
+                fecha_compra=request.form.get("fecha_compra") if admin else None,
             )
         except ValueError as e:
             aviso(str(e), "error")
@@ -361,6 +494,21 @@ def editar(venta_id):
     )
     return render_template("ventas/editar.html", v=venta, lineas=lineas,
                            productos=productos, paso=2, admin_edit=admin)
+
+
+@bp.route("/<int:venta_id>/armado/confirmar-admin", methods=["POST"])
+@login_required
+def confirmar_armado_admin(venta_id):
+    """Permite al administrador confirmar el armado sin depender de una asignación."""
+    if g.user["rol"] != "admin":
+        abort(403)
+    _venta_o_404(venta_id)
+    try:
+        services.admin_confirmar_armado(venta_id, g.user["id"])
+        aviso("Pedido marcado como armado por el administrador.")
+    except ValueError as e:
+        aviso(str(e), "error")
+    return redirect(url_for("ventas.detalle", venta_id=venta_id))
 
 
 @bp.route("/<int:venta_id>")

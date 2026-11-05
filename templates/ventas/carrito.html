@@ -5,6 +5,7 @@
 {% set especial = g.user.tipo_vendedor == 'especial' %}
 {% set pago = b.get('tipo_pago', 'contado') %}
 {% set agotados = lineas|selectattr('0.stock', 'le', 0)|list %}
+{% if presupuesto_origen %}<section class="card hint"><b>Convirtiendo el presupuesto #{{ presupuesto_origen }}.</b> Revisa o cambia el cliente, productos y condiciones de pago antes de continuar. La venta solo se crea cuando la confirmes.</section>{% endif %}
 {% if agotados %}<section class="card aviso-agotado"><b class="neg">Hay productos agotados en tu carrito:</b>
   <ul>{% for p, cant in agotados %}<li><b>{{ p.nombre }}</b> — no hay más. Quítalo (✕) y elige otro producto para continuar con la compra.</li>{% endfor %}</ul></section>{% endif %}
 <form method="post" id="venta-form" class="venta">
@@ -86,8 +87,9 @@
     <div class="actions">
       <button class="btn primary lg" id="continuar" name="accion" value="venta" {{ 'disabled' if agotados }}>Continuar con la venta →</button>
       <button class="btn lg" name="accion" value="presupuesto">Generar presupuesto PDF</button>
+      <button class="btn lg" name="accion" value="guardar_presupuesto">Guardar presupuesto para después</button>
     </div>
-    <p class="hint">El presupuesto incluye los datos del cliente seleccionado; no se guarda como venta ni descuenta o reserva existencias.</p>
+    <p class="hint">El presupuesto incluye los datos del cliente seleccionado; puedes guardarlo para editarlo o convertirlo en venta más tarde. Guardarlo no registra una venta ni reserva o descuenta existencias.</p>
   </section>
 </form>
 {% endblock %}

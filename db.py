@@ -144,6 +144,7 @@ def migrar_roles_y_colores(db):
                    "CHECK (color IN ('verde', 'amarillo', 'rojo'))")
     db.execute("INSERT OR IGNORE INTO configuracion(clave, valor) VALUES ('stock_alerta_defecto', '10')")
     migrar_armados_y_precios(db)
+    migrar_presupuestos(db)
     db.commit()
 
 
@@ -177,6 +178,38 @@ def migrar_armados_y_precios(db):
         db.execute("ALTER TABLE armados ADD COLUMN fecha_salida TEXT")
     db.execute("INSERT OR IGNORE INTO configuracion(clave, valor) "
                "VALUES ('armado_desde_venta', CAST(COALESCE((SELECT MAX(id) FROM ventas), 0) AS TEXT))")
+
+
+def migrar_presupuestos(db):
+    """Crea las tablas de presupuestos guardados por vendedor y cliente."""
+    db.executescript("""
+    CREATE TABLE IF NOT EXISTS presupuestos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vendedor_id INTEGER NOT NULL REFERENCES usuarios(id),
+        cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+        creado TEXT NOT NULL,
+        actualizado TEXT NOT NULL,
+        tipo_pago TEXT NOT NULL DEFAULT 'contado' CHECK (tipo_pago IN ('contado', 'credito')),
+        metodo_pago TEXT DEFAULT '',
+        cuota_inicial REAL NOT NULL DEFAULT 0,
+        subtotal REAL NOT NULL DEFAULT 0,
+        descuento REAL NOT NULL DEFAULT 0,
+        total REAL NOT NULL DEFAULT 0,
+        nota TEXT DEFAULT '',
+        venta_id INTEGER REFERENCES ventas(id));
+    CREATE INDEX IF NOT EXISTS ix_presupuestos_vendedor ON presupuestos(vendedor_id, actualizado);
+    CREATE INDEX IF NOT EXISTS ix_presupuestos_cliente ON presupuestos(cliente_id, actualizado);
+    CREATE TABLE IF NOT EXISTS presupuesto_detalles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        presupuesto_id INTEGER NOT NULL REFERENCES presupuestos(id) ON DELETE CASCADE,
+        producto_id INTEGER NOT NULL REFERENCES productos(id),
+        cantidad REAL NOT NULL,
+        precio_lista REAL NOT NULL,
+        precio_unit REAL NOT NULL,
+        modificado INTEGER NOT NULL DEFAULT 0,
+        subtotal REAL NOT NULL);
+    CREATE INDEX IF NOT EXISTS ix_presupuesto_detalles ON presupuesto_detalles(presupuesto_id);
+    """)
 
 
 def migrar_solo_mayor(db):

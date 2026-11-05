@@ -9,7 +9,7 @@
     <div><span class="muted">Estado</span><b>{{ 'Pendiente de aprobación' if v.estado == 'pendiente' else 'Aprobada' }}</b></div>
   </div>
   {% if admin_edit and v.estado == 'aprobada' %}
-  <p class="flash warn">La venta ya fue aprobada. Los cambios de productos o cantidades ajustarán el stock. Si el pedido requiere armado, esos cambios reiniciarán el armado y la fecha de salida. Los abonos se conservan y el total no puede quedar por debajo de lo abonado.</p>
+  <p class="flash warn">La venta ya fue aprobada. Los cambios de productos o cantidades ajustarán el stock. Si el pedido requiere armado, esos cambios reiniciarán el armado y la fecha de salida. Los abonos se conservan y el total no puede quedar por debajo de lo abonado. Cambiar la fecha de compra recalcula el vencimiento solo si aún no hay fecha de salida.</p>
   {% else %}
   <p class="hint">Puedes modificar productos, cantidades, precios, descuento y nota mientras el pedido siga pendiente. El cliente y la forma de pago se mantienen.</p>
   {% endif %}
@@ -17,6 +17,15 @@
 
 <form method="post" id="editar-pedido" class="venta">
   {{ csrf_field() }}
+  {% if admin_edit %}
+  <section class="card form">
+    <h2>Fecha de compra</h2>
+    <label>Fecha y hora
+      <input type="datetime-local" name="fecha_compra" value="{{ v.fecha[:16]|replace(' ', 'T') }}" required>
+    </label>
+    <p class="hint">En ventas a crédito, el vencimiento se recalcula desde esta fecha si todavía no se ha registrado la salida.</p>
+  </section>
+  {% endif %}
   <section class="card form">
     <h2>Productos del pedido</h2>
     <div class="cols">

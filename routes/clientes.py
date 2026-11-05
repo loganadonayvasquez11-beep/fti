@@ -107,8 +107,13 @@ def detalle(cliente_id):
     c = _cliente_o_404(cliente_id)
     deudas = query("SELECT * FROM v_deudas WHERE cliente_id = ? AND estado != 'anulada' ORDER BY fecha DESC", (cliente_id,))
     ventas = query("SELECT * FROM ventas WHERE cliente_id = ? ORDER BY id DESC LIMIT 10", (cliente_id,))
+    presupuestos = query(
+        """SELECT id, actualizado, tipo_pago, total, venta_id FROM presupuestos
+            WHERE cliente_id = ? AND vendedor_id = ? ORDER BY actualizado DESC LIMIT 20""",
+        (cliente_id, g.user["id"]),
+    ) if g.user["rol"] == "vendedor" else []
     return render_template("clientes/detalle.html", c=c, deudas=deudas, ventas=ventas,
-                           saldo=saldo_cliente_usd(cliente_id))
+                           saldo=saldo_cliente_usd(cliente_id), presupuestos=presupuestos)
 
 
 @bp.route("/<int:cliente_id>/editar", methods=["GET", "POST"])

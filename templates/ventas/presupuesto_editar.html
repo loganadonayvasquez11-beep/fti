@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block titulo %}Editar presupuesto #{{ p.id }}{% endblock %}
+{% block contenido %}
+<section class="card">
+  <div class="detail-head">
+    <div><span class="muted">Presupuesto</span><b>#{{ p.id }}</b></div>
+    <div><span class="muted">Cliente</span><b>{{ p.cliente }}</b></div>
+    <div><span class="muted">Creado</span><b>{{ p.creado|fechahora }}</b></div>
+  </div>
+  <p class="hint">Puedes cambiar el cliente, agregar o quitar productos y ajustar precios y condiciones. El presupuesto no reserva ni descuenta existencias.</p>
+</section>
+
+<form method="post" id="editar-presupuesto" class="venta">
+  {{ csrf_field() }}
+  <section class="card form">
+    <h2>Cliente y condiciones</h2>
+    <div class="cols">
+      <label>Cliente
+        <select name="cliente_id" required>
+          {% for c in clientes %}
+          <option value="{{ c.id }}" {{ 'selected' if c.id == p.cliente_id }}>{{ c.nombre }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <fieldset class="seg">
+        <legend>Forma de pago estimada</legend>
+        <label class="radio"><input type="radio" name="tipo_pago" value="contado" {{ 'checked' if p.tipo_pago == 'contado' }}> Contado</label>
+        <label class="radio"><input type="radio" name="tipo_pago" value="credito" {{ 'checked' if p.tipo_pago == 'credito' }}> Crédito</label>
+      </fieldset>
+      <label>Cuota inicial estimada ($)<input type="number" data-decimal-input min="0" step="0.01" name="cuota_inicial" value="{{ '%.2f' % p.cuota_inicial }}"></label>
+      <label>Método de pago
+        <select name="metodo_pago">
+          {% for m in (['Efectivo $', 'Transferencia', 'Zelle', 'Punto de venta', 'Otro'] if es_especial else ['Efectivo $', 'Transferencia', 'Zelle', 'Otro']) %}
+          <option {{ 'selected' if p.metodo_pago == m }}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="card form">
+    <h2>Productos</h2>
+    <div class="cols">
+      <label for="agregar-producto">Agregar producto</label>
+      <div class="actions">
+        <select id="agregar-producto">
+          <option value="">— Elegir producto —</option>
+          {% for prod in productos %}
+          <option value="{{ prod.id }}" data-codigo="{{ prod.codigo }}" data-nombre="{{ prod.nombre }}"
+                  data-unidad="{{ prod.unidad }}" data-precio="{{ prod.precio_mayor_usd }}">{{ prod.codigo }} · {{ prod.nombre }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="btn" id="agregar-linea">Agregar</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="stack lineas compacta">
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio unitario</th><th class="r">Subtotal</th><th></th></tr></thead>
+        <tbody id="lineas-presupuesto">
+          {% for l in lineas %}
+          <tr class="linea" data-producto="{{ l.producto_id }}">
+            <td data-label="Producto">
+              <input type="hidden" name="producto_id" value="{{ l.producto_id }}">
+              <b>{{ l.codigo }} · {{ l.nombre }}</b>
+            </td>
+            <td data-label="Cantidad"><input type="number" name="cantidad" min="1" step="1" value="{{ '%g' % l.cantidad }}" required></td>
+            <td data-label="Unidad">{{ l.unidad }}</td>
+            <td data-label="Precio"><input type="number" name="precio" data-decimal-input min="0" step="0.01" value="{{ '%.2f' % l.precio_unit }}" required></td>
+            <td data-label="Subtotal" class="r sub">0,00</td>
+            <td class="r"><button type="button" class="icon-btn quitar-linea" aria-label="Quitar {{ l.nombre }}">✕</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card form">
+    <h2>Descuento y nota</h2>
+    <div class="cols">
+      <label>Descuento ($)<input type="number" data-decimal-input min="0" step="0.01" name="descuento" id="descuento" value="{{ '%.2f' % p.descuento }}"></label>
+      <label>Nota (opcional)<input name="nota" value="{{ p.nota or '' }}"></label>
+    </div>
+  </section>
+
+  <section class="card form totales">
+    <div class="total-box">
+      <div><span>Subtotal</span><b id="total-subtotal">0,00</b></div>
+      <div><span>Descuento</span><b id="total-descuento">0,00</b></div>
+      <div class="grande"><span>Total</span><b id="total-final">0,00</b></div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('ventas.presupuestos') }}">Cancelar</a>
+      <button class="btn primary lg">Guardar presupuesto</button>
+    </div>
+  </section>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const cuerpo = document.getElementById('lineas-presupuesto');
+  const selector = document.getElementById('agregar-producto');
+  const fmt = n => n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const existente = id => [...cuerpo.querySelectorAll('tr.linea')].some(fila => fila.dataset.producto === id);
+
+  function recalcular() {
+    let subtotal = 0;
+    cuerpo.querySelectorAll('tr.linea').forEach(fila => {
+      const cantidad = Number(fila.querySelector('[name="cantidad"]').value) || 0;
+      const precio = Number(fila.querySelector('[name="precio"]').value) || 0;
+      const linea = Math.round(cantidad * precio * 100) / 100;
+      fila.querySelector('.sub').textContent = fmt(linea);
+      subtotal += linea;
+    });
+    const descuento = Number(document.getElementById('descuento').value) || 0;
+    document.getElementById('total-subtotal').textContent = fmt(subtotal);
+    document.getElementById('total-descuento').textContent = fmt(descuento);
+    document.getElementById('total-final').textContent = fmt(subtotal - descuento);
+  }
+
+  function conectarFila(fila) {
+    fila.querySelectorAll('input').forEach(input => input.addEventListener('input', recalcular));
+    fila.querySelector('.quitar-linea').addEventListener('click', () => {
+      fila.remove();
+      recalcular();
+    });
+  }
+
+  cuerpo.querySelectorAll('tr.linea').forEach(conectarFila);
+  document.getElementById('agregar-linea').addEventListener('click', () => {
+    const opcion = selector.selectedOptions[0];
+    if (!opcion.value || existente(opcion.value)) return;
+    const fila = document.createElement('tr');
+    fila.className = 'linea';
+    fila.dataset.producto = opcion.value;
+    const producto = document.createElement('td');
+    producto.dataset.label = 'Producto';
+    const id = document.createElement('input');
+    id.type = 'hidden';
+    id.name = 'producto_id';
+    id.value = opcion.value;
+    const nombre = document.createElement('b');
+    nombre.textContent = `${opcion.dataset.codigo} · ${opcion.dataset.nombre}`;
+    producto.append(id, nombre);
+    const cantidadCelda = document.createElement('td');
+    cantidadCelda.dataset.label = 'Cantidad';
+    const cantidad = document.createElement('input');
+    cantidad.type = 'number';
+    cantidad.name = 'cantidad';
+    cantidad.min = '1';
+    cantidad.step = '1';
+    cantidad.value = '1';
+    cantidad.required = true;
+    cantidadCelda.append(cantidad);
+    const unidad = document.createElement('td');
+    unidad.dataset.label = 'Unidad';
+    unidad.textContent = opcion.dataset.unidad;
+    const precioCelda = document.createElement('td');
+    precioCelda.dataset.label = 'Precio';
+    const precio = document.createElement('input');
+    precio.type = 'number';
+    precio.name = 'precio';
+    precio.min = '0';
+    precio.step = '0.01';
+    precio.value = Number(opcion.dataset.precio).toFixed(2);
+    precio.required = true;
+    precioCelda.append(precio);
+    const subtotal = document.createElement('td');
+    subtotal.className = 'r sub';
+    subtotal.dataset.label = 'Subtotal';
+    subtotal.textContent = '0,00';
+    const acciones = document.createElement('td');
+    acciones.className = 'r';
+    const quitar = document.createElement('button');
+    quitar.type = 'button';
+    quitar.className = 'icon-btn quitar-linea';
+    quitar.textContent = '✕';
+    quitar.setAttribute('aria-label', `Quitar ${opcion.dataset.nombre}`);
+    acciones.append(quitar);
+    fila.append(producto, cantidadCelda, unidad, precioCelda, subtotal, acciones);
+    cuerpo.append(fila);
+    conectarFila(fila);
+    selector.value = '';
+    recalcular();
+  });
+  document.getElementById('descuento').addEventListener('input', recalcular);
+  document.getElementById('editar-presupuesto').addEventListener('submit', event => {
+    if (!cuerpo.querySelector('tr.linea')) {
+      event.preventDefault();
+      window.alert('El presupuesto debe conservar al menos un producto.');
+    }
+  });
+  recalcular();
+})();
+</script>
+{% endblock %}

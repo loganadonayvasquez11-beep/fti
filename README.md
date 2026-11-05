@@ -87,13 +87,16 @@ SQLite guarda la base junto a los archivos de la aplicación y es adecuada para 
 ## Reglas de negocio
 
 - **Admin**: dueño del almacén central (productos, precios al mayor, entradas, mermas, ajustes, kardex),
-  de la cartera de vendedores (agregar, traspasar clientes y deudas manteniendo activo al vendedor o congelándolo); aprueba, rechaza y anula ventas. Puede editar ventas pendientes y aprobadas de cualquier vendedor. Al editar una aprobada se ajusta el stock y la deuda; los abonos se conservan y no se permite reducir el total por debajo de lo abonado. Si cambian productos o cantidades de un pedido que requiere armado, este vuelve a quedar pendiente de armado y salida.
+  de la cartera de vendedores (agregar, traspasar clientes y deudas manteniendo activo al vendedor o congelándolo); aprueba, rechaza y anula ventas.   Puede editar ventas pendientes y aprobadas de cualquier vendedor, incluida su fecha de compra. En créditos sin fecha de salida, cambiar la fecha de compra recalcula el vencimiento; después de registrar la salida, el vencimiento conserva esa fecha como referencia. Al editar una aprobada se ajusta el stock y la deuda; los abonos se conservan y no se permite reducir el total por debajo de lo abonado. Si cambian productos o cantidades de un pedido que requiere armado, este vuelve a quedar pendiente de armado y salida. También puede marcar directamente un pedido aprobado como armado, aunque no esté asignado a un vendedor especial.
 - **Vendedor**: tiene su cartera de clientes (puede agregar), genera ventas con productos del catálogo,
   vende **al mayor**, contado o crédito y puede **cambiar el precio unitario** de cada línea.
 - Puede editar sus pedidos pendientes (productos, cantidades, precios, descuento y nota) hasta que
   sean aprobados; el cliente y la forma de pago no cambian.
 - Desde el carrito también puede generar un **presupuesto PDF** con los datos del cliente seleccionado;
   no se guarda como venta, no reserva ni descuenta existencias.
+- Puede guardar presupuestos en su lista y en la ficha de cada cliente, editarlos o eliminarlos.
+  Al convertir uno, vuelve al carrito para revisar productos, cliente y condiciones de pago; solo al confirmar
+  se crea la venta y se aplican las reglas habituales de stock y crédito.
 - **Vendedor especial**: conserva sus funciones de venta y armado, puede aprobar o rechazar las ventas pendientes de todos los vendedores, asignar quién arma los pedidos y anular ventas aprobadas, pero no puede crear ni editar productos, cambiar precios ni modificar el stock.
 - **Contado**: la venta se aprueba y se cobra sola, y descuenta el stock en el acto
   (en Configuración puedes exigir también tu aprobación).

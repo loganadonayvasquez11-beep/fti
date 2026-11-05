@@ -106,6 +106,34 @@ CREATE TABLE IF NOT EXISTS venta_detalles (
     subtotal       REAL NOT NULL
 );
 
+-- Presupuestos guardados por vendedor hasta su eventual conversión en venta.
+CREATE TABLE IF NOT EXISTS presupuestos (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendedor_id    INTEGER NOT NULL REFERENCES usuarios(id),
+    cliente_id     INTEGER NOT NULL REFERENCES clientes(id),
+    creado         TEXT NOT NULL,
+    actualizado    TEXT NOT NULL,
+    tipo_pago      TEXT NOT NULL DEFAULT 'contado' CHECK (tipo_pago IN ('contado', 'credito')),
+    metodo_pago    TEXT DEFAULT '',
+    cuota_inicial  REAL NOT NULL DEFAULT 0,
+    subtotal       REAL NOT NULL DEFAULT 0,
+    descuento      REAL NOT NULL DEFAULT 0,
+    total          REAL NOT NULL DEFAULT 0,
+    nota           TEXT DEFAULT '',
+    venta_id       INTEGER REFERENCES ventas(id)
+);
+
+CREATE TABLE IF NOT EXISTS presupuesto_detalles (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    presupuesto_id    INTEGER NOT NULL REFERENCES presupuestos(id) ON DELETE CASCADE,
+    producto_id       INTEGER NOT NULL REFERENCES productos(id),
+    cantidad          REAL NOT NULL,
+    precio_lista      REAL NOT NULL,
+    precio_unit       REAL NOT NULL,
+    modificado        INTEGER NOT NULL DEFAULT 0,
+    subtotal          REAL NOT NULL
+);
+
 -- Deudas: nacen de ventas a crédito o las crea el admin manualmente.
 CREATE TABLE IF NOT EXISTS deudas (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,

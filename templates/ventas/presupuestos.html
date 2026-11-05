@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block titulo %}Mis presupuestos{% endblock %}
+{% block acciones %}<a class="btn primary" href="{{ url_for('ventas.nueva') }}">Crear presupuesto</a>{% endblock %}
+{% block contenido %}
+<section class="card">
+  <p class="hint">Tus presupuestos guardados aparecen aquí y en la ficha de cada cliente. No reservan ni descuentan stock; al convertirlos podrás revisar los productos y las condiciones antes de confirmar la venta.</p>
+  {% if presupuestos %}
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Presupuesto</th><th>Cliente</th><th>Actualizado</th><th>Forma de pago</th><th class="r">Total</th><th>Acciones</th></tr></thead>
+    <tbody>{% for p in presupuestos %}
+      <tr>
+        <td data-label="Presupuesto"><b>#{{ p.id }}</b>{% if p.venta_id %}<br><small class="muted">Convertido en <a href="{{ url_for('ventas.detalle', venta_id=p.venta_id) }}">venta</a></small>{% endif %}</td>
+        <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=p.cliente_id) }}">{{ p.cliente }}</a></td>
+        <td data-label="Actualizado">{{ p.actualizado|fechahora }}</td>
+        <td data-label="Forma de pago">{{ 'Crédito' if p.tipo_pago == 'credito' else 'Contado' }}</td>
+        <td data-label="Total" class="r">{{ p.total|money('USD') }}</td>
+        <td data-label="Acciones"><div class="actions">
+          <a class="btn sm" href="{{ url_for('ventas.presupuesto_guardado_pdf', presupuesto_id=p.id) }}">PDF</a>
+          {% if not p.venta_id %}
+          <a class="btn sm" href="{{ url_for('ventas.editar_presupuesto', presupuesto_id=p.id) }}">Editar</a>
+          <form method="post" action="{{ url_for('ventas.convertir_presupuesto', presupuesto_id=p.id) }}"
+                onsubmit="return confirm('{{ 'Se reemplazará el carrito de venta que tienes abierto. ¿Continuar?' if n_carrito else 'Se cargará este presupuesto para que revises los datos antes de crear la venta. ¿Continuar?' }}');">
+            {{ csrf_field() }}<button class="btn primary sm">Convertir en venta</button>
+          </form>
+          <form method="post" action="{{ url_for('ventas.eliminar_presupuesto', presupuesto_id=p.id) }}"
+                onsubmit="return confirm('¿Eliminar definitivamente este presupuesto?');">
+            {{ csrf_field() }}<button class="btn danger sm" aria-label="Eliminar presupuesto #{{ p.id }}" title="Eliminar">✕</button>
+          </form>
+          {% endif %}
+        </div></td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <div class="empty"><p class="muted">Todavía no tienes presupuestos guardados.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

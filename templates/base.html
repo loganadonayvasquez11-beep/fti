@@ -57,6 +57,7 @@
           <a href="{{ url_for('admin.configuracion') }}" class="{{ 'on' if ep == 'admin.configuracion' }}">{{ ico('sliders') }}<span>Configuración</span></a>
         {% else %}
           <a href="{{ url_for('ventas.nueva') }}" class="{{ 'on' if ep in ('ventas.nueva', 'ventas.carrito', 'ventas.confirmar') }}">{{ ico('plus') }}<span>Nueva venta</span>{% if n_carrito %}<b class="pill" title="Productos en tu carrito">{{ n_carrito }}</b>{% endif %}</a>
+          <a href="{{ url_for('ventas.presupuestos') }}" class="{{ 'on' if ep.startswith('ventas.') and ('presupuesto' in ep) }}">{{ ico('file') }}<span>Mis presupuestos</span></a>
           <a href="{{ url_for('catalogo.productos') }}" class="{{ 'on' if ep in ('catalogo.productos','catalogo.producto_nuevo','catalogo.producto_editar') }}">{{ ico('box') }}<span>Catálogo y stock</span></a>
           {% if es_especial %}<a href="{{ url_for('armados.lista') }}" class="{{ 'on' if ep.startswith('armados.') }}">{{ ico('layers') }}<span>Pedidos para armar</span>{% if n_por_armar %}<b class="pill" title="Pedidos en tu bandeja">{{ n_por_armar }}</b>{% endif %}</a>{% endif %}
           <a href="{{ url_for('ventas.lista') }}" class="{{ 'on' if ep in ('ventas.lista','ventas.detalle') }}">{{ ico('cart') }}<span>{{ 'Ventas' if es_especial else 'Mis ventas' }}</span>{% if es_especial and n_pendientes %}<b class="pill" title="Ventas pendientes por revisar">{{ n_pendientes }}</b>{% endif %}</a>

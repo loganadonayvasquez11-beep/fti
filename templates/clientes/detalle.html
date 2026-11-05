@@ -39,6 +39,25 @@
     {% endfor %}</tbody></table></div>
   {% else %}<p class="muted">Este cliente no tiene deudas.</p>{% endif %}
 </section>
+{% if g.user.rol == 'vendedor' %}
+<section class="card">
+  <div class="topbar"><h2>Presupuestos de este cliente</h2><a class="btn sm" href="{{ url_for('ventas.presupuestos') }}">Todos mis presupuestos</a></div>
+  {% if presupuestos %}
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Presupuesto</th><th>Actualizado</th><th>Forma de pago</th><th class="r">Total</th><th>Estado</th></tr></thead>
+    <tbody>{% for p in presupuestos %}
+      <tr>
+        <td data-label="Presupuesto">{% if p.venta_id %}<a href="{{ url_for('ventas.presupuesto_guardado_pdf', presupuesto_id=p.id) }}">#{{ p.id }}</a>{% else %}<a href="{{ url_for('ventas.editar_presupuesto', presupuesto_id=p.id) }}">#{{ p.id }}</a>{% endif %}</td>
+        <td data-label="Actualizado">{{ p.actualizado|fechahora }}</td>
+        <td data-label="Forma de pago">{{ 'Crédito' if p.tipo_pago == 'credito' else 'Contado' }}</td>
+        <td data-label="Total" class="r">{{ p.total|money('USD') }}</td>
+        <td data-label="Estado">{% if p.venta_id %}<a href="{{ url_for('ventas.detalle', venta_id=p.venta_id) }}">Convertido en venta</a>{% else %}Disponible{% endif %}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">No hay presupuestos guardados para este cliente.</p>{% endif %}
+</section>
+{% endif %}
 <section class="card">
   <h2>Últimas ventas</h2>
   {% if ventas %}
