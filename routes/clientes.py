@@ -2,7 +2,6 @@
 import re
 
 from flask import Blueprint, abort, g, redirect, render_template, request, url_for
-from io import BytesIO
 
 import pdf
 from pdf_responses import nombre_pdf_cliente, responder_pdf
@@ -182,9 +181,8 @@ def color(cliente_id):
 def estado_cuenta_pdf(cliente_id):
     """Descarga el estado de cuenta del cliente en PDF."""
     c = _cliente_o_404(cliente_id)
-    datos = pdf.estado_cuenta(cliente_id)
     nombre = nombre_pdf_cliente(c["nombre"], "Estado de cuenta")
-    return responder_pdf(BytesIO(datos), nombre)
+    return responder_pdf(lambda escala: pdf.estado_cuenta(cliente_id, escala), nombre)
 
 
 @bp.route("/<int:cliente_id>/desactivar", methods=["POST"])

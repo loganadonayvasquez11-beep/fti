@@ -1,6 +1,4 @@
 """Ventas: los vendedores las generan; admin y especiales aprueban, rechazan y anulan."""
-from io import BytesIO
-
 from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, session, url_for
 
 import pdf
@@ -63,6 +61,7 @@ def lista():
 # El carrito vive en la sesión del vendedor; al final services.crear_venta vuelve a validar todo.
 CARRITO, ORDEN_CARRITO, BORRADOR = "carrito", "carrito_orden", "venta_borrador"
 PRESUPUESTO_ORIGEN = "presupuesto_origen"
+TIPO_PAGO_ELEGIDO = "_tipo_pago_elegido"
 
 
 def _carrito():
@@ -82,7 +81,10 @@ def _guardar_carrito(c):
 
 def _borrador():
     """Cliente y condiciones elegidos en el paso 2 (se conservan si el vendedor vuelve atrás)."""
-    return dict(session.get(BORRADOR, {}))
+    borrador = dict(session.get(BORRADOR, {}))
+    if not borrador.get(TIPO_PAGO_ELEGIDO):
+        borrador["tipo_pago"] = "credito"
+    return borrador
 
 
 def _guardar_borrador(b):
@@ -248,10 +250,10 @@ def carrito():
                     precios[pid] = escrito
         _guardar_borrador({
             "cliente_id": f.get("cliente_id", ""),
-            "tipo_pago": f.get("tipo_pago", "contado"), "metodo_pago": f.get("metodo_pago", ""),
+            "tipo_pago": f.get("tipo_pago", "credito"), "metodo_pago": f.get("metodo_pago", ""),
             "cuota_inicial": f.get("cuota_inicial", ""),
             "descuento_porcentaje": f.get("descuento_porcentaje", ""),
-            "nota": f.get("nota", ""), "precios": precios})
+            "nota": f.get("nota", ""), "precios": precios, TIPO_PAGO_ELEGIDO: True})
         if not cart:
             aviso("Tu carrito quedó vacío.", "warn")
             return redirect(url_for("ventas.nueva"))
@@ -328,9 +330,8 @@ def presupuesto_pdf():
     except ValueError as e:
         aviso(str(e), "error")
         return redirect(url_for("ventas.carrito"))
-    archivo = BytesIO(pdf.presupuesto(r, g.user["nombre"]))
     nombre = nombre_pdf_cliente(r["cliente"]["nombre"], "Presupuesto")
-    return responder_pdf(archivo, nombre)
+    return responder_pdf(lambda escala: pdf.presupuesto(r, g.user["nombre"], escala), nombre)
 
 
 @bp.route("/presupuestos")
@@ -367,7 +368,7 @@ def editar_presupuesto(presupuesto_id):
         ]
         borrador = {
             "cliente_id": request.form.get("cliente_id", ""),
-            "tipo_pago": request.form.get("tipo_pago", "contado"),
+            "tipo_pago": request.form.get("tipo_pago", "credito"),
             "metodo_pago": request.form.get("metodo_pago", ""),
             "cuota_inicial": request.form.get("cuota_inicial", ""),
             "descuento_porcentaje": request.form.get("descuento_porcentaje", ""),
@@ -427,7 +428,7 @@ def convertir_presupuesto(presupuesto_id):
         "cliente_id": str(p["cliente_id"]), "tipo_pago": p["tipo_pago"],
         "metodo_pago": p["metodo_pago"] or "", "cuota_inicial": str(p["cuota_inicial"]),
         "descuento_porcentaje": str(p["descuento_porcentaje"]),
-        "nota": p["nota"] or "", "precios": precios,
+        "nota": p["nota"] or "", "precios": precios, TIPO_PAGO_ELEGIDO: True,
     }
     session[PRESUPUESTO_ORIGEN] = presupuesto_id
     session.modified = True
@@ -442,9 +443,8 @@ def presupuesto_guardado_pdf(presupuesto_id):
     resumen = services.resumen_presupuesto_guardado(presupuesto_id, g.user["id"])
     if resumen is None:
         abort(404)
-    contenido = pdf.presupuesto(resumen, g.user["nombre"])
     nombre = nombre_pdf_cliente(resumen["cliente"]["nombre"], f"Presupuesto {presupuesto_id}")
-    return responder_pdf(BytesIO(contenido), nombre)
+    return responder_pdf(lambda escala: pdf.presupuesto(resumen, g.user["nombre"], escala), nombre)
 
 
 @bp.route("/<int:venta_id>/editar", methods=["GET", "POST"])
@@ -596,4 +596,4 @@ def nota_pdf(venta_id):
     """Nota de venta en PDF."""
     v = _venta_o_404(venta_id)
     nombre = nombre_pdf_cliente(v["cliente"], f"Venta {v['numero']}")
-    return responder_pdf(BytesIO(pdf.nota_venta(venta_id)), nombre)
+    return responder_pdf(lambda escala: pdf.nota_venta(venta_id, escala), nombre)

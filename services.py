@@ -140,7 +140,7 @@ def resumen_venta(vendedor_id, borrador, carrito):
     if cliente is None:
         raise ValueError("Selecciona un cliente válido de tu cartera.")
     moneda = "USD"
-    tipo_pago = borrador.get("tipo_pago", "contado")
+    tipo_pago = borrador.get("tipo_pago", "credito")
     if tipo_pago not in ("contado", "credito"):
         raise ValueError("Selecciona una forma de pago válida.")
     tasa = tasa_actual()
@@ -439,7 +439,7 @@ def crear_venta(vendedor_id, form, items):
     if cliente is None:
         raise ValueError("Selecciona un cliente válido de tu cartera.")
 
-    tipo_pago = form.get("tipo_pago", "contado")
+    tipo_pago = form.get("tipo_pago", "credito")
     moneda = "USD"
     if tipo_pago not in ("contado", "credito"):
         raise ValueError("Datos de la venta inválidos.")

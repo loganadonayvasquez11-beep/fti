@@ -178,6 +178,19 @@ legend { padding: 0 6px; font-size: 12.5px; color: var(--muted); }
 .pdf-opciones h2, .pdf-opciones p { margin: 0; }
 .pdf-opciones .actions { justify-content: center; margin-top: 4px; }
 .pdf-opciones-icono { display: grid; place-items: center; width: 72px; height: 84px; border: 1px solid var(--stroke-2); border-radius: 12px; background: var(--card-2); color: var(--accent); font-size: 19px; font-weight: 700; box-shadow: 0 8px 24px rgba(0,0,0,.24); }
+.pdf-editor { display: grid; gap: 12px; }
+.pdf-editor-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.pdf-editor-head h1, .pdf-editor-head p { margin: 0; }
+.pdf-editor-head p { overflow-wrap: anywhere; }
+.pdf-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pdf-scale { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--stroke); border-radius: var(--radius); background: var(--card); }
+.pdf-scale-step { width: 40px; min-width: 40px; height: 40px; padding: 0; font-size: 22px; }
+.pdf-scale-control { display: grid; grid-template-columns: auto auto; align-items: center; gap: 3px 12px; min-width: 220px; }
+.pdf-scale-control output { font-weight: 700; }
+.pdf-scale-control input { grid-column: 1 / -1; width: 100%; }
+.pdf-pages { margin-left: auto; color: var(--muted); font-size: 13px; }
+.pdf-editor-hint { margin: 0; }
+.pdf-preview { display: block; width: 100%; height: min(74vh, 920px); min-height: 480px; border: 1px solid var(--stroke-2); border-radius: var(--radius); background: #454545; }
 .quantity-control { display: inline-flex; align-items: center; justify-content: center; gap: 0; }
 .quantity-control .quantity-btn {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px;
@@ -264,6 +277,11 @@ tr.modificado td { background: rgba(252, 211, 77, .07); }
   .topbar h1 { font-size: 21px; }
 }
 @media (max-width: 720px) {
+  .pdf-editor-head { align-items: stretch; flex-direction: column; }
+  .pdf-editor-actions .btn { flex: 1 1 160px; }
+  .pdf-scale-control { min-width: 0; flex: 1 1 160px; }
+  .pdf-pages { width: 100%; margin-left: 0; }
+  .pdf-preview { height: 68vh; min-height: 360px; }
   .quantity-control .quantity-btn { flex-basis: 48px; width: 48px; height: 48px; font-size: 24px; }
   .quantity-control input[type=number] { width: 48px; min-width: 48px; max-width: 48px; height: 48px; min-height: 48px; font-size: 16px; line-height: 46px; }
   .ptabla .c-cant .quantity-control input[type=number] { width: 46px; min-width: 46px; }

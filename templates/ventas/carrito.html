@@ -3,7 +3,7 @@
 {% block contenido %}
 {% include 'ventas/_pasos.html' %}
 {% set especial = g.user.tipo_vendedor == 'especial' %}
-{% set pago = b.get('tipo_pago', 'contado') %}
+{% set pago = b.get('tipo_pago', 'credito') if b.get('_tipo_pago_elegido') else 'credito' %}
 {% set agotados = lineas|selectattr('0.stock', 'le', 0)|list %}
 {% if presupuesto_origen %}<section class="card hint"><b>Convirtiendo el presupuesto #{{ presupuesto_origen }}.</b> Revisa o cambia el cliente, productos y condiciones de pago antes de continuar. La venta solo se crea cuando la confirmes.</section>{% endif %}
 {% if agotados %}<section class="card aviso-agotado"><b class="neg">Hay productos agotados en tu carrito:</b>
