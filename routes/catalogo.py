@@ -38,7 +38,9 @@ def productos():
     if not ver_inactivos:
         sql += " AND p.activo = 1"
     if q:
-        sql += " AND (p.nombre LIKE ? OR p.codigo LIKE ? OR c.nombre LIKE ?)"; args += [f"%{q}%"] * 3
+        for termino in q.split():
+            sql += " AND (p.nombre LIKE ? OR p.codigo LIKE ? OR c.nombre LIKE ?)"
+            args += [f"%{termino}%"] * 3
     if cat:
         sql += " AND p.categoria_id = ?"; args.append(cat)
     if bajo:
@@ -61,18 +63,25 @@ def productos_pdf():
                        FROM productos p LEFT JOIN categorias c ON c.id = p.categoria_id
                       WHERE p.activo = 1 ORDER BY c.nombre IS NULL, c.nombre, p.nombre""")
     audit("lista_stock_pdf", f"{g.user['usuario']} ({len(filas)} productos)")
-    return responder_pdf(lambda escala: pdf.lista_mercancia(filas, escala), f"lista_mercancia_{ahora()[:10]}.pdf")
+    return responder_pdf(BytesIO(pdf.lista_mercancia(filas)), f"lista_mercancia_{ahora()[:10]}.pdf")
 
 
 def _leer_producto(f):
     """Valida el formulario de producto. Devuelve (datos, error)."""
     codigo, nombre = f.get("codigo", "").strip().upper(), f.get("nombre", "").strip()
+    minimo_texto = f.get("stock_minimo", "").strip()
     if not codigo:
         return None, "El código del producto es obligatorio: escríbelo tú mismo."
     if not nombre:
         return None, "El nombre del producto es obligatorio."
     if not to_int(f.get("categoria_id")):
         return None, "Selecciona la categoría del producto."
+    try:
+        minimo = int(minimo_texto) if minimo_texto else 0
+    except ValueError:
+        return None, "La alerta mínima debe ser un número entero."
+    if minimo < 0:
+        return None, "La alerta mínima no puede ser negativa."
     try:
         mayor = parse_decimal_input(f.get("precio_mayor_usd"), "El precio al mayor")
     except ValueError as e:
@@ -82,7 +91,7 @@ def _leer_producto(f):
     return {
         "codigo": codigo, "nombre": nombre, "categoria_id": to_int(f.get("categoria_id")) or None,
         "unidad": f.get("unidad", "und").strip() or "und", "mayor": mayor,
-        "minimo": max(to_float(f.get("stock_minimo")), 0),
+        "minimo": minimo,
     }, None
 
 

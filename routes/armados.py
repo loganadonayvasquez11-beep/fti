@@ -8,7 +8,7 @@ from flask import Blueprint, abort, g, redirect, render_template, request, url_f
 
 import services
 from db import query
-from utils import aviso, es_especial, especial_o_admin_required, login_required, roles_required
+from utils import aviso, es_especial, especial_o_admin_required, login_required
 
 bp = Blueprint("armados", __name__, url_prefix="/armados")
 
@@ -74,20 +74,6 @@ def asignar(venta_id):
     destino = request.form.get("volver", "")
     return redirect(destino if destino.startswith("/") and not destino.startswith("//")
                     else url_for("ventas.detalle", venta_id=venta_id))
-
-
-@bp.route("/venta/<int:venta_id>/marcar-armado", methods=["POST"])
-@roles_required("admin")
-def marcar_armado_admin(venta_id):
-    """Permite al administrador marcar un pedido como armado sin asignarlo a un vendedor."""
-    try:
-        services.admin_confirmar_armado(venta_id, g.user["id"])
-        aviso("Pedido marcado como armado sin asignarlo a un vendedor.")
-    except ValueError as e:
-        aviso(str(e), "error")
-    destino = request.form.get("volver", "")
-    return redirect(destino if destino.startswith("/") and not destino.startswith("//")
-                    else url_for("armados.lista"))
 
 
 @bp.route("/<int:armado_id>/confirmar", methods=["POST"])

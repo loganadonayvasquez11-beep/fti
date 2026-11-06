@@ -182,8 +182,9 @@ def color(cliente_id):
 def estado_cuenta_pdf(cliente_id):
     """Descarga el estado de cuenta del cliente en PDF."""
     c = _cliente_o_404(cliente_id)
+    datos = pdf.estado_cuenta(cliente_id)
     nombre = nombre_pdf_cliente(c["nombre"], "Estado de cuenta")
-    return responder_pdf(lambda escala: pdf.estado_cuenta(cliente_id, escala), nombre)
+    return responder_pdf(BytesIO(datos), nombre)
 
 
 @bp.route("/<int:cliente_id>/desactivar", methods=["POST"])

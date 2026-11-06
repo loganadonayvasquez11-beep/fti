@@ -1,10 +1,11 @@
 """Deudas y abonos. El vendedor cobra sobre sus deudores; el admin además puede poner, editar y quitar deudas."""
-from flask import Blueprint, abort, g, redirect, render_template, request, url_for
+from io import BytesIO
+
+from flask import Blueprint, abort, g, redirect, render_template, request, send_file, url_for
 
 import pdf
 import services
 from db import query
-from pdf_responses import responder_pdf
 from utils import aviso, hoy, login_required, roles_required, to_float, to_int
 
 bp = Blueprint("deudas", __name__)
@@ -82,7 +83,7 @@ def recibo_pdf(abono_id):
     if a is None:
         abort(404)
     _deuda_o_404(a["deuda_id"])
-    return responder_pdf(lambda escala: pdf.recibo_abono(abono_id, escala), f"R-{abono_id:06d}.pdf")
+    return send_file(BytesIO(pdf.recibo_abono(abono_id)), mimetype="application/pdf", download_name=f"R-{abono_id:06d}.pdf")
 
 
 @bp.route("/abonos/<int:abono_id>/anular", methods=["POST"])

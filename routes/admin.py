@@ -271,11 +271,4 @@ def historial_descargar(archivo_id):
     carpeta = (Path(current_app.instance_path) / "archivos_historicos").resolve()
     if carpeta not in ruta.parents or not ruta.is_file():
         abort(404)
-    from archivos import generar_archivo_diario
-    return responder_pdf(
-        lambda escala: generar_archivo_diario(
-            usuario_id=g.user["id"], escala=escala,
-            rango=(fila["desde"], fila["hasta"]), persistir=False,
-        ),
-        ruta.name,
-    )
+    return responder_pdf(ruta, ruta.name)

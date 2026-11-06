@@ -17,9 +17,9 @@
 </div>
 
 {% if productos %}
-<form method="post" action="{{ url_for('ventas.carrito_agregar_varios') }}" id="form-seleccion" data-carrito-url="{{ url_for('ventas.carrito') }}">
+<form method="post" action="{{ url_for('ventas.carrito_agregar_varios') }}" id="form-seleccion">
   {{ csrf_field() }}
-  <p class="hint" style="margin:0 0 8px">Marca los productos que quieras (o toca la fila), ajusta la cantidad y continúa al carrito.</p>
+  <p class="hint" style="margin:0 0 8px">Marca los productos que quieras (o toca la fila), ajusta la cantidad y pulsa <b>Añadir seleccionados</b>.</p>
   <p class="hint" style="margin:0 0 8px">La cantidad y el stock cuentan unidades de venta. «Unidad de venta» indica su presentación (por ejemplo, 50 und o par): vender 1 descuenta 1 del stock, no 50.</p>
   <div class="ptabla-scroll catalogo-lista"><table class="ptabla sel" id="tienda">
     <thead><tr><th class="c-sel"><input type="checkbox" id="marcar-todos" title="Marcar los visibles" aria-label="Marcar los visibles"></th><th class="c-foto">Foto</th><th>Producto</th>
@@ -59,7 +59,8 @@
   <div class="carrito-barra" id="barra-seleccion">
     <span><b id="n-sel">0</b> seleccionado(s) · <span id="carrito-resumen">🛒 <b id="carrito-n">{{ carrito|length }}</b> en tu carrito</span></span>
     <span class="barra-botones">
-      <button class="btn primary" type="submit" id="btn-continuar" {{ 'disabled' if not carrito }}>Ver carrito y continuar →</button>
+      <button class="btn primary" type="submit" id="btn-anadir" disabled>Añadir seleccionados</button>
+      <a class="btn" id="btn-carrito" href="{{ url_for('ventas.carrito') }}" {{ 'hidden' if not carrito }}>Ver carrito y continuar →</a>
     </span>
   </div>
 </form>

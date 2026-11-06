@@ -1,8 +1,6 @@
 """Generación de documentos en PDF (ReportLab): nota de venta, recibo de abono y estado de cuenta."""
 from io import BytesIO
-from copy import deepcopy
 from reportlab.platypus import Image, Table
-from reportlab.platypus.flowables import Flowable
 from reportlab.lib.units import cm
 import os
 
@@ -20,7 +18,7 @@ from utils import ahora, fmt_fecha, fmt_fechahora, fmt_money, fmt_num, fmt_qty
 
 AZUL = colors.HexColor("#ff0000")
 GRIS_CLARO = colors.HexColor("#f0f0f0")
-ESCALA_IMPRESION = 1.0
+ESCALA_IMPRESION = 1.04
 
 
 class CanvasEscalaImpresion(ReportLabCanvas):
@@ -218,67 +216,12 @@ def _tabla(datos, anchos, alinear_der=(), cabecera=True):
     return t
 
 
-def _ajustar_anchos_tabla(flowable, factor):
-    if isinstance(flowable, Table):
-        flowable._argW = [ancho * factor if ancho is not None else None for ancho in flowable._argW]
-        if flowable._argH:
-            flowable._argH = [alto * factor if alto is not None else None for alto in flowable._argH]
-        for fila in flowable._cellvalues:
-            for celda in fila:
-                _ajustar_anchos_tabla(celda, factor)
-    elif isinstance(flowable, (list, tuple)):
-        for elemento in flowable:
-            _ajustar_anchos_tabla(elemento, factor)
-
-
-class _EscalaFlowable(Flowable):
-    """Escala el contenido y deja que ReportLab vuelva a ajustar el flujo y las páginas."""
-
-    def __init__(self, elemento, escala, preparado=False):
-        super().__init__()
-        self.elemento = elemento
-        self.escala = escala
-        self.preparado = preparado
-
-    def wrap(self, ancho_disponible, alto_disponible):
-        if not self.preparado:
-            self.elemento = deepcopy(self.elemento)
-            _ajustar_anchos_tabla(self.elemento, 1 / self.escala)
-            self.preparado = True
-        self.ancho_interno, self.alto_interno = self.elemento.wrap(
-            ancho_disponible / self.escala, alto_disponible / self.escala
-        )
-        self.width = self.ancho_interno * self.escala
-        self.height = self.alto_interno * self.escala
-        return self.width, self.height
-
-    def split(self, ancho_disponible, alto_disponible):
-        partes = self.elemento.split(
-            ancho_disponible / self.escala, alto_disponible / self.escala
-        )
-        if len(partes) == 1 and partes[0] is self.elemento:
-            return []
-        return [_EscalaFlowable(parte, self.escala, preparado=True) for parte in partes]
-
-    def draw(self):
-        self.canv.saveState()
-        self.canv.scale(self.escala, self.escala)
-        self.elemento.drawOn(self.canv, 0, 0)
-        self.canv.restoreState()
-
-
-def escalar_flujos(elementos, escala=100):
-    """Devuelve un flujo proporcional para que ReportLab repagine el contenido."""
-    factor = max(25, min(200, int(escala))) / 100
-    return [_EscalaFlowable(elemento, factor) for elemento in elementos]
-
-
-def _construir(elementos, escala=100):
-    """Arma el PDF en memoria, recalculando el flujo al tamaño solicitado."""
+def _construir(elementos):
+    """Arma el PDF en memoria y devuelve los bytes."""
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=10 * mm, rightMargin=10 * mm,
                             topMargin=14 * mm, bottomMargin=14 * mm)
-    doc.build(escalar_flujos(elementos, escala), canvasmaker=CanvasEscalaImpresion)
+    doc.build(elementos, canvasmaker=CanvasEscalaImpresion)
     return buf.getvalue()
 
 
@@ -310,7 +253,7 @@ def _firmas(desplazar_cliente=0):
 
 
 # ============================================================ nota de venta
-def nota_venta(venta_id, escala=100):
+def nota_venta(venta_id):
     """PDF de una venta: datos del cliente, detalle, totales y condiciones de pago."""
     v = query(
         """SELECT v.*, c.nombre AS cliente, c.documento, c.telefono, c.direccion, u.nombre AS vendedor
@@ -322,10 +265,10 @@ def nota_venta(venta_id, escala=100):
         """SELECT d.*, p.codigo, p.nombre, p.unidad FROM venta_detalles d
              JOIN productos p ON p.id = d.producto_id WHERE d.venta_id = ? ORDER BY d.id""", (venta_id,))
     deuda = query("SELECT * FROM v_deudas WHERE venta_id = ?", (venta_id,), one=True) if v["tipo_pago"] == "credito" else None
-    return _pdf_venta(v, det, deuda, escala=escala)
+    return _pdf_venta(v, det, deuda)
 
 
-def _pdf_venta(v, det, deuda=None, titulo="NOTA DE ENTREGA", numero=None, es_presupuesto=False, escala=100):
+def _pdf_venta(v, det, deuda=None, titulo="NOTA DE ENTREGA", numero=None, es_presupuesto=False):
     """Renderiza la nota o presupuesto con el mismo formato y datos del comprador."""
     m = "USD"   # todo se factura en dólares
     el = [_encabezado_nota(titulo, numero if numero is not None else v["numero"]), Spacer(1, 10)]
@@ -415,14 +358,11 @@ def _pdf_venta(v, det, deuda=None, titulo="NOTA DE ENTREGA", numero=None, es_pre
         el += [Spacer(1, 6), _p(f"Nota: {v['nota']}", "pequeno")]
     if not es_presupuesto and v["motivo"]:
         el += [Spacer(1, 4), _p(f"Motivo: {v['motivo']}", "pequeno")]
-    if es_presupuesto:
-        el += [Spacer(1, 8), _p("Este presupuesto no registra una venta ni descuenta existencias.", "pequeno")]
-        
     el += [Spacer(1, 22), _firmas(desplazar_cliente=25)]
-    return _construir(el, escala)
+    return _construir(el)
 
 
-def presupuesto(datos, vendedor, escala=100):
+def presupuesto(datos, vendedor):
     """Genera un presupuesto completo en memoria sin crear una venta."""
     cliente = datos["cliente"]
     v = {
@@ -444,11 +384,11 @@ def presupuesto(datos, vendedor, escala=100):
         }
         for linea in datos["lineas"]
     ]
-    return _pdf_venta(v, detalles, titulo="PRESUPUESTO", numero="", es_presupuesto=True, escala=escala)
+    return _pdf_venta(v, detalles, titulo="PRESUPUESTO", numero="", es_presupuesto=True)
 
 # ========================================================== recibo de abono
 # ========================================================== recibo de abono
-def recibo_abono(abono_id, escala=100):
+def recibo_abono(abono_id):
     """PDF de un abono: monto pagado, equivalencias y saldo restante de la deuda."""
     a = query(
         """SELECT a.*, d.concepto, d.monto_usd AS deuda_total, d.cliente_id, c.nombre AS cliente,
@@ -482,12 +422,12 @@ def recibo_abono(abono_id, escala=100):
     t.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, -1), GRIS_CLARO), ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
                            ("FONTNAME", (0, 6), (-1, 6), "Helvetica-Bold")]))
     el += [t, Spacer(1, 40), _firmas()]
-    return _construir(el, escala)
+    return _construir(el)
 
 
 # =========================================================== estado de cuenta
 # =========================================================== estado de cuenta
-def estado_cuenta(cliente_id, escala=100):
+def estado_cuenta(cliente_id):
     """PDF con todas las deudas activas de un cliente, sus abonos y el saldo total."""
     c = query("SELECT c.*, u.nombre AS vendedor FROM clientes c JOIN usuarios u ON u.id = c.vendedor_id WHERE c.id = ?",
               (cliente_id,), one=True)
@@ -534,11 +474,11 @@ def estado_cuenta(cliente_id, escala=100):
     el.append(_tabla(filas, [23 * mm, 55 * mm, 23 * mm, 23 * mm, 23 * mm, 21 * mm, 22 * mm], alinear_der=(3, 4, 5)))
     el += [Spacer(1, 8),
            _p(f"SALDO TOTAL PENDIENTE: {fmt_money(total, 'USD')}", "empresa")]
-    return _construir(el, escala)
+    return _construir(el)
 
 
 # ============================================================ lista de mercancía
-def lista_mercancia(productos, escala=100):
+def lista_mercancia(productos):
     """PDF en lista de la mercancía: código, producto, categoría, unidad y precio al mayor.
 
     A propósito NO incluye precios ni cantidades en stock."""
@@ -551,4 +491,4 @@ def lista_mercancia(productos, escala=100):
         elementos.append(_p("No hay productos registrados."))
     else:
         elementos.append(_tabla(datos, [30 * mm, 74 * mm, 38 * mm, 19 * mm, 29 * mm], alinear_der=(4,)))
-    return _construir(elementos, escala)
+    return _construir(elementos)
