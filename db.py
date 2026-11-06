@@ -193,6 +193,7 @@ def migrar_presupuestos(db):
         metodo_pago TEXT DEFAULT '',
         cuota_inicial REAL NOT NULL DEFAULT 0,
         subtotal REAL NOT NULL DEFAULT 0,
+        descuento_porcentaje INTEGER NOT NULL DEFAULT 0,
         descuento REAL NOT NULL DEFAULT 0,
         total REAL NOT NULL DEFAULT 0,
         nota TEXT DEFAULT '',
@@ -210,6 +211,20 @@ def migrar_presupuestos(db):
         subtotal REAL NOT NULL);
     CREATE INDEX IF NOT EXISTS ix_presupuesto_detalles ON presupuesto_detalles(presupuesto_id);
     """)
+    for tabla in ("ventas", "presupuestos"):
+        columnas = table_columns(db, tabla)
+        if "descuento_porcentaje" not in columnas:
+            db.execute(
+                f"ALTER TABLE {tabla} ADD COLUMN descuento_porcentaje INTEGER NOT NULL DEFAULT 0"
+            )
+            db.execute(
+                f"""UPDATE {tabla}
+                       SET descuento_porcentaje = CASE
+                           WHEN subtotal <= 0 OR descuento <= 0 THEN 0
+                           WHEN descuento >= subtotal THEN 100
+                           ELSE CAST(ROUND(descuento * 100.0 / subtotal) AS INTEGER)
+                       END"""
+            )
 
 
 def migrar_solo_mayor(db):
@@ -258,6 +273,7 @@ def migrar_solo_mayor(db):
                     tasa REAL NOT NULL DEFAULT 1,
                     metodo_pago TEXT DEFAULT '',
                     subtotal REAL NOT NULL DEFAULT 0,
+                    descuento_porcentaje INTEGER NOT NULL DEFAULT 0,
                     descuento REAL NOT NULL DEFAULT 0,
                     total REAL NOT NULL DEFAULT 0,
                     total_usd REAL NOT NULL DEFAULT 0,

@@ -3,10 +3,13 @@
 Todas las funciones que modifican datos lanzan ValueError con un mensaje
 en español cuando una regla de negocio no se cumple; las rutas lo muestran al usuario.
 """
+import re
+from datetime import datetime, timedelta
+from decimal import Decimal, ROUND_HALF_UP
+
 from flask import g
 
 from db import get_db, query
-from datetime import datetime, timedelta
 
 from utils import ahora, hoy, parse_decimal_input, sumar_dias, to_float, to_int
 
@@ -94,20 +97,39 @@ def _lineas_carrito(borrador, carrito):
     return lineas
 
 
+def _descuento_porcentaje(valor):
+    texto = "" if valor is None else str(valor).strip()
+    if not texto:
+        return 0
+    if not re.fullmatch(r"\d+", texto):
+        raise ValueError("El descuento debe ser un porcentaje entero entre 0 y 100.")
+    porcentaje = int(texto)
+    if porcentaje > 100:
+        raise ValueError("El descuento debe estar entre 0% y 100%.")
+    return porcentaje
+
+
+def _monto_descuento(subtotal, porcentaje):
+    return float(
+        (Decimal(str(subtotal)) * Decimal(porcentaje) / Decimal(100)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+    )
+
+
 def _totales_presupuesto(borrador, lineas):
     subtotal = round(sum(l["subtotal"] for l in lineas), 2)
-    descuento = round(parse_decimal_input(borrador.get("descuento"), "El descuento", 0), 2)
-    if descuento > subtotal:
-        raise ValueError("El descuento no puede ser mayor que el subtotal.")
+    descuento_porcentaje = _descuento_porcentaje(borrador.get("descuento_porcentaje"))
+    descuento = _monto_descuento(subtotal, descuento_porcentaje)
     total = round(subtotal - descuento, 2)
-    return subtotal, descuento, total
+    return subtotal, descuento_porcentaje, descuento, total
 
 
 def resumen_venta(vendedor_id, borrador, carrito):
     """Calcula SIN guardar lo que sería la venta (para la pantalla de confirmación).
 
     borrador: dict con cliente_id, tipo_pago, metodo_pago, cuota_inicial,
-              descuento, nota y precios {producto_id: precio escrito a mano}.
+              descuento_porcentaje, nota y precios {producto_id: precio escrito a mano}.
     carrito : {producto_id: cantidad}.
     Lanza ValueError si falta algo (cliente, productos).
     """
@@ -123,14 +145,15 @@ def resumen_venta(vendedor_id, borrador, carrito):
         raise ValueError("Selecciona una forma de pago válida.")
     tasa = tasa_actual()
     lineas = _lineas_carrito(borrador, carrito)
-    subtotal, descuento, total = _totales_presupuesto(borrador, lineas)
+    subtotal, descuento_porcentaje, descuento, total = _totales_presupuesto(borrador, lineas)
     total_usd = a_usd(total, moneda, tasa)
     cuota = round(parse_decimal_input(borrador.get("cuota_inicial"), "La cuota inicial", 0), 2) if tipo_pago == "credito" else 0.0
     if cuota > total + 0.005:
         raise ValueError("La cuota inicial no puede superar el total de la venta.")
     return {
         "cliente": cliente, "lineas": lineas, "tipo_pago": tipo_pago,
-        "moneda": moneda, "tasa": tasa, "subtotal": subtotal, "descuento": descuento, "total": total,
+        "moneda": moneda, "tasa": tasa, "subtotal": subtotal,
+        "descuento_porcentaje": descuento_porcentaje, "descuento": descuento, "total": total,
         "total_usd": total_usd, "cuota_inicial": cuota, "metodo_pago": borrador.get("metodo_pago", ""),
         "nota": borrador.get("nota", ""),
         "dias": dias_credito_para(cliente, total_usd) if tipo_pago == "credito" else 0,
@@ -153,11 +176,12 @@ def guardar_presupuesto(vendedor_id, borrador, carrito, presupuesto_id=None):
             cur = db.execute(
                 """INSERT INTO presupuestos
                    (vendedor_id, cliente_id, creado, actualizado, tipo_pago, metodo_pago,
-                    cuota_inicial, subtotal, descuento, total, nota)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    cuota_inicial, subtotal, descuento_porcentaje, descuento, total, nota)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (vendedor_id, resumen["cliente"]["id"], ahora_txt, ahora_txt,
                  resumen["tipo_pago"], resumen["metodo_pago"], resumen["cuota_inicial"],
-                 resumen["subtotal"], resumen["descuento"], resumen["total"],
+                 resumen["subtotal"], resumen["descuento_porcentaje"], resumen["descuento"],
+                 resumen["total"],
                  resumen["nota"].strip()),
             )
             presupuesto_id = cur.lastrowid
@@ -170,11 +194,13 @@ def guardar_presupuesto(vendedor_id, borrador, carrito, presupuesto_id=None):
                 raise ValueError("El presupuesto ya no existe o fue convertido en venta.")
             db.execute(
                 """UPDATE presupuestos SET cliente_id = ?, actualizado = ?, tipo_pago = ?,
-                   metodo_pago = ?, cuota_inicial = ?, subtotal = ?, descuento = ?, total = ?, nota = ?
+                   metodo_pago = ?, cuota_inicial = ?, subtotal = ?, descuento_porcentaje = ?,
+                   descuento = ?, total = ?, nota = ?
                    WHERE id = ? AND vendedor_id = ? AND venta_id IS NULL""",
                 (resumen["cliente"]["id"], ahora_txt, resumen["tipo_pago"], resumen["metodo_pago"],
-                 resumen["cuota_inicial"], resumen["subtotal"], resumen["descuento"], resumen["total"],
-                 resumen["nota"].strip(), presupuesto_id, vendedor_id),
+                 resumen["cuota_inicial"], resumen["subtotal"], resumen["descuento_porcentaje"],
+                 resumen["descuento"], resumen["total"], resumen["nota"].strip(),
+                 presupuesto_id, vendedor_id),
             )
             db.execute("DELETE FROM presupuesto_detalles WHERE presupuesto_id = ?", (presupuesto_id,))
 
@@ -234,7 +260,8 @@ def resumen_presupuesto_guardado(presupuesto_id, vendedor_id):
             query("SELECT * FROM clientes WHERE id = ?", (p["cliente_id"],), one=True), p["total"]
         ) if p["tipo_pago"] == "credito" else 0,
         "cuota_inicial": p["cuota_inicial"], "metodo_pago": p["metodo_pago"],
-        "subtotal": p["subtotal"], "descuento": p["descuento"], "total": p["total"],
+        "subtotal": p["subtotal"], "descuento_porcentaje": p["descuento_porcentaje"],
+        "descuento": p["descuento"], "total": p["total"],
         "moneda": "USD", "nota": p["nota"] or "",
     }
 
@@ -257,7 +284,8 @@ def marcar_presupuesto_convertido(presupuesto_id, vendedor_id, venta_id, cuota_i
     db = get_db()
     with db:
         venta = db.execute(
-            """SELECT cliente_id, tipo_pago, metodo_pago, subtotal, descuento, total, nota
+            """SELECT cliente_id, tipo_pago, metodo_pago, subtotal, descuento_porcentaje,
+                      descuento, total, nota
                  FROM ventas WHERE id = ? AND vendedor_id = ?""",
             (venta_id, vendedor_id),
         ).fetchone()
@@ -266,12 +294,13 @@ def marcar_presupuesto_convertido(presupuesto_id, vendedor_id, venta_id, cuota_i
         cur = db.execute(
             """UPDATE presupuestos
                   SET venta_id = ?, cliente_id = ?, tipo_pago = ?, metodo_pago = ?,
-                      cuota_inicial = ?, subtotal = ?, descuento = ?, total = ?, nota = ?, actualizado = ?
+                      cuota_inicial = ?, subtotal = ?, descuento = ?, total = ?, nota = ?,
+                      actualizado = ?, descuento_porcentaje = ?
                WHERE id = ? AND vendedor_id = ? AND venta_id IS NULL
             """,
             (venta_id, venta["cliente_id"], venta["tipo_pago"], venta["metodo_pago"],
              cuota_inicial, venta["subtotal"], venta["descuento"], venta["total"],
-             venta["nota"], ahora(), presupuesto_id, vendedor_id),
+             venta["nota"], ahora(), venta["descuento_porcentaje"], presupuesto_id, vendedor_id),
         )
         if cur.rowcount != 1:
             raise ValueError("El presupuesto ya fue convertido o dejó de estar disponible.")
@@ -451,9 +480,8 @@ def crear_venta(vendedor_id, form, items):
             raise ValueError(msg_sin_stock(vendedor_id, p["nombre"], p["stock"]))
 
     subtotal = round(sum(l["subtotal"] for l in lineas), 2)
-    descuento = round(parse_decimal_input(form.get("descuento"), "El descuento", 0), 2)
-    if descuento > subtotal:
-        raise ValueError("El descuento no puede ser mayor que el subtotal.")
+    descuento_porcentaje = _descuento_porcentaje(form.get("descuento_porcentaje"))
+    descuento = _monto_descuento(subtotal, descuento_porcentaje)
     total = round(subtotal - descuento, 2)
     total_usd = a_usd(total, moneda, tasa)
 
@@ -477,11 +505,12 @@ def crear_venta(vendedor_id, form, items):
         cur = db.execute(
             """INSERT INTO ventas
                (fecha, cliente_id, vendedor_id, tipo_pago, dias_credito, moneda, tasa,
-                metodo_pago, subtotal, descuento, total, total_usd, estado, pagada, nota,
+                metodo_pago, subtotal, descuento_porcentaje, descuento, total, total_usd, estado, pagada, nota,
                 fecha_aprobacion)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (ahora(), cliente["id"], vendedor_id, tipo_pago, dias, moneda, tasa,
-             form.get("metodo_pago", "").strip(), subtotal, descuento, total, total_usd, estado,
+             form.get("metodo_pago", "").strip(), subtotal, descuento_porcentaje, descuento,
+             total, total_usd, estado,
              1 if auto else 0, form.get("nota", "").strip(), ahora() if auto else None),
         )
         venta_id = cur.lastrowid
@@ -518,7 +547,7 @@ def crear_venta(vendedor_id, form, items):
     return venta_id
 
 
-def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota, admin=False, fecha_compra=None):
+def editar_venta_pendiente(venta_id, vendedor_id, items, descuento_porcentaje, nota, admin=False, fecha_compra=None):
     """Actualiza una venta pendiente o, para el admin, una venta aprobada."""
     db = get_db()
     fecha_compra_nueva = None
@@ -588,9 +617,8 @@ def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota, admin=
                 raise ValueError(f"Stock insuficiente de «{prod['nombre']}» (disponible: {disponible:g}).")
 
         subtotal = round(sum(linea["subtotal"] for linea in lineas), 2)
-        descuento = round(parse_decimal_input(descuento, "El descuento", 0), 2)
-        if descuento > subtotal:
-            raise ValueError("El descuento no puede ser mayor que el subtotal.")
+        descuento_porcentaje = _descuento_porcentaje(descuento_porcentaje)
+        descuento = _monto_descuento(subtotal, descuento_porcentaje)
         total = round(subtotal - descuento, 2)
         total_usd = a_usd(total, venta["moneda"], venta["tasa"])
 
@@ -621,9 +649,9 @@ def editar_venta_pendiente(venta_id, vendedor_id, items, descuento, nota, admin=
                 )
 
         db.execute(
-            """UPDATE ventas SET subtotal = ?, descuento = ?, total = ?, total_usd = ?,
+            """UPDATE ventas SET subtotal = ?, descuento_porcentaje = ?, descuento = ?, total = ?, total_usd = ?,
                dias_credito = ?, nota = ?, fecha = COALESCE(?, fecha) WHERE id = ?""",
-            (subtotal, descuento, total, total_usd, dias_credito, (nota or "").strip(),
+            (subtotal, descuento_porcentaje, descuento, total, total_usd, dias_credito, (nota or "").strip(),
              fecha_compra_nueva, venta_id),
         )
         if venta["estado"] == "aprobada":

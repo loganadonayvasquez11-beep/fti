@@ -36,7 +36,7 @@
     {% endfor %}</tbody></table></div>
   <div class="total-box right">
     <div><span>Subtotal</span><b>{{ v.subtotal|money(v.moneda) }}</b></div>
-    {% if v.descuento %}<div><span>Descuento</span><b>- {{ v.descuento|money(v.moneda) }}</b></div>{% endif %}
+    {% if v.descuento %}<div><span>Descuento ({{ v.descuento_porcentaje }}%)</span><b>- {{ v.descuento|money(v.moneda) }}</b></div>{% endif %}
     <div class="grande"><span>Total</span><b>{{ v.total|money(v.moneda) }}</b></div>
   </div>
   {% if v.nota %}<p class="muted">Nota: {{ v.nota }}</p>{% endif %}

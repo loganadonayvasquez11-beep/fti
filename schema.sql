@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS ventas (
     tasa             REAL NOT NULL DEFAULT 1,        -- Bs por 1 USD al momento de la venta
     metodo_pago      TEXT DEFAULT '',
     subtotal         REAL NOT NULL DEFAULT 0,        -- en la moneda de la venta
+    descuento_porcentaje INTEGER NOT NULL DEFAULT 0,
     descuento        REAL NOT NULL DEFAULT 0,
     total            REAL NOT NULL DEFAULT 0,
     total_usd        REAL NOT NULL DEFAULT 0,
@@ -117,6 +118,7 @@ CREATE TABLE IF NOT EXISTS presupuestos (
     metodo_pago    TEXT DEFAULT '',
     cuota_inicial  REAL NOT NULL DEFAULT 0,
     subtotal       REAL NOT NULL DEFAULT 0,
+    descuento_porcentaje INTEGER NOT NULL DEFAULT 0,
     descuento      REAL NOT NULL DEFAULT 0,
     total          REAL NOT NULL DEFAULT 0,
     nota           TEXT DEFAULT '',

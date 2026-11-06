@@ -73,7 +73,7 @@
           {% for m in (['Efectivo $', 'Transferencia', 'Zelle', 'Punto de venta', 'Otro'] if especial else ['Efectivo $', 'Transferencia', 'Zelle', 'Otro']) %}
           <option {{ 'selected' if b.get('metodo_pago') == m }}>{{ m }}</option>{% endfor %}
         </select></label>
-      <label><span>Descuento ($)</span><input type="number" data-decimal-input step="0.01" min="0" name="descuento" id="descuento" value="{{ b.get('descuento', '') }}"></label>
+      <label><span>Descuento (%)</span><input type="number" min="0" max="100" step="1" name="descuento_porcentaje" id="descuento" value="{{ b.get('descuento_porcentaje', '0') }}"><small class="muted">Solo números enteros, de 0 a 100.</small></label>
       <label>Nota (opcional)<input name="nota" value="{{ b.get('nota', '') }}"></label>
     </div>
     <p class="hint" id="aviso-credito">Las ventas a crédito quedan <b>pendientes</b>: el stock se descuenta cuando el administrador las aprueba.</p>
@@ -82,6 +82,7 @@
   <section class="card form totales">
     <div class="total-box">
       <div><span>Subtotal</span><b id="t-sub">0,00</b></div>
+      <div><span>Descuento (<span id="t-descuento-porcentaje">0</span>%)</span><b id="t-descuento">0,00</b></div>
       <div class="grande"><span>Total</span><b id="t-total">0,00</b></div>
     </div>
     <div class="actions">

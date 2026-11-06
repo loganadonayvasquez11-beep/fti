@@ -254,7 +254,8 @@ def carrito():
         _guardar_borrador({
             "cliente_id": f.get("cliente_id", ""),
             "tipo_pago": f.get("tipo_pago", "credito"), "metodo_pago": f.get("metodo_pago", ""),
-            "cuota_inicial": f.get("cuota_inicial", ""), "descuento": f.get("descuento", ""),
+            "cuota_inicial": f.get("cuota_inicial", ""),
+            "descuento_porcentaje": f.get("descuento_porcentaje", ""),
             "nota": f.get("nota", ""), "precios": precios})
         if not cart:
             aviso("Tu carrito quedó vacío.", "warn")
@@ -373,7 +374,7 @@ def editar_presupuesto(presupuesto_id):
             "tipo_pago": request.form.get("tipo_pago", "contado"),
             "metodo_pago": request.form.get("metodo_pago", ""),
             "cuota_inicial": request.form.get("cuota_inicial", ""),
-            "descuento": request.form.get("descuento", ""),
+            "descuento_porcentaje": request.form.get("descuento_porcentaje", ""),
             "nota": request.form.get("nota", ""),
         }
         carrito = {str(item["producto_id"]): item["cantidad"] for item in items}
@@ -429,7 +430,8 @@ def convertir_presupuesto(presupuesto_id):
     session[BORRADOR] = {
         "cliente_id": str(p["cliente_id"]), "tipo_pago": p["tipo_pago"],
         "metodo_pago": p["metodo_pago"] or "", "cuota_inicial": str(p["cuota_inicial"]),
-        "descuento": str(p["descuento"]), "nota": p["nota"] or "", "precios": precios,
+        "descuento_porcentaje": str(p["descuento_porcentaje"]),
+        "nota": p["nota"] or "", "precios": precios,
     }
     session[PRESUPUESTO_ORIGEN] = presupuesto_id
     session.modified = True
@@ -474,7 +476,7 @@ def editar(venta_id):
         try:
             services.editar_venta_pendiente(
                 venta_id, g.user["id"], items,
-                request.form.get("descuento", ""), request.form.get("nota", ""),
+                request.form.get("descuento_porcentaje", ""), request.form.get("nota", ""),
                 admin=admin,
                 fecha_compra=request.form.get("fecha_compra") if admin else None,
             )

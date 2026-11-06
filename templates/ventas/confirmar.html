@@ -41,7 +41,7 @@
   <section class="card totales">
     <div class="total-box">
       <div><span>Subtotal</span><b>{{ r.subtotal|num }}</b></div>
-      {% if r.descuento > 0 %}<div><span>Descuento</span><b>- {{ r.descuento|num }}</b></div>{% endif %}
+      {% if r.descuento > 0 %}<div><span>Descuento ({{ r.descuento_porcentaje }}%)</span><b>- {{ r.descuento|money(r.moneda) }}</b></div>{% endif %}
       <div class="grande"><span>Total</span><b>{{ r.total|money(r.moneda) }}</b></div>
     </div>
   </section>

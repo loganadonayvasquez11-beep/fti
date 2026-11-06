@@ -40,9 +40,13 @@
       aviso.textContent = c > stock ? 'Supera el stock disponible' : '';
       aviso.classList.toggle('neg', c > stock);
     });
-    const desc = parseFloat(document.getElementById('descuento').value) || 0;
+    subtotal = r2(subtotal);
+    const descuentoPorcentaje = parseInt(document.getElementById('descuento').value, 10) || 0;
+    const desc = r2(subtotal * descuentoPorcentaje / 100);
     const total = Math.max(r2(subtotal - desc), 0);
     document.getElementById('t-sub').textContent = fmt(subtotal);
+    document.getElementById('t-descuento-porcentaje').textContent = descuentoPorcentaje;
+    document.getElementById('t-descuento').textContent = fmt(desc);
     document.getElementById('t-total').textContent = fmt(total);
     totalUsd = total;
     actualizarPlazo();

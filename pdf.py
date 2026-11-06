@@ -369,7 +369,10 @@ def _pdf_venta(v, det, deuda=None, titulo="NOTA DE ENTREGA", numero=None, es_pre
 
     tot = [["Subtotal", fmt_money(v["subtotal"], m)]]
     if v["descuento"]:
-        tot.append(["Descuento", "- " + fmt_money(v["descuento"], m)])
+        tot.append([
+            f"Descuento ({v['descuento_porcentaje']}%)",
+            "- " + fmt_money(v["descuento"], m),
+        ])
     tot.append(["TOTAL", fmt_money(v["total"], m)])
     tt = Table(tot, colWidths=[45 * mm, 45 * mm], hAlign="RIGHT")
     fila_total = 2 if v["descuento"] else 1
@@ -429,6 +432,7 @@ def presupuesto(datos, vendedor, escala=100):
         "vendedor": vendedor, "tipo_pago": datos["tipo_pago"], "dias": datos["dias"],
         "cuota_inicial": datos["cuota_inicial"], "metodo_pago": datos["metodo_pago"],
         "subtotal": datos["subtotal"], "descuento": datos["descuento"],
+        "descuento_porcentaje": datos["descuento_porcentaje"],
         "total": datos["total"], "moneda": datos["moneda"], "nota": datos["nota"],
         "motivo": "",
     }

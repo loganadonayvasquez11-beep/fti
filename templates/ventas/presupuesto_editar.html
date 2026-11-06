@@ -78,7 +78,7 @@
   <section class="card form">
     <h2>Descuento y nota</h2>
     <div class="cols">
-      <label>Descuento ($)<input type="number" data-decimal-input min="0" step="0.01" name="descuento" id="descuento" value="{{ '%.2f' % p.descuento }}"></label>
+      <label>Descuento (%)<input type="number" min="0" max="100" step="1" name="descuento_porcentaje" id="descuento" value="{{ p.descuento_porcentaje }}"><small class="muted">Solo números enteros, de 0 a 100.</small></label>
       <label>Nota (opcional)<input name="nota" value="{{ p.nota or '' }}"></label>
     </div>
   </section>
@@ -86,7 +86,7 @@
   <section class="card form totales">
     <div class="total-box">
       <div><span>Subtotal</span><b id="total-subtotal">0,00</b></div>
-      <div><span>Descuento</span><b id="total-descuento">0,00</b></div>
+      <div><span>Descuento (<span id="total-descuento-porcentaje">{{ p.descuento_porcentaje }}</span>%)</span><b id="total-descuento">0,00</b></div>
       <div class="grande"><span>Total</span><b id="total-final">0,00</b></div>
     </div>
     <div class="actions">
@@ -113,10 +113,13 @@
       fila.querySelector('.sub').textContent = fmt(linea);
       subtotal += linea;
     });
-    const descuento = Number(document.getElementById('descuento').value) || 0;
+    subtotal = Math.round(subtotal * 100) / 100;
+    const descuentoPorcentaje = Number(document.getElementById('descuento').value) || 0;
+    const descuento = Math.round((subtotal * descuentoPorcentaje / 100 + Number.EPSILON) * 100) / 100;
     document.getElementById('total-subtotal').textContent = fmt(subtotal);
     document.getElementById('total-descuento').textContent = fmt(descuento);
-    document.getElementById('total-final').textContent = fmt(subtotal - descuento);
+    document.getElementById('total-descuento-porcentaje').textContent = descuentoPorcentaje;
+    document.getElementById('total-final').textContent = fmt(Math.max(subtotal - descuento, 0));
   }
 
   function conectarFila(fila) {
