@@ -103,7 +103,7 @@ def recibo_pdf(abono_id):
         abort(404)
     _deuda_o_404(a["deuda_id"])
     nombre = nombre_pdf_cliente(a["cliente"], f"Recibo R-{abono_id:06d}")
-    return responder_pdf(BytesIO(pdf.recibo_abono(abono_id)), nombre)
+    return responder_pdf(lambda escala: pdf.recibo_abono(abono_id, escala), nombre)
 
 
 @bp.route("/abonos/<int:abono_id>/anular", methods=["POST"])

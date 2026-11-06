@@ -191,6 +191,10 @@ def carrito_agregar_varios():
     if agregados:
         _guardar_carrito(cart)
     if not request.form.getlist("sel"):
+        if cart:
+            if quiere_json:
+                return jsonify(ok=True, agregados=0, ids=[], errores=[], items=len(cart), carrito=cart)
+            return redirect(url_for("ventas.carrito"))
         errores.append("Marca al menos un producto de la tabla.")
     if quiere_json:
         return jsonify(ok=not errores, agregados=agregados, ids=ids, errores=errores, items=len(cart), carrito=cart), \
@@ -199,6 +203,7 @@ def carrito_agregar_varios():
         aviso(e, "error")
     if agregados:
         aviso(f"{agregados} producto(s) añadido(s) al carrito.")
+        return redirect(url_for("ventas.carrito"))
     return redirect(url_for("ventas.nueva"))
 
 
@@ -248,7 +253,7 @@ def carrito():
                     precios[pid] = escrito
         _guardar_borrador({
             "cliente_id": f.get("cliente_id", ""),
-            "tipo_pago": f.get("tipo_pago", "contado"), "metodo_pago": f.get("metodo_pago", ""),
+            "tipo_pago": f.get("tipo_pago", "credito"), "metodo_pago": f.get("metodo_pago", ""),
             "cuota_inicial": f.get("cuota_inicial", ""), "descuento": f.get("descuento", ""),
             "nota": f.get("nota", ""), "precios": precios})
         if not cart:
@@ -327,9 +332,8 @@ def presupuesto_pdf():
     except ValueError as e:
         aviso(str(e), "error")
         return redirect(url_for("ventas.carrito"))
-    archivo = BytesIO(pdf.presupuesto(r, g.user["nombre"]))
     nombre = nombre_pdf_cliente(r["cliente"]["nombre"], "Presupuesto")
-    return responder_pdf(archivo, nombre)
+    return responder_pdf(lambda escala: pdf.presupuesto(r, g.user["nombre"], escala), nombre)
 
 
 @bp.route("/presupuestos")
@@ -440,9 +444,8 @@ def presupuesto_guardado_pdf(presupuesto_id):
     resumen = services.resumen_presupuesto_guardado(presupuesto_id, g.user["id"])
     if resumen is None:
         abort(404)
-    contenido = pdf.presupuesto(resumen, g.user["nombre"])
     nombre = nombre_pdf_cliente(resumen["cliente"]["nombre"], f"Presupuesto {presupuesto_id}")
-    return responder_pdf(BytesIO(contenido), nombre)
+    return responder_pdf(lambda escala: pdf.presupuesto(resumen, g.user["nombre"], escala), nombre)
 
 
 @bp.route("/<int:venta_id>/editar", methods=["GET", "POST"])
@@ -594,4 +597,4 @@ def nota_pdf(venta_id):
     """Nota de venta en PDF."""
     v = _venta_o_404(venta_id)
     nombre = nombre_pdf_cliente(v["cliente"], f"Venta {v['numero']}")
-    return responder_pdf(BytesIO(pdf.nota_venta(venta_id)), nombre)
+    return responder_pdf(lambda escala: pdf.nota_venta(venta_id, escala), nombre)

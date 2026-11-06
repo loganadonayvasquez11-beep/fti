@@ -14,7 +14,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from db import get_db
 from utils import ahora, hoy
 from services import get_config
-from pdf import CanvasEscalaImpresion
+from pdf import CanvasEscalaImpresion, escalar_flujos
 
 AZUL = colors.HexColor("#fa0303")
 GRIS = colors.HexColor("#555555")
@@ -69,13 +69,17 @@ def limpiar_archivos_historicos_vencidos(fecha_actual=None):
             pass
 
 
-def generar_archivo_diario(usuario_id=None):
-    """Genera o actualiza el PDF con la actividad de hoy y el saldo actual de deudas."""
+def generar_archivo_diario(usuario_id=None, escala=100, rango=None, persistir=True):
+    """Genera el PDF diario; en modo lectura puede regenerarlo a otra escala sin guardarlo."""
     db = get_db()
     ahora_dt = datetime.strptime(ahora(), "%Y-%m-%d %H:%M:%S")
     fecha_dia = ahora_dt.strftime("%Y-%m-%d")
     desde = f"{fecha_dia} 00:00:00"
     hasta = ahora_dt.strftime("%Y-%m-%d %H:%M:%S")
+    if rango:
+        desde, hasta = rango
+        fecha_dia = desde[:10]
+        ahora_dt = datetime.strptime(hasta[:19], "%Y-%m-%d %H:%M:%S")
 
     movs = db.execute("""SELECT m.fecha,p.codigo,p.nombre,m.tipo,m.cantidad,m.stock_resultante,m.motivo,u.nombre usuario
         FROM movimientos_stock m JOIN productos p ON p.id=m.producto_id LEFT JOIN usuarios u ON u.id=m.usuario_id
@@ -211,10 +215,12 @@ def generar_archivo_diario(usuario_id=None):
     salida = BytesIO()
     doc = SimpleDocTemplate(salida, pagesize=landscape(A4), rightMargin=12*mm, leftMargin=12*mm,
                             topMargin=12*mm, bottomMargin=12*mm, title="Archivo histórico diario")
-    doc.build(story, canvasmaker=CanvasEscalaImpresion)
+    doc.build(escalar_flujos(story, escala), canvasmaker=CanvasEscalaImpresion)
     contenido = salida.getvalue()
     if not contenido.startswith(b"%PDF-") or len(contenido) < 500:
         raise RuntimeError("No se pudo verificar el PDF generado; no se archivó el período.")
+    if not persistir:
+        return contenido
 
     carpeta = Path(current_app.instance_path) / "archivos_historicos"
     carpeta.mkdir(parents=True, exist_ok=True)

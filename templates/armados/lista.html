@@ -60,7 +60,12 @@
               <input type="hidden" name="volver" value="{{ volver }}">
               <select name="armador" required><option value="">— Elegir —</option><option value="cualquiera">Cualquiera de los especiales</option>
                 {% for e in vendedores_especiales() %}<option value="{{ e.id }}">{{ e.nombre }}</option>{% endfor %}</select>
-              <button class="btn primary sm">Enviar a armar</button></form>{% endwith %}</td></tr>
+              <button class="btn primary sm">Enviar a armar</button></form>
+            <form method="post" action="{{ url_for('armados.marcar_armado_admin', venta_id=s.id) }}" class="inline-form"
+                  onsubmit="return confirm('¿Marcar este pedido como armado sin asignarlo a un vendedor?');">
+              {{ csrf_field() }}<input type="hidden" name="volver" value="{{ url_for('armados.lista') }}">
+              <button class="btn success sm">Marcar como armado</button>
+            </form>{% endwith %}</td></tr>
     {% endfor %}</tbody></table></div>
 </section>
 {% endif %}

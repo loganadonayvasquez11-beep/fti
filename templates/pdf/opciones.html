@@ -1,16 +1,102 @@
 {% extends 'base.html' %}
-{% block titulo %}Documento PDF{% endblock %}
+{% block titulo %}Ajustar PDF{% endblock %}
 {% block contenido %}
-<section class="card pdf-opciones">
-  <div class="pdf-opciones-icono" aria-hidden="true">PDF</div>
-  <div>
-    <h2>¿Qué deseas hacer con este PDF?</h2>
-    <p class="muted">{{ nombre }}</p>
+<section class="pdf-editor">
+  <header class="pdf-editor-head">
+    <div><h1>Ajustar PDF</h1><p class="muted">{{ nombre }}</p></div>
+    <div class="pdf-editor-actions">
+      <a class="btn" id="pdf-visualizar" href="{{ url_visualizar }}" target="_blank" rel="noopener">Visualizar / imprimir</a>
+      <a class="btn primary" id="pdf-descargar" href="{{ url_descargar }}">Descargar PDF</a>
+    </div>
+  </header>
+  <div class="pdf-scale" aria-label="Ajustar tamaño del PDF">
+    <button class="btn pdf-scale-step" id="pdf-menos" type="button" aria-label="Reducir tamaño" title="Reducir tamaño">−</button>
+    <label class="pdf-scale-control">Tamaño <output id="pdf-escala-valor">100%</output>
+      <input id="pdf-escala" type="range" min="25" max="200" step="5" value="100" aria-label="Tamaño proporcional del PDF">
+    </label>
+    <button class="btn pdf-scale-step" id="pdf-mas" type="button" aria-label="Aumentar tamaño" title="Aumentar tamaño">+</button>
+    <span class="pdf-pages" id="pdf-paginas" aria-live="polite">Calculando páginas…</span>
   </div>
-  <div class="actions">
-    <a class="btn primary lg" href="{{ url_descargar }}">Descargar PDF</a>
-    <a class="btn lg" href="{{ url_visualizar }}" target="_blank" rel="noopener">Visualizar PDF</a>
-  </div>
-  <p class="hint">La visualización se abrirá en otra pestaña. Desde el visor del navegador puedes imprimir el documento.</p>
+  <p class="hint pdf-editor-hint">El tamaño se aplica al contenido antes de paginar: al reducir, más contenido cabe en cada hoja; al ampliar, se distribuye en más hojas. Visualiza para imprimir o descarga el resultado.</p>
+  <iframe class="pdf-preview" id="pdf-preview" src="about:blank" title="Vista previa del PDF" loading="eager"></iframe>
+  <noscript><p class="hint">Activa JavaScript para ajustar el tamaño y ver la vista previa del PDF.</p><a class="btn" href="{{ url_preview }}">Abrir PDF original</a></noscript>
 </section>
+<script>
+(() => {
+  const escalaInput = document.getElementById('pdf-escala');
+  const escalaValor = document.getElementById('pdf-escala-valor');
+  const paginas = document.getElementById('pdf-paginas');
+  const vista = document.getElementById('pdf-preview');
+  const visualizar = document.getElementById('pdf-visualizar');
+  const descargar = document.getElementById('pdf-descargar');
+  const menos = document.getElementById('pdf-menos');
+  const mas = document.getElementById('pdf-mas');
+  const urls = {
+    preview: {{ url_preview|tojson }},
+    view: {{ url_visualizar|tojson }},
+    download: {{ url_descargar|tojson }}
+  };
+  let urlObjeto = null;
+  let temporizador;
+  let solicitudActual = 0;
+
+  function urlEscalada(base, escala) {
+    const url = new URL(base, window.location.href);
+    url.searchParams.set('scale', escala);
+    return url;
+  }
+
+  async function actualizarVista() {
+    const solicitud = ++solicitudActual;
+    const escala = Number(escalaInput.value);
+    const urlPreview = urlEscalada(urls.preview, escala);
+    escalaValor.value = `${escala}%`;
+    menos.disabled = escala <= Number(escalaInput.min);
+    mas.disabled = escala >= Number(escalaInput.max);
+    visualizar.href = urlEscalada(urls.view, escala);
+    descargar.href = urlEscalada(urls.download, escala);
+    paginas.textContent = 'Calculando páginas…';
+    vista.setAttribute('aria-busy', 'true');
+
+    try {
+      const respuesta = await fetch(urlPreview, { credentials: 'same-origin' });
+      if (solicitud !== solicitudActual) return;
+      if (!respuesta.ok) throw new Error('No se pudo generar la vista previa.');
+      const cantidad = Number(respuesta.headers.get('X-PDF-Page-Count'));
+      paginas.textContent = `${cantidad} ${cantidad === 1 ? 'página' : 'páginas'}`;
+      const anterior = urlObjeto;
+      const blob = await respuesta.blob();
+      if (solicitud !== solicitudActual) return;
+      urlObjeto = URL.createObjectURL(blob);
+      vista.onload = () => {
+        if (anterior) URL.revokeObjectURL(anterior);
+        vista.onload = null;
+        vista.removeAttribute('aria-busy');
+      };
+      vista.src = urlObjeto;
+    } catch (error) {
+      if (solicitud !== solicitudActual) return;
+      paginas.textContent = error.message;
+      vista.src = urlPreview;
+      vista.removeAttribute('aria-busy');
+    }
+  }
+
+  function programarVista() {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(actualizarVista, 250);
+  }
+
+  escalaInput.addEventListener('input', programarVista);
+  menos.addEventListener('click', () => {
+    escalaInput.value = String(Math.max(Number(escalaInput.min), Number(escalaInput.value) - 5));
+    programarVista();
+  });
+  mas.addEventListener('click', () => {
+    escalaInput.value = String(Math.min(Number(escalaInput.max), Number(escalaInput.value) + 5));
+    programarVista();
+  });
+  actualizarVista();
+})();
+</script>
 {% endblock %}

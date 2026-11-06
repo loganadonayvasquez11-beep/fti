@@ -61,7 +61,7 @@ def productos_pdf():
                        FROM productos p LEFT JOIN categorias c ON c.id = p.categoria_id
                       WHERE p.activo = 1 ORDER BY c.nombre IS NULL, c.nombre, p.nombre""")
     audit("lista_stock_pdf", f"{g.user['usuario']} ({len(filas)} productos)")
-    return responder_pdf(BytesIO(pdf.lista_mercancia(filas)), f"lista_mercancia_{ahora()[:10]}.pdf")
+    return responder_pdf(lambda escala: pdf.lista_mercancia(filas, escala), f"lista_mercancia_{ahora()[:10]}.pdf")
 
 
 def _leer_producto(f):

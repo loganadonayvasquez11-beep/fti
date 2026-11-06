@@ -1,7 +1,7 @@
 /* Tabla de productos: buscador en vivo, filtro por categoría y (en Nueva venta) selección de varios productos.
    - Stock/Catálogo: solo filtra las filas de la tabla.
-   - Nueva venta: marcas filas (checkbox o clic en la fila), ajustas cantidades y "Añadir seleccionados" los manda al carrito
-     sin recargar la página. Sin JavaScript todo sigue funcionando (el formulario se envía normalmente). */
+   - Nueva venta: marcas filas (checkbox o clic en la fila), ajustas cantidades y continúas al carrito.
+     Sin JavaScript todo sigue funcionando (el formulario se envía normalmente). */
 (() => {
   const tabla = document.getElementById('tienda');
   if (!tabla) return;
@@ -91,7 +91,7 @@
   // ---------------------------------------------------------- selección (solo Nueva venta)
   const form = document.getElementById('form-seleccion');
   const nSel = document.getElementById('n-sel');
-  const btnAnadir = document.getElementById('btn-anadir');
+  const btnContinuar = document.getElementById('btn-continuar');
   const marcarTodos = document.getElementById('marcar-todos');
   const ordenSeleccion = [];
 
@@ -100,7 +100,8 @@
     const marcadas = filas.filter(f => f.querySelector('input[name=sel]').checked && !f.querySelector('input[name=sel]').disabled);
     marcadas.forEach(f => f.classList.add('elegido'));
     nSel.textContent = marcadas.length;
-    btnAnadir.disabled = marcadas.length === 0;
+    const itemsCarrito = Number(document.getElementById('carrito-n').textContent) || 0;
+    btnContinuar.disabled = marcadas.length === 0 && itemsCarrito === 0;
     if (marcarTodos) {
       const vis = filas.filter(f => !f.hidden && !f.querySelector('input[name=sel]').disabled);
       marcarTodos.checked = vis.length > 0 && vis.every(f => f.querySelector('input[name=sel]').checked);
@@ -145,7 +146,15 @@
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      btnAnadir.disabled = true;
+      const seleccionadas = filas.some(f => {
+        const chk = f.querySelector('input[name=sel]');
+        return chk.checked && !chk.disabled;
+      });
+      if (!seleccionadas) {
+        window.location.assign(form.dataset.carritoUrl);
+        return;
+      }
+      btnContinuar.disabled = true;
       try {
         const datos = new FormData(form);
         datos.delete('sel');
@@ -157,26 +166,10 @@
         const r = await fetch(form.action, { method: 'POST', body: datos, headers: { 'X-Requested-With': 'fetch' } });
         const d = await r.json();
         if (d.errores && d.errores.length) alert(d.errores.join('\n'));
-        // refresca la columna "En carrito", desmarca lo añadido y actualiza la barra
-        filas.forEach(f => {
-          const q = d.carrito ? d.carrito[f.dataset.id] : null;
-          const celda = f.querySelector('.en-carrito-cel');
-          if (q && celda) celda.innerHTML = `<span class="badge ok">✓ ${Number(q).toLocaleString('es-VE', { maximumFractionDigits: 3 })}</span>`;
-        });
-        if (d.agregados) {
-          filas.forEach(f => {
-            const chk = f.querySelector('input[name=sel]');
-            if (chk.checked && (d.ids || []).includes(f.dataset.id)) {
-              chk.checked = false; f.classList.remove('elegido');
-              const c = f.querySelector('.c-cant input'); if (c) c.value = 1;
-            }
-          });
-          for (let i = ordenSeleccion.length - 1; i >= 0; i--) {
-            if ((d.ids || []).includes(ordenSeleccion[i])) ordenSeleccion.splice(i, 1);
-          }
+        if (d.agregados || d.items) {
+          window.location.assign(form.dataset.carritoUrl);
+          return;
         }
-        document.getElementById('carrito-n').textContent = d.items;
-        document.getElementById('btn-carrito').hidden = !d.items;
       } catch (_) { form.submit(); return; }
       finally { actualizarSeleccion(); }
     });
