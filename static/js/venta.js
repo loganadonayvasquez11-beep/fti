@@ -29,8 +29,11 @@
     filas.forEach(tr => {
       tr.dataset.lista = precioLista(tr);
       const inp = tr.querySelector('.precio');
-      const valor = (inp.value || '').trim();
-      if (!tr.dataset.editado && valor === '') inp.value = Number(tr.dataset.lista).toFixed(2);
+      let valor = (inp.value || '').trim();
+      if (!tr.dataset.editado && valor === '') {
+        valor = Number(tr.dataset.lista).toFixed(2);
+        inp.value = valor;
+      }
       const precio = valor === '' ? 0 : parseFloat(valor.replace(',', '.')) || 0;
       marcarEditado(tr);
       const c = parseFloat(tr.querySelector('.cant').value) || 0;
