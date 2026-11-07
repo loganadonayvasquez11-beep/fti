@@ -92,8 +92,8 @@ SQLite guarda la base junto a los archivos de la aplicación y es adecuada para 
   vende **al mayor**, contado o crédito y puede **cambiar el precio unitario** de cada línea.
 - Puede editar sus pedidos pendientes (productos, cantidades, precios, descuento y nota) hasta que
   sean aprobados; el cliente y la forma de pago no cambian.
-- Desde el carrito también puede generar un **presupuesto PDF** con los datos del cliente seleccionado;
-  no se guarda como venta, no reserva ni descuenta existencias.
+- Desde el carrito también puede generar un **presupuesto PDF** con los datos del cliente seleccionado
+  y guardarlo desde el editor del PDF; generarlo no registra una venta, no reserva ni descuenta existencias.
 - Puede guardar presupuestos en su lista y en la ficha de cada cliente, editarlos o eliminarlos.
   Al convertir uno, vuelve al carrito para revisar productos, cliente y condiciones de pago; solo al confirmar
   se crea la venta y se aplican las reglas habituales de stock y crédito.

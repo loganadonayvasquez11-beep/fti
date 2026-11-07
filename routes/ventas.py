@@ -259,14 +259,6 @@ def carrito():
             return redirect(url_for("ventas.nueva"))
         if f.get("accion") == "presupuesto":
             return redirect(url_for("ventas.presupuesto_pdf"))
-        if f.get("accion") == "guardar_presupuesto":
-            try:
-                presupuesto_id = services.guardar_presupuesto(g.user["id"], _borrador(), cart)
-            except ValueError as e:
-                aviso(str(e), "error")
-                return redirect(url_for("ventas.carrito"))
-            aviso(f"Presupuesto #{presupuesto_id} guardado en tu cartera y en la ficha del cliente.")
-            return redirect(url_for("ventas.presupuestos"))
         try:
             services.resumen_venta(g.user["id"], _borrador(), cart)
             return redirect(url_for("ventas.confirmar"))
@@ -331,7 +323,28 @@ def presupuesto_pdf():
         aviso(str(e), "error")
         return redirect(url_for("ventas.carrito"))
     nombre = nombre_pdf_cliente(r["cliente"]["nombre"], "Presupuesto")
-    return responder_pdf(lambda escala: pdf.presupuesto(r, g.user["nombre"], escala), nombre)
+    return responder_pdf(
+        lambda escala: pdf.presupuesto(r, g.user["nombre"], escala),
+        nombre,
+        guardar_url=url_for("ventas.guardar_presupuesto_desde_pdf"),
+    )
+
+
+@bp.route("/presupuesto/guardar", methods=["POST"])
+@roles_required("vendedor")
+def guardar_presupuesto_desde_pdf():
+    """Guarda el presupuesto actual desde el editor PDF, sin crear una venta."""
+    cart = _carrito()
+    if not cart:
+        aviso("Tu carrito está vacío; no se puede guardar el presupuesto.", "error")
+        return redirect(url_for("ventas.carrito"))
+    try:
+        presupuesto_id = services.guardar_presupuesto(g.user["id"], _borrador(), cart)
+    except ValueError as e:
+        aviso(str(e), "error")
+        return redirect(url_for("ventas.presupuesto_pdf"))
+    aviso(f"Presupuesto #{presupuesto_id} guardado en tu cartera y en la ficha del cliente.")
+    return redirect(url_for("ventas.presupuestos"))
 
 
 @bp.route("/presupuestos")
