@@ -16,6 +16,7 @@ class Config:
 
     # Venezuela está en UTC-4 y no usa horario de verano
     UTC_OFFSET_HORAS = -4
+    DAILY_ARCHIVE_TOKEN = os.environ.get("DAILY_ARCHIVE_TOKEN", "")
 
     # Cookies de sesión más seguras
     SESSION_COOKIE_HTTPONLY = True

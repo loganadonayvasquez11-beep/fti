@@ -69,13 +69,23 @@ def limpiar_archivos_historicos_vencidos(fecha_actual=None):
             pass
 
 
-def generar_archivo_diario(usuario_id=None):
-    """Genera o actualiza el PDF con la actividad de hoy y el saldo actual de deudas."""
+def generar_archivo_diario(usuario_id=None, fecha_reporte=None):
+    """Genera o actualiza el PDF con la actividad de un día y el saldo actual de deudas."""
     db = get_db()
     ahora_dt = datetime.strptime(ahora(), "%Y-%m-%d %H:%M:%S")
-    fecha_dia = ahora_dt.strftime("%Y-%m-%d")
+    if fecha_reporte:
+        fecha_obj = datetime.strptime(fecha_reporte, "%Y-%m-%d")
+        if fecha_obj.date() > ahora_dt.date():
+            raise ValueError("La fecha del archivo histórico no puede ser futura.")
+        fecha_dia = fecha_obj.strftime("%Y-%m-%d")
+        fecha_titulo = fecha_obj.strftime("%d-%m-%Y")
+        fin_dia = fecha_obj.replace(hour=23, minute=59, second=59)
+    else:
+        fecha_dia = ahora_dt.strftime("%Y-%m-%d")
+        fecha_titulo = ahora_dt.strftime("%d-%m-%Y")
+        fin_dia = ahora_dt
     desde = f"{fecha_dia} 00:00:00"
-    hasta = ahora_dt.strftime("%Y-%m-%d %H:%M:%S")
+    hasta = fin_dia.strftime("%Y-%m-%d %H:%M:%S")
 
     movs = db.execute("""SELECT m.fecha,p.codigo,p.nombre,m.tipo,m.cantidad,m.stock_resultante,m.motivo,u.nombre usuario
         FROM movimientos_stock m JOIN productos p ON p.id=m.producto_id LEFT JOIN usuarios u ON u.id=m.usuario_id
@@ -147,7 +157,7 @@ def generar_archivo_diario(usuario_id=None):
 
     derecha = Table([
         [Paragraph("ARCHIVO HISTÓRICO DIARIO", ESTILO["titulo"])],
-        [_p(f"Fecha: {ahora_dt.strftime('%d-%m-%Y')}", "pequeno")],
+        [_p(f"Fecha: {fecha_titulo}", "pequeno")],
         [_p(f"Período: {desde} a {hasta}", "pequeno")],
         [_p(f"Generado: {ahora()}", "pequeno")],
     ], colWidths=[120 * mm], hAlign="CENTER")
@@ -218,7 +228,7 @@ def generar_archivo_diario(usuario_id=None):
 
     carpeta = Path(current_app.instance_path) / "archivos_historicos"
     carpeta.mkdir(parents=True, exist_ok=True)
-    nombre = f"historial_{ahora_dt.strftime('%d-%m-%Y')}.pdf"
+    nombre = f"historial_{fecha_titulo}.pdf"
     ruta = carpeta / nombre
     temporal = ruta.with_suffix(".pdf.tmp")
     try:

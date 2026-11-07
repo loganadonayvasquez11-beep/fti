@@ -71,8 +71,8 @@ def create_app():
         return datos
 
     # --------------------------------------------------------------- rutas
-    from routes import admin, armados, auth, catalogo, clientes, deudas, panel, ventas
-    for modulo in (auth, panel, clientes, catalogo, ventas, deudas, admin, armados):
+    from routes import admin, armados, auth, automaticos, catalogo, clientes, deudas, panel, ventas
+    for modulo in (auth, panel, clientes, catalogo, ventas, deudas, admin, armados, automaticos):
         app.register_blueprint(modulo.bp)
 
     # La limpieza diaria se puede desactivar con ENABLE_ARCHIVE_SCHEDULER=0.

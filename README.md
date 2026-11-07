@@ -82,6 +82,32 @@ Después entra a **Configuración** y coloca los datos de tu empresa (salen en l
 
 6. Sube también las imágenes en `static/uploads/productos/` y los PDFs históricos de `instance/archivos_historicos/`, si los necesitas. Configura los archivos estáticos y recarga la aplicación desde el panel.
 
+### Enviar el histórico diario a Gmail
+
+La automatización usa un activador diario gratuito de Google Apps Script: alrededor de la 01:10 (hora de Venezuela) solicita a la aplicación el PDF del día anterior y lo envía como adjunto al Gmail configurado. Google puede ejecutar el activador dentro de una ventana aproximada de 15 minutos. El correo se identifica como `Histórico diario - DD-MM-AAAA`.
+
+1. Genera un token privado en la consola Bash de PythonAnywhere:
+
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+2. Agrega el token a la configuración WSGI, antes de importar `app`, y recarga la aplicación:
+
+   ```python
+   os.environ["DAILY_ARCHIVE_TOKEN"] = "pega-aqui-el-token-generado"
+   ```
+
+   No guardes ni publiques el token en GitHub.
+3. En [Google Apps Script](https://script.google.com/), crea un proyecto. Copia el contenido de `integraciones/apps_script_historico.gs` y habilita el manifiesto `appsscript.json` con el contenido de `integraciones/appsscript.json`.
+4. En **Configuración del proyecto > Propiedades del script**, agrega:
+   - `APP_URL`: URL HTTPS de la aplicación, por ejemplo `https://tu_usuario.pythonanywhere.com`.
+   - `DESTINO_GMAIL`: tu dirección Gmail.
+   - `DAILY_ARCHIVE_TOKEN`: el mismo token privado de PythonAnywhere.
+5. Ejecuta `enviarHistoricoDiario` una vez para probar y autorizar el acceso HTTPS y el envío desde Gmail. Luego ejecuta `instalarEnvioHistoricoDiario` una vez y acepta los permisos del activador diario.
+
+La ruta de integración solo entrega el PDF con el token correcto. Enviar el correo no modifica ni elimina ventas, movimientos, deudas, abonos o auditorías de la base de datos. El PDF contiene las tablas de actividad incluidas en el histórico existente; no es una copia de respaldo completa de la base. La aplicación conserva localmente solo el histórico más reciente según su política actual, mientras que los correos enviados quedan archivados en Gmail. La cuota gratuita de Apps Script para cuentas Gmail personales limita el envío a 100 destinatarios diarios; este flujo envía uno.
+
 SQLite guarda la base junto a los archivos de la aplicación y es adecuada para un uso de bajo volumen; permite una escritura a la vez. Conserva copias de seguridad regulares y no ejecutes la aplicación en varios servidores compartiendo el mismo archivo. No ejecutes `init-db --demo` en producción.
 
 ## Reglas de negocio
