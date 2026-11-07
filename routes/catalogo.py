@@ -99,6 +99,17 @@ def _codigo_repetido(db, codigo, excluir_id=None):
     return bool(fila) and fila["id"] != excluir_id
 
 
+def _quitar_imagen_archivo(ruta):
+    """Elimina el archivo físico de una imagen si existe."""
+    if not ruta:
+        return
+    destino = Path(current_app.static_folder) / ruta
+    try:
+        destino.unlink()
+    except FileNotFoundError:
+        pass
+
+
 def _guardar_imagen(archivo, imagen_actual=None):
     """Guarda imágenes de producto con nombre aleatorio y extensiones permitidas."""
     if not archivo or not archivo.filename:
@@ -164,9 +175,15 @@ def producto_editar(pid):
         # El código es manual y editable (las ventas y el kardex se enlazan por id, no por código); debe seguir siendo único.
         if not error and _codigo_repetido(get_db(), d["codigo"], pid):
             error = f"El código {d['codigo']} ya está asignado a otro producto."
-        imagen, error_img = _guardar_imagen(request.files.get("imagen"), p["imagen"])
-        if request.form.get("quitar_imagen"):
+        if request.files.get("imagen") and request.files["imagen"].filename:
+            imagen, error_img = _guardar_imagen(request.files.get("imagen"), p["imagen"])
+        elif request.form.get("quitar_imagen"):
+            _quitar_imagen_archivo(p["imagen"])
             imagen = None
+            error_img = None
+        else:
+            imagen = p["imagen"]
+            error_img = None
         error = error or error_img
         if error:
             aviso(error, "error")
@@ -183,6 +200,10 @@ def producto_editar(pid):
         # Si cambió algún precio, se anota para la lista temporal de 48 horas.
         cambio = registrar_cambio_precio(db, pid, g.user["id"], p["precio_mayor_usd"], d["mayor"])
         db.commit()
+        if request.files.get("imagen") and request.files["imagen"].filename and p["imagen"] and p["imagen"] != imagen:
+            _quitar_imagen_archivo(p["imagen"])
+        elif request.form.get("quitar_imagen") and p["imagen"]:
+            _quitar_imagen_archivo(p["imagen"])
         audit("producto_editado", f"{d['codigo']} por {g.user['usuario']}; mayor {p['precio_mayor_usd']}→{d['mayor']}"
                                   + ("; precio actualizado 48 h" if cambio else ""))
         aviso("Producto actualizado.")

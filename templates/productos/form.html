@@ -15,7 +15,7 @@
     <label>Fotografía del producto (JPG, PNG, WEBP o GIF)<input type="file" name="imagen" accept="image/jpeg,image/png,image/webp,image/gif"></label>
     {% if not nuevo and p.imagen %}<div><span class="muted">Imagen actual</span><br><img class="producto-miniatura grande" src="{{ url_for('static', filename=p.imagen) }}" alt="{{ p.nombre }}"><label class="check"><input type="checkbox" name="quitar_imagen" value="1"> Quitar fotografía</label></div>{% endif %}
     <label>Precio al mayor ($) *<input type="number" data-decimal-input step="0.01" min="0" name="precio_mayor_usd" value="{{ p.precio_mayor_usd or '' }}" required></label>
-    {% if g.user.rol == 'admin' %}<label>Stock mínimo (alerta)<input type="number" step="1" min="0" name="stock_minimo" value="{{ p.stock_minimo or '' }}" placeholder="Vacío = alerta general"><small class="muted">Vacío o 0: se usa la alerta mínima general de Configuración.</small></label>{% endif %}
+    {% if g.user.rol == 'admin' %}<label>Stock mínimo (alerta)<input type="text" inputmode="numeric" pattern="[0-9]*" data-integer-input step="1" min="0" name="stock_minimo" value="{{ p.stock_minimo or '' }}" placeholder="Vacío = alerta general"><small class="muted">Vacío o 0: se usa la alerta mínima general de Configuración.</small></label>{% endif %}
     {% if nuevo %}<label>Stock inicial<input type="number" step="any" min="0" name="stock_inicial" value="{{ p.stock_inicial or '' }}"></label>{% endif %}
   </div>
   {% if not nuevo and g.user.rol == 'admin' %}<label class="check"><input type="checkbox" name="activo" value="1" {{ 'checked' if p.activo }}> Producto activo (visible para los vendedores)</label>{% endif %}

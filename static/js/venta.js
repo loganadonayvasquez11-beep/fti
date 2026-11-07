@@ -29,10 +29,12 @@
     filas.forEach(tr => {
       tr.dataset.lista = precioLista(tr);
       const inp = tr.querySelector('.precio');
-      if (!tr.dataset.editado || inp.value === '') inp.value = Number(tr.dataset.lista).toFixed(2);
+      const valor = (inp.value || '').trim();
+      if (!tr.dataset.editado && valor === '') inp.value = Number(tr.dataset.lista).toFixed(2);
+      const precio = valor === '' ? 0 : parseFloat(valor.replace(',', '.')) || 0;
       marcarEditado(tr);
       const c = parseFloat(tr.querySelector('.cant').value) || 0;
-      const s = r2(c * (parseFloat(inp.value) || 0));
+      const s = r2(c * precio);
       subtotal += s;
       tr.querySelector('.sub').textContent = fmt(s);
       const stock = parseFloat(tr.dataset.stock);

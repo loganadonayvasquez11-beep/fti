@@ -32,7 +32,7 @@
             </div>
           </td>
           <td data-label="Unidad de venta">{{ p.unidad }}</td>
-          <td data-label="Precio"><input type="number" name="precio_{{ p.id }}" class="precio" data-decimal-input min="0" step="0.01" value="{{ escrito or '' }}"><small class="lista-info muted"></small></td>
+          <td data-label="Precio"><input type="text" name="precio_{{ p.id }}" class="precio" data-decimal-input inputmode="decimal" pattern="[0-9.,]*" min="0" step="0.01" value="{{ escrito or '' }}"><small class="lista-info muted"></small></td>
           <td data-label="Subtotal" class="r sub">0,00</td>
           <td class="r"><button type="submit" class="icon-btn" title="Quitar del carrito" aria-label="Quitar {{ p.nombre }} del carrito" formaction="{{ url_for('ventas.carrito_quitar') }}" formnovalidate name="producto_id" value="{{ p.id }}">✕</button></td>
         </tr>

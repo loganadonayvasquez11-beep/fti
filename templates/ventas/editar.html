@@ -53,7 +53,7 @@
             </td>
             <td data-label="Cantidad"><input type="number" name="cantidad" min="1" step="1" value="{{ '%g' % l.cantidad }}" required></td>
             <td data-label="Unidad">{{ l.unidad }}</td>
-            <td data-label="Precio"><input type="number" name="precio" data-decimal-input min="0" step="0.01" value="{{ '%.2f' % l.precio_unit }}" required></td>
+            <td data-label="Precio"><input type="text" name="precio" data-decimal-input inputmode="decimal" pattern="[0-9.,]*" min="0" step="0.01" value="{{ '%.2f' % l.precio_unit }}" required></td>
             <td data-label="Subtotal" class="r sub">0,00</td>
             <td class="r"><button type="button" class="icon-btn quitar-linea" aria-label="Quitar {{ l.nombre }}">✕</button></td>
           </tr>
@@ -156,8 +156,11 @@
     const precioCelda = document.createElement('td');
     precioCelda.dataset.label = 'Precio';
     const precio = document.createElement('input');
-    precio.type = 'number';
+    precio.type = 'text';
     precio.name = 'precio';
+    precio.dataset.decimalInput = '1';
+    precio.inputMode = 'decimal';
+    precio.pattern = '[0-9.,]*';
     precio.min = '0';
     precio.step = '0.01';
     precio.value = Number(opcion.dataset.precio).toFixed(2);
