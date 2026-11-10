@@ -141,6 +141,8 @@ small { font-size: 12px; }
 .btn:active { background: rgba(255, 255, 255, .05); color: var(--text-2); }
 .btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
 .btn.primary:hover { background: var(--accent-2); }
+.btn.whatsapp { background: #25d366; color: #fff; border-color: transparent; font-weight: 600; }
+.btn.whatsapp:hover { background: #20bd5a; }
 .btn.danger { color: var(--bad); border-color: rgba(255, 153, 164, .35); }
 .btn.danger:hover { background: rgba(255, 153, 164, .12); }
 .btn.sm { padding: 3px 11px; min-height: 28px; font-size: 13px; }

@@ -9,7 +9,7 @@
       <a class="btn" id="pdf-visualizar" href="{{ url_visualizar }}" target="_blank" rel="noopener">Visualizar / imprimir</a>
       <a class="btn primary" id="pdf-descargar" href="{{ url_descargar }}">Descargar PDF</a>
       {% if guardar_url or permitir_compartir %}
-      <button class="btn" id="pdf-compartir-whatsapp" type="button">Compartir por WhatsApp</button>
+      <button class="btn whatsapp" id="pdf-compartir-whatsapp" type="button">Compartir por WhatsApp</button>
       {% endif %}
       {% if guardar_url %}
       <form class="inline-form" method="post" action="{{ guardar_url }}">{{ csrf_field() }}<button class="btn" type="submit">Guardar presupuesto</button></form>
@@ -62,7 +62,7 @@
 
     estadoCompartir.textContent = `${mensaje} El PDF se descargó; adjúntalo en WhatsApp.`;
     const whatsapp = document.createElement('a');
-    whatsapp.className = 'btn sm';
+    whatsapp.className = 'btn sm whatsapp';
     whatsapp.href = `https://wa.me/?text=${encodeURIComponent(`Te comparto ${nombrePdf}`)}`;
     whatsapp.target = '_blank';
     whatsapp.rel = 'noopener noreferrer';
