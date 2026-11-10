@@ -8,17 +8,13 @@
     <div class="pdf-editor-actions">
       <a class="btn" id="pdf-visualizar" href="{{ url_visualizar }}" target="_blank" rel="noopener">Visualizar / imprimir</a>
       <a class="btn primary" id="pdf-descargar" href="{{ url_descargar }}">Descargar PDF</a>
-      {% if guardar_url or permitir_compartir %}
       <button class="btn whatsapp" id="pdf-compartir-whatsapp" type="button">Compartir por WhatsApp</button>
-      {% endif %}
       {% if guardar_url %}
       <form class="inline-form" method="post" action="{{ guardar_url }}">{{ csrf_field() }}<button class="btn" type="submit">Guardar presupuesto</button></form>
       {% endif %}
     </div>
   </header>
-  {% if guardar_url or permitir_compartir %}
   <p class="hint" id="pdf-compartir-estado" role="status" aria-live="polite"></p>
-  {% endif %}
   <div class="pdf-scale" aria-label="Ajustar tamaño del PDF">
     <button class="btn pdf-scale-step" id="pdf-menos" type="button" aria-label="Reducir tamaño" title="Reducir tamaño">−</button>
     <label class="pdf-scale-control">Tamaño <output id="pdf-escala-valor">100%</output>
@@ -85,7 +81,7 @@
         });
         if (!respuesta.ok) throw new Error('No se pudo generar el PDF.');
         const archivo = new File([await respuesta.blob()], nombrePdf, { type: 'application/pdf' });
-        const datos = { files: [archivo], title: 'Presupuesto', text: 'Te comparto este presupuesto.' };
+        const datos = { files: [archivo], title: 'Documento PDF', text: `Te comparto ${nombrePdf}.` };
         if (!navigator.canShare(datos)) {
           ofrecerEnvioManual('Este navegador no permite compartir archivos directamente.');
           return;
@@ -174,8 +170,62 @@
   <div class="actions">
     <a class="btn primary lg" href="{{ url_descargar }}">Descargar PDF</a>
     <a class="btn lg" href="{{ url_visualizar }}" target="_blank" rel="noopener">Visualizar PDF</a>
+    <button class="btn whatsapp lg" id="pdf-compartir-whatsapp" type="button">Compartir por WhatsApp</button>
   </div>
-  <p class="hint">La visualización se abrirá en otra pestaña. Desde el visor del navegador puedes imprimir el documento.</p>
+  <p class="hint" id="pdf-compartir-estado" role="status" aria-live="polite">La visualización se abrirá en otra pestaña. Desde el visor del navegador puedes imprimir el documento.</p>
 </section>
+<script>
+(() => {
+  const compartir = document.getElementById('pdf-compartir-whatsapp');
+  const estado = document.getElementById('pdf-compartir-estado');
+  const nombrePdf = {{ nombre|tojson }};
+  const urlDescarga = {{ url_descargar|tojson }};
+
+  function ofrecerEnvioManual(mensaje) {
+    const descarga = document.createElement('a');
+    descarga.href = urlDescarga;
+    descarga.download = nombrePdf;
+    descarga.click();
+    estado.textContent = `${mensaje} El PDF se descargó; adjúntalo en WhatsApp.`;
+    const whatsapp = document.createElement('a');
+    whatsapp.className = 'btn sm whatsapp';
+    whatsapp.href = `https://wa.me/?text=${encodeURIComponent(`Te comparto ${nombrePdf}`)}`;
+    whatsapp.target = '_blank';
+    whatsapp.rel = 'noopener noreferrer';
+    whatsapp.textContent = 'Abrir WhatsApp';
+    estado.append(' ', whatsapp);
+  }
+
+  compartir.addEventListener('click', async () => {
+    if (!navigator.share || !navigator.canShare || typeof File === 'undefined') {
+      ofrecerEnvioManual('Este navegador no permite compartir archivos directamente.');
+      return;
+    }
+
+    compartir.disabled = true;
+    estado.textContent = 'Preparando el PDF…';
+    try {
+      const respuesta = await fetch(urlDescarga, { credentials: 'same-origin' });
+      if (!respuesta.ok) throw new Error('No se pudo generar el PDF.');
+      const archivo = new File([await respuesta.blob()], nombrePdf, { type: 'application/pdf' });
+      const datos = { files: [archivo], title: 'Documento PDF', text: `Te comparto ${nombrePdf}.` };
+      if (!navigator.canShare(datos)) {
+        ofrecerEnvioManual('Este navegador no permite compartir archivos directamente.');
+        return;
+      }
+      await navigator.share(datos);
+      estado.textContent = 'El PDF está listo para enviarse desde el menú de compartir.';
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        estado.textContent = 'Se canceló el envío.';
+      } else {
+        ofrecerEnvioManual(error.message || 'No se pudo compartir el PDF directamente.');
+      }
+    } finally {
+      compartir.disabled = false;
+    }
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}
