@@ -8,9 +8,15 @@
     <div class="pdf-editor-actions">
       <a class="btn" id="pdf-visualizar" href="{{ url_visualizar }}" target="_blank" rel="noopener">Visualizar / imprimir</a>
       <a class="btn primary" id="pdf-descargar" href="{{ url_descargar }}">Descargar PDF</a>
-      {% if guardar_url %}<form class="inline-form" method="post" action="{{ guardar_url }}">{{ csrf_field() }}<button class="btn" type="submit">Guardar presupuesto</button></form>{% endif %}
+      {% if guardar_url %}
+      <button class="btn" id="pdf-compartir-whatsapp" type="button">Compartir por WhatsApp</button>
+      <form class="inline-form" method="post" action="{{ guardar_url }}">{{ csrf_field() }}<button class="btn" type="submit">Guardar presupuesto</button></form>
+      {% endif %}
     </div>
   </header>
+  {% if guardar_url %}
+  <p class="hint" id="pdf-compartir-estado" role="status" aria-live="polite"></p>
+  {% endif %}
   <div class="pdf-scale" aria-label="Ajustar tamaño del PDF">
     <button class="btn pdf-scale-step" id="pdf-menos" type="button" aria-label="Reducir tamaño" title="Reducir tamaño">−</button>
     <label class="pdf-scale-control">Tamaño <output id="pdf-escala-valor">100%</output>
@@ -33,6 +39,9 @@
   const descargar = document.getElementById('pdf-descargar');
   const menos = document.getElementById('pdf-menos');
   const mas = document.getElementById('pdf-mas');
+  const compartir = document.getElementById('pdf-compartir-whatsapp');
+  const estadoCompartir = document.getElementById('pdf-compartir-estado');
+  const nombrePdf = {{ nombre|tojson }};
   const urls = {
     preview: {{ url_preview|tojson }},
     view: {{ url_visualizar|tojson }},
@@ -41,6 +50,57 @@
   let urlObjeto = null;
   let temporizador;
   let solicitudActual = 0;
+
+  function ofrecerEnvioManual(mensaje) {
+    const url = urlEscalada(urls.download, Number(escalaInput.value));
+    const descarga = document.createElement('a');
+    descarga.href = url;
+    descarga.download = nombrePdf;
+    descarga.click();
+
+    estadoCompartir.textContent = `${mensaje} El PDF se descargó; adjúntalo en WhatsApp.`;
+    const whatsapp = document.createElement('a');
+    whatsapp.className = 'btn sm';
+    whatsapp.href = `https://wa.me/?text=${encodeURIComponent(`Te comparto ${nombrePdf}`)}`;
+    whatsapp.target = '_blank';
+    whatsapp.rel = 'noopener noreferrer';
+    whatsapp.textContent = 'Abrir WhatsApp';
+    estadoCompartir.append(' ', whatsapp);
+  }
+
+  if (compartir) {
+    compartir.addEventListener('click', async () => {
+      if (!navigator.share || !navigator.canShare || typeof File === 'undefined') {
+        ofrecerEnvioManual('Este navegador no permite compartir archivos directamente.');
+        return;
+      }
+
+      compartir.disabled = true;
+      estadoCompartir.textContent = 'Preparando el PDF…';
+      try {
+        const respuesta = await fetch(urlEscalada(urls.download, Number(escalaInput.value)), {
+          credentials: 'same-origin'
+        });
+        if (!respuesta.ok) throw new Error('No se pudo generar el PDF.');
+        const archivo = new File([await respuesta.blob()], nombrePdf, { type: 'application/pdf' });
+        const datos = { files: [archivo], title: 'Presupuesto', text: 'Te comparto este presupuesto.' };
+        if (!navigator.canShare(datos)) {
+          ofrecerEnvioManual('Este navegador no permite compartir archivos directamente.');
+          return;
+        }
+        await navigator.share(datos);
+        estadoCompartir.textContent = 'El PDF está listo para enviarse desde el menú de compartir.';
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          estadoCompartir.textContent = 'Se canceló el envío.';
+        } else {
+          ofrecerEnvioManual(error.message || 'No se pudo compartir el PDF directamente.');
+        }
+      } finally {
+        compartir.disabled = false;
+      }
+    });
+  }
 
   function urlEscalada(base, escala) {
     const url = new URL(base, window.location.href);
