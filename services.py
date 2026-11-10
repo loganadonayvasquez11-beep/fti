@@ -125,7 +125,7 @@ def _totales_presupuesto(borrador, lineas):
     return subtotal, descuento_porcentaje, descuento, total
 
 
-def resumen_venta(vendedor_id, borrador, carrito):
+def resumen_venta(vendedor_id, borrador, carrito, permitir_cliente_otro_vendedor=False):
     """Calcula SIN guardar lo que sería la venta (para la pantalla de confirmación).
 
     borrador: dict con cliente_id, tipo_pago, metodo_pago, cuota_inicial,
@@ -134,9 +134,12 @@ def resumen_venta(vendedor_id, borrador, carrito):
     Lanza ValueError si falta algo (cliente, productos).
     """
     db = get_db()
-    cliente = db.execute(
-        "SELECT * FROM clientes WHERE id = ? AND vendedor_id = ? AND activo = 1",
-        (to_int(borrador.get("cliente_id")), vendedor_id)).fetchone()
+    sql_cliente = "SELECT * FROM clientes WHERE id = ? AND activo = 1"
+    args_cliente = [to_int(borrador.get("cliente_id"))]
+    if not permitir_cliente_otro_vendedor:
+        sql_cliente += " AND vendedor_id = ?"
+        args_cliente.append(vendedor_id)
+    cliente = db.execute(sql_cliente, args_cliente).fetchone()
     if cliente is None:
         raise ValueError("Selecciona un cliente válido de tu cartera.")
     moneda = "USD"
@@ -161,14 +164,17 @@ def resumen_venta(vendedor_id, borrador, carrito):
     }
 
 
-def resumen_presupuesto(vendedor_id, borrador, carrito):
+def resumen_presupuesto(vendedor_id, borrador, carrito, permitir_cliente_otro_vendedor=False):
     """Calcula los datos completos de una venta para un presupuesto, sin modificar stock."""
-    return resumen_venta(vendedor_id, borrador, carrito)
+    return resumen_venta(vendedor_id, borrador, carrito, permitir_cliente_otro_vendedor)
 
 
-def guardar_presupuesto(vendedor_id, borrador, carrito, presupuesto_id=None):
+def guardar_presupuesto(vendedor_id, borrador, carrito, presupuesto_id=None,
+                        permitir_cliente_otro_vendedor=False):
     """Crea o actualiza un presupuesto del vendedor sin reservar ni descontar stock."""
-    resumen = resumen_presupuesto(vendedor_id, borrador, carrito)
+    resumen = resumen_presupuesto(
+        vendedor_id, borrador, carrito, permitir_cliente_otro_vendedor
+    )
     db = get_db()
     ahora_txt = ahora()
     with db:
@@ -416,7 +422,7 @@ def saldo_cliente_usd(cliente_id):
     return fila["s"]
 
 
-def crear_venta(vendedor_id, form, items):
+def crear_venta(vendedor_id, form, items, permitir_cliente_otro_vendedor=False):
     """Registra una venta nueva hecha por un vendedor.
 
     form  : dict con cliente_id, tipo_pago, metodo_pago, cuota_inicial,
@@ -432,10 +438,12 @@ def crear_venta(vendedor_id, form, items):
     """
     db = get_db()
 
-    cliente = db.execute(
-        "SELECT * FROM clientes WHERE id = ? AND vendedor_id = ? AND activo = 1",
-        (to_int(form.get("cliente_id")), vendedor_id),
-    ).fetchone()
+    sql_cliente = "SELECT * FROM clientes WHERE id = ? AND activo = 1"
+    args_cliente = [to_int(form.get("cliente_id"))]
+    if not permitir_cliente_otro_vendedor:
+        sql_cliente += " AND vendedor_id = ?"
+        args_cliente.append(vendedor_id)
+    cliente = db.execute(sql_cliente, args_cliente).fetchone()
     if cliente is None:
         raise ValueError("Selecciona un cliente válido de tu cartera.")
 

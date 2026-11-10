@@ -43,7 +43,8 @@
           <a href="{{ url_for('admin.vendedores') }}" class="{{ 'on' if ep.startswith('admin.vendedor') }}">{{ ico('brief') }}<span>Vendedores</span></a>
           <a href="{{ url_for('clientes.lista') }}" class="{{ 'on' if ep.startswith('clientes.') }}">{{ ico('users') }}<span>Clientes</span></a>
           <div class="nav-group">Operación</div>
-          <a href="{{ url_for('ventas.lista') }}" class="{{ 'on' if ep.startswith('ventas.') }}">{{ ico('cart') }}<span>Ventas</span>{% if n_pendientes %}<b class="pill">{{ n_pendientes }}</b>{% endif %}</a>
+          <a href="{{ url_for('ventas.lista') }}" class="{{ 'on' if ep.startswith('ventas.') and 'presupuesto' not in ep }}">{{ ico('cart') }}<span>Ventas</span>{% if n_pendientes %}<b class="pill">{{ n_pendientes }}</b>{% endif %}</a>
+          <a href="{{ url_for('ventas.presupuestos') }}" class="{{ 'on' if 'presupuesto' in ep }}">{{ ico('file') }}<span>Presupuestos</span></a>
           <a href="{{ url_for('deudas.lista') }}" class="{{ 'on' if ep.startswith('deudas.') }}">{{ ico('dollar') }}<span>Deudas</span></a>
           <div class="nav-group">Almacén</div>
           <a href="{{ url_for('catalogo.productos') }}" class="{{ 'on' if ep in ('catalogo.productos','catalogo.producto_nuevo','catalogo.producto_editar','catalogo.categorias') }}">{{ ico('box') }}<span>Productos</span>{% if n_stock_alerta %}<b class="pill" title="Productos con stock en alerta">{{ n_stock_alerta }}</b>{% endif %}</a>

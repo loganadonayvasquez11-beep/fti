@@ -2,10 +2,11 @@
 from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, session, url_for
 
 import pdf
+from db import get_db
 from pdf_responses import nombre_pdf_cliente, responder_pdf
 import services
 from db import query
-from utils import (aviso, es_especial, especial_o_admin_required, login_required, parse_decimal_input,
+from utils import (ahora, aviso, es_especial, especial_o_admin_required, login_required, parse_decimal_input,
                    roles_required, to_float, to_int)
 
 bp = Blueprint("ventas", __name__, url_prefix="/ventas")
@@ -279,15 +280,33 @@ def confirmar():
         return redirect(url_for("ventas.nueva"))
     if not b.get("cliente_id"):
         return redirect(url_for("ventas.carrito"))
+    presupuesto_origen = to_int(session.get(PRESUPUESTO_ORIGEN))
+    permitir_cliente_otro_vendedor = False
+    if presupuesto_origen:
+        origen = query(
+            """SELECT cliente_id, venta_id FROM presupuestos
+                WHERE id = ? AND vendedor_id = ?""",
+            (presupuesto_origen, g.user["id"]), one=True,
+        )
+        if origen is None or origen["venta_id"] is not None:
+            aviso("El presupuesto ya fue convertido o traspasado a otro vendedor.", "error")
+            _limpiar_venta()
+            return redirect(url_for("ventas.presupuestos"))
+        permitir_cliente_otro_vendedor = (
+            origen["cliente_id"] == to_int(b.get("cliente_id"))
+        )
     if request.method == "POST":
         items = [{"producto_id": pid, "cantidad": cant, "precio": (b.get("precios") or {}).get(pid, "")}
                  for pid, cant in cart.items()]
         try:
-            venta_id = services.crear_venta(g.user["id"], b, items)
+            venta_id = services.crear_venta(
+                g.user["id"], b, items,
+                permitir_cliente_otro_vendedor=permitir_cliente_otro_vendedor,
+            )
         except ValueError as e:
             aviso(str(e), "error")
             return redirect(url_for("ventas.carrito"))
-        presupuesto_id = to_int(session.get(PRESUPUESTO_ORIGEN))
+        presupuesto_id = presupuesto_origen
         if presupuesto_id:
             try:
                 services.marcar_presupuesto_convertido(
@@ -302,7 +321,10 @@ def confirmar():
               else "Venta enviada al administrador para su aprobación.")
         return redirect(url_for("ventas.detalle", venta_id=venta_id))
     try:
-        r = services.resumen_venta(g.user["id"], b, cart)
+        r = services.resumen_venta(
+            g.user["id"], b, cart,
+            permitir_cliente_otro_vendedor=permitir_cliente_otro_vendedor,
+        )
     except ValueError as e:
         aviso(str(e), "error")
         return redirect(url_for("ventas.carrito"))
@@ -348,23 +370,55 @@ def guardar_presupuesto_desde_pdf():
 
 
 @bp.route("/presupuestos")
-@roles_required("vendedor")
+@login_required
 def presupuestos():
-    """Presupuestos guardados por el vendedor, incluidos los ya convertidos."""
-    filas = query(
-        """SELECT p.*, c.nombre AS cliente
-             FROM presupuestos p JOIN clientes c ON c.id = p.cliente_id
-            WHERE p.vendedor_id = ? ORDER BY p.actualizado DESC, p.id DESC""",
-        (g.user["id"],),
+    """Lista presupuestos propios para vendedores y de toda la cartera para admin."""
+    admin = g.user["rol"] == "admin"
+    vendedor = to_int(request.args.get("vendedor"))
+    if admin:
+        filas = query(
+            """SELECT p.*, c.nombre AS cliente, c.vendedor_id AS cliente_vendedor_id,
+                      u.nombre AS vendedor
+                 FROM presupuestos p JOIN clientes c ON c.id = p.cliente_id
+                 JOIN usuarios u ON u.id = p.vendedor_id
+                WHERE (? = 0 OR p.vendedor_id = ?)
+                ORDER BY p.actualizado DESC, p.id DESC""",
+            (vendedor, vendedor),
+        )
+        vendedores = query(
+            "SELECT id, nombre FROM usuarios WHERE rol = 'vendedor' AND activo = 1 ORDER BY nombre"
+        )
+    elif g.user["rol"] == "vendedor":
+        filas = query(
+            """SELECT p.*, c.nombre AS cliente, c.vendedor_id AS cliente_vendedor_id
+                 FROM presupuestos p JOIN clientes c ON c.id = p.cliente_id
+                WHERE p.vendedor_id = ? ORDER BY p.actualizado DESC, p.id DESC""",
+            (g.user["id"],),
+        )
+        vendedores = []
+    else:
+        abort(403)
+    return render_template(
+        "ventas/presupuestos.html", presupuestos=filas, admin=admin,
+        vendedores=vendedores, vendedor=vendedor, n_carrito=bool(_carrito()),
     )
-    return render_template("ventas/presupuestos.html", presupuestos=filas)
 
 
 @bp.route("/presupuestos/<int:presupuesto_id>/editar", methods=["GET", "POST"])
-@roles_required("vendedor")
+@login_required
 def editar_presupuesto(presupuesto_id):
-    """Edita el cliente, productos y condiciones de un presupuesto aún abierto."""
-    guardado = services.presupuesto_vendedor(presupuesto_id, g.user["id"])
+    """Edita un presupuesto abierto propio o cualquiera si el usuario es admin."""
+    admin = g.user["rol"] == "admin"
+    if admin:
+        p = query("SELECT * FROM presupuestos WHERE id = ?", (presupuesto_id,), one=True)
+        if p is None:
+            abort(404)
+        vendedor_id = p["vendedor_id"]
+    elif g.user["rol"] == "vendedor":
+        vendedor_id = g.user["id"]
+    else:
+        abort(403)
+    guardado = services.presupuesto_vendedor(presupuesto_id, vendedor_id)
     if guardado is None or guardado["presupuesto"]["venta_id"] is not None:
         abort(404)
     p = guardado["presupuesto"]
@@ -391,19 +445,30 @@ def editar_presupuesto(presupuesto_id):
         borrador["precios"] = {str(item["producto_id"]): item["precio"] for item in items}
         try:
             services.guardar_presupuesto(
-                g.user["id"], borrador, carrito, presupuesto_id=presupuesto_id
+                vendedor_id, borrador, carrito, presupuesto_id=presupuesto_id,
+                permitir_cliente_otro_vendedor=(
+                    admin or to_int(borrador["cliente_id"]) == p["cliente_id"]
+                ),
             )
         except ValueError as e:
             aviso(str(e), "error")
             return redirect(url_for("ventas.editar_presupuesto", presupuesto_id=presupuesto_id))
+        if admin:
+            services.audit("presupuesto_editado_admin", f"presupuesto #{presupuesto_id}")
         aviso(f"Presupuesto #{presupuesto_id} actualizado.")
         return redirect(url_for("ventas.presupuestos"))
 
-    clientes = query(
-        """SELECT id, nombre FROM clientes
-            WHERE vendedor_id = ? AND (activo = 1 OR id = ?) ORDER BY nombre""",
-        (g.user["id"], p["cliente_id"]),
-    )
+    if admin:
+        clientes = query(
+            "SELECT id, nombre FROM clientes WHERE activo = 1 OR id = ? ORDER BY nombre",
+            (p["cliente_id"],),
+        )
+    else:
+        clientes = query(
+            """SELECT id, nombre FROM clientes
+                WHERE (vendedor_id = ? AND activo = 1) OR id = ? ORDER BY nombre""",
+            (vendedor_id, p["cliente_id"]),
+        )
     productos = query(
         "SELECT id, codigo, nombre, unidad, precio_mayor_usd FROM productos WHERE activo = 1 ORDER BY nombre"
     )
@@ -414,21 +479,104 @@ def editar_presupuesto(presupuesto_id):
 
 
 @bp.route("/presupuestos/<int:presupuesto_id>/eliminar", methods=["POST"])
-@roles_required("vendedor")
+@login_required
 def eliminar_presupuesto(presupuesto_id):
-    """Elimina definitivamente un presupuesto que todavía no se convirtió en venta."""
-    try:
-        services.eliminar_presupuesto(presupuesto_id, g.user["id"])
-        aviso("Presupuesto eliminado.")
-    except ValueError as e:
-        aviso(str(e), "error")
+    """El vendedor elimina presupuestos abiertos; el admin puede eliminar cualquier presupuesto."""
+    if g.user["rol"] == "admin":
+        db = get_db()
+        with db:
+            cur = db.execute("DELETE FROM presupuestos WHERE id = ?", (presupuesto_id,))
+        if cur.rowcount:
+            services.audit("presupuesto_eliminado_admin", f"presupuesto #{presupuesto_id}")
+            aviso("Presupuesto eliminado. La venta asociada, si existe, no fue modificada.")
+        else:
+            aviso("El presupuesto ya no existe.", "error")
+    elif g.user["rol"] == "vendedor":
+        try:
+            services.eliminar_presupuesto(presupuesto_id, g.user["id"])
+            aviso("Presupuesto eliminado.")
+        except ValueError as e:
+            aviso(str(e), "error")
+    else:
+        abort(403)
+    return redirect(url_for("ventas.presupuestos"))
+
+
+@bp.route("/presupuestos/<int:presupuesto_id>/traspasar", methods=["POST"])
+@roles_required("admin")
+def traspasar_presupuesto(presupuesto_id):
+    """Cambia el vendedor responsable del presupuesto, sin mover al cliente ni su historial."""
+    vendedor_id = to_int(request.form.get("vendedor_id"))
+    destino = query(
+        "SELECT id FROM usuarios WHERE id = ? AND rol = 'vendedor' AND activo = 1",
+        (vendedor_id,), one=True,
+    )
+    if destino is None:
+        aviso("Selecciona un vendedor activo válido.", "error")
+        return redirect(url_for("ventas.presupuestos"))
+    db = get_db()
+    with db:
+        cur = db.execute(
+            """UPDATE presupuestos SET vendedor_id = ?, actualizado = ?
+                 WHERE id = ? AND venta_id IS NULL AND vendedor_id != ?""",
+            (vendedor_id, ahora(), presupuesto_id, vendedor_id),
+        )
+    if cur.rowcount:
+        services.audit(
+            "presupuesto_traspasado_admin",
+            f"presupuesto #{presupuesto_id} asignado al vendedor #{vendedor_id}",
+        )
+        aviso("Presupuesto traspasado. El cliente y su historial no fueron modificados.")
+    else:
+        aviso("El presupuesto no existe o ya fue convertido en venta.", "error")
     return redirect(url_for("ventas.presupuestos"))
 
 
 @bp.route("/presupuestos/<int:presupuesto_id>/convertir", methods=["POST"])
-@roles_required("vendedor")
+@login_required
 def convertir_presupuesto(presupuesto_id):
-    """Carga el presupuesto en el carrito para completar condiciones antes de crear la venta."""
+    """Permite al vendedor preparar el carrito o al admin crear la venta directamente."""
+    if g.user["rol"] == "admin":
+        p = query("SELECT * FROM presupuestos WHERE id = ?", (presupuesto_id,), one=True)
+        if p is None or p["venta_id"] is not None:
+            abort(404)
+        guardado = services.presupuesto_vendedor(presupuesto_id, p["vendedor_id"])
+        if guardado is None:
+            abort(404)
+        items = [
+            {"producto_id": l["producto_id"], "cantidad": l["cantidad"], "precio": l["precio_unit"]}
+            for l in guardado["lineas"]
+        ]
+        borrador = {
+            "cliente_id": p["cliente_id"], "tipo_pago": p["tipo_pago"],
+            "metodo_pago": p["metodo_pago"] or "", "cuota_inicial": p["cuota_inicial"],
+            "descuento_porcentaje": p["descuento_porcentaje"], "nota": p["nota"] or "",
+        }
+        try:
+            venta_id = services.crear_venta(
+                p["vendedor_id"], borrador, items,
+                permitir_cliente_otro_vendedor=True,
+            )
+        except ValueError as e:
+            aviso(str(e), "error")
+            return redirect(url_for("ventas.presupuestos"))
+        try:
+            services.marcar_presupuesto_convertido(
+                presupuesto_id, p["vendedor_id"], venta_id,
+                cuota_inicial=to_float(p["cuota_inicial"]),
+            )
+        except ValueError as e:
+            aviso(f"La venta se creó, pero no se pudo actualizar su presupuesto: {e}", "error")
+            return redirect(url_for("ventas.detalle", venta_id=venta_id))
+        venta = query("SELECT estado FROM ventas WHERE id = ?", (venta_id,), one=True)
+        aviso(
+            "Presupuesto convertido en venta. "
+            + ("Venta registrada y cobrada." if venta["estado"] == "aprobada"
+               else "Venta enviada para aprobación.")
+        )
+        return redirect(url_for("ventas.detalle", venta_id=venta_id))
+    if g.user["rol"] != "vendedor":
+        abort(403)
     guardado = services.presupuesto_vendedor(presupuesto_id, g.user["id"])
     if guardado is None or guardado["presupuesto"]["venta_id"] is not None:
         abort(404)
@@ -450,14 +598,25 @@ def convertir_presupuesto(presupuesto_id):
 
 
 @bp.route("/presupuestos/<int:presupuesto_id>/pdf")
-@roles_required("vendedor")
+@login_required
 def presupuesto_guardado_pdf(presupuesto_id):
     """Descarga el PDF de un presupuesto guardado del vendedor."""
-    resumen = services.resumen_presupuesto_guardado(presupuesto_id, g.user["id"])
+    admin = g.user["rol"] == "admin"
+    if admin:
+        p = query("SELECT vendedor_id FROM presupuestos WHERE id = ?", (presupuesto_id,), one=True)
+        if p is None:
+            abort(404)
+        vendedor_id = p["vendedor_id"]
+    elif g.user["rol"] == "vendedor":
+        vendedor_id = g.user["id"]
+    else:
+        abort(403)
+    resumen = services.resumen_presupuesto_guardado(presupuesto_id, vendedor_id)
     if resumen is None:
         abort(404)
     nombre = nombre_pdf_cliente(resumen["cliente"]["nombre"], f"Presupuesto {presupuesto_id}")
-    return responder_pdf(lambda escala: pdf.presupuesto(resumen, g.user["nombre"], escala), nombre)
+    nombre_vendedor = query("SELECT nombre FROM usuarios WHERE id = ?", (vendedor_id,), one=True)["nombre"]
+    return responder_pdf(lambda escala: pdf.presupuesto(resumen, nombre_vendedor, escala), nombre)
 
 
 @bp.route("/<int:venta_id>/editar", methods=["GET", "POST"])
