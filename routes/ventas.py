@@ -2,10 +2,9 @@
 from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, session, url_for
 
 import pdf
-from db import get_db
+from db import get_db, query
 from pdf_responses import nombre_pdf_cliente, responder_pdf
 import services
-from db import query
 from utils import (ahora, aviso, es_especial, especial_o_admin_required, login_required, parse_decimal_input,
                    roles_required, to_float, to_int)
 
@@ -13,13 +12,13 @@ bp = Blueprint("ventas", __name__, url_prefix="/ventas")
 
 
 def _venta_o_404(venta_id):
-    """Devuelve la venta visible según el vendedor actual del cliente."""
+    """Devuelve la venta visible según su vendedor asignado."""
     v = query(
         """SELECT v.*, c.vendedor_id AS cartera_vendedor_id, c.nombre AS cliente, c.documento, c.telefono,
                   u.nombre AS vendedor, a.nombre AS aprobador
-             FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = c.vendedor_id
+             FROM ventas v JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = v.vendedor_id
              LEFT JOIN usuarios a ON a.id = v.aprobado_por WHERE v.id = ?""", (venta_id,), one=True)
-    if v is None or (g.user["rol"] == "vendedor" and v["cartera_vendedor_id"] != g.user["id"]
+    if v is None or (g.user["rol"] == "vendedor" and v["vendedor_id"] != g.user["id"]
                      and not (es_especial() and v["estado"] in ("pendiente", "aprobada"))):
         abort(404)
     return v
@@ -35,16 +34,16 @@ def lista():
     sql = """SELECT v.*, c.nombre AS cliente, u.nombre AS vendedor,
                     ar.estado AS armado_estado, (v.id > ?) AS req_armado
                FROM ventas v
-               JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = c.vendedor_id
+               JOIN clientes c ON c.id = v.cliente_id JOIN usuarios u ON u.id = v.vendedor_id
                LEFT JOIN armados ar ON ar.venta_id = v.id WHERE 1=1"""
     args = [services.armado_desde_venta()]
     if g.user["rol"] == "vendedor":
         if es_especial():
-            sql += " AND (c.vendedor_id = ? OR v.estado IN ('pendiente', 'aprobada'))"; args.append(g.user["id"])
+            sql += " AND (v.vendedor_id = ? OR v.estado IN ('pendiente', 'aprobada'))"; args.append(g.user["id"])
         else:
-            sql += " AND c.vendedor_id = ?"; args.append(g.user["id"])
+            sql += " AND v.vendedor_id = ?"; args.append(g.user["id"])
     elif vendedor:
-        sql += " AND c.vendedor_id = ?"; args.append(vendedor)
+        sql += " AND v.vendedor_id = ?"; args.append(vendedor)
     if estado in ("pendiente", "aprobada", "rechazada", "anulada"):
         sql += " AND v.estado = ?"; args.append(estado)
     if q:
@@ -616,7 +615,11 @@ def presupuesto_guardado_pdf(presupuesto_id):
         abort(404)
     nombre = nombre_pdf_cliente(resumen["cliente"]["nombre"], f"Presupuesto {presupuesto_id}")
     nombre_vendedor = query("SELECT nombre FROM usuarios WHERE id = ?", (vendedor_id,), one=True)["nombre"]
-    return responder_pdf(lambda escala: pdf.presupuesto(resumen, nombre_vendedor, escala), nombre)
+    return responder_pdf(
+        lambda escala: pdf.presupuesto(resumen, nombre_vendedor, escala),
+        nombre,
+        permitir_compartir=True,
+    )
 
 
 @bp.route("/<int:venta_id>/editar", methods=["GET", "POST"])
@@ -698,8 +701,50 @@ def detalle(venta_id):
         """SELECT a.*, ua.nombre AS asignado_nombre, ub.nombre AS armador_nombre FROM armados a
              LEFT JOIN usuarios ua ON ua.id = a.asignado_a LEFT JOIN usuarios ub ON ub.id = a.armado_por
             WHERE a.venta_id = ?""", (venta_id,), one=True)
+    vendedores = query(
+        "SELECT id, nombre FROM usuarios WHERE rol='vendedor' AND activo=1 AND id != ? ORDER BY nombre",
+        (v["vendedor_id"],),
+    ) if g.user["rol"] == "admin" else []
     return render_template("ventas/detalle.html", v=v, lineas=lineas, deuda=deuda, armado=armado,
-                           req_armado=venta_id > services.armado_desde_venta())
+                           req_armado=venta_id > services.armado_desde_venta(), vendedores=vendedores)
+
+
+@bp.route("/<int:venta_id>/traspasar", methods=["POST"])
+@roles_required("admin")
+def traspasar(venta_id):
+    """Traspasa la venta y su deuda asociada sin cambiar el vendedor del cliente."""
+    venta = query(
+        """SELECT v.id, v.numero, v.vendedor_id, u.nombre AS vendedor
+             FROM ventas v JOIN usuarios u ON u.id = v.vendedor_id WHERE v.id = ?""",
+        (venta_id,), one=True,
+    )
+    if venta is None:
+        abort(404)
+    destino_id = to_int(request.form.get("vendedor_id"))
+    destino = query(
+        "SELECT id, nombre FROM usuarios WHERE id=? AND rol='vendedor' AND activo=1",
+        (destino_id,), one=True,
+    )
+    if destino is None or destino_id == venta["vendedor_id"]:
+        aviso("Selecciona un vendedor activo diferente al responsable actual.", "error")
+        return redirect(url_for("ventas.detalle", venta_id=venta_id))
+
+    db = get_db()
+    with db:
+        actualizada = db.execute(
+            "UPDATE ventas SET vendedor_id=? WHERE id=? AND vendedor_id=?",
+            (destino_id, venta_id, venta["vendedor_id"]),
+        )
+        if actualizada.rowcount != 1:
+            aviso("El responsable de la venta cambió. Recarga e inténtalo de nuevo.", "error")
+            return redirect(url_for("ventas.detalle", venta_id=venta_id))
+        db.execute("UPDATE deudas SET vendedor_id=? WHERE venta_id=?", (destino_id, venta_id))
+    services.audit(
+        "venta_traspasada_admin",
+        f"{venta['numero']}: {venta['vendedor']} -> {destino['nombre']}; deuda asociada incluida",
+    )
+    aviso("Venta y deuda traspasadas. El cliente conserva su vendedor actual.")
+    return redirect(url_for("ventas.detalle", venta_id=venta_id))
 
 
 @bp.route("/<int:venta_id>/aprobar", methods=["POST"])

@@ -15,7 +15,7 @@ def nombre_pdf_cliente(cliente, tipo):
     return f"{nombre[:180].rstrip(' .-') or 'cliente'}.pdf"
 
 
-def responder_pdf(archivo, nombre, guardar_url=None):
+def responder_pdf(archivo, nombre, guardar_url=None, permitir_compartir=False):
     """Open the PDF editor, or return the scaled PDF for preview or download."""
     accion = request.args.get("action")
     try:
@@ -56,4 +56,5 @@ def responder_pdf(archivo, nombre, guardar_url=None):
         url_descargar=url_for(request.endpoint, **argumentos, action="download", scale=100),
         url_visualizar=url_for(request.endpoint, **argumentos, action="view", scale=100),
         guardar_url=guardar_url,
+        permitir_compartir=permitir_compartir,
     )
