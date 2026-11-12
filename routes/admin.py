@@ -106,23 +106,28 @@ def vendedor_editar(vid):
         return redirect(url_for("admin.vendedores"))
     if request.method == "POST":
         f = request.form
+        usuario = f.get("usuario", "").strip().lower()
         nombre = f.get("nombre", "").strip()
-        if not nombre:
-            aviso("El nombre es obligatorio.", "error")
+        if not usuario or not nombre:
+            aviso("Usuario y nombre son obligatorios.", "error")
+        elif query("SELECT 1 FROM usuarios WHERE usuario = ? AND id != ?", (usuario, vid), one=True):
+            aviso("Ese nombre de usuario ya existe.", "error")
         elif f.get("clave") and len(f.get("clave")) < 6:
             aviso("La nueva clave debe tener al menos 6 caracteres.", "error")
         else:
             db = get_db()
-            db.execute("UPDATE usuarios SET nombre=?, telefono=?, email=?, tipo_vendedor=? WHERE id=?",
-                       (nombre, f.get("telefono", "").strip(), f.get("email", "").strip(), _tipo_vendedor(f), vid))
+            db.execute("UPDATE usuarios SET usuario=?, nombre=?, telefono=?, email=?, tipo_vendedor=? WHERE id=?",
+                       (usuario, nombre, f.get("telefono", "").strip(), f.get("email", "").strip(),
+                        _tipo_vendedor(f), vid))
             if _tipo_vendedor(f) != u["tipo_vendedor"]:
                 audit("vendedor_tipo", f"{u['usuario']}: {u['tipo_vendedor']} -> {_tipo_vendedor(f)}")
             if f.get("clave"):
                 db.execute("UPDATE usuarios SET clave_hash=? WHERE id=?", (generate_password_hash(f.get("clave")), vid))
             db.commit()
-            audit("vendedor_editado", u["usuario"])
+            audit("vendedor_editado", f"{u['usuario']} -> {usuario}")
             aviso("Vendedor actualizado.")
             return redirect(url_for("admin.vendedor_detalle", vid=vid))
+        u = {**dict(u), **f, "usuario": f.get("usuario", "").strip()}
     return render_template("admin/vendedor_form.html", u=u, nuevo=False)
 
 

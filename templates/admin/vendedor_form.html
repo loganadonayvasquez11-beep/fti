@@ -4,7 +4,7 @@
 <form method="post" class="card form narrow">
   {{ csrf_field() }}
   <label>Nombre completo *<input name="nombre" value="{{ u.nombre or '' }}" required></label>
-  <label>Usuario de acceso *<input name="usuario" value="{{ u.usuario or '' }}" {{ 'readonly' if not nuevo else 'required' }} autocomplete="off"></label>
+  <label>Usuario de acceso *<input name="usuario" value="{{ u.usuario or '' }}" required autocomplete="username" autocapitalize="none" spellcheck="false"></label>
   <label>Tipo de vendedor
     <select name="tipo_vendedor">
       <option value="normal" {{ 'selected' if (u.tipo_vendedor or 'normal') != 'especial' }}>Normal — solo al mayor y en dólares</option>
