@@ -82,6 +82,42 @@ Después entra a **Configuración** y coloca los datos de tu empresa (salen en l
 
 6. Sube también las imágenes en `static/uploads/productos/` y los PDFs históricos de `instance/archivos_historicos/`, si los necesitas. Configura los archivos estáticos y recarga la aplicación desde el panel.
 
+### Avisos de aprobación y armado
+
+Las ventas nuevas pendientes de aprobación envían un Web Push a los administradores. Cuando el administrador asigna un armado, se avisa al vendedor especial elegido; si elige **Cualquiera**, se avisa a todos los vendedores especiales activos. Dejar el armado sin asignar no alerta a los vendedores. Al aprobar/rechazar una venta o completar/anular un armado, el aviso push asociado se cierra.
+
+Para activar Web Push en PythonAnywhere:
+
+1. En una consola Bash, activa el mismo entorno virtual que usa la aplicación e instala la dependencia nueva:
+
+   ```bash
+   cd /home/tu_usuario/fti
+   source /home/tu_usuario/.virtualenvs/tu_entorno/bin/activate
+   pip install -r requirements.txt
+   ```
+
+2. Genera las claves VAPID una sola vez:
+
+   ```bash
+   python generate_vapid_keys.py
+   ```
+
+   El comando crea `instance/vapid_private.pem` y muestra la clave pública. Conserva el archivo privado en el servidor; no lo publiques ni lo envíes a nadie.
+3. En el archivo WSGI, antes de `from app import app as application`, configura:
+
+   ```python
+   import os
+   os.environ["VAPID_PRIVATE_KEY"] = "/home/tu_usuario/fti/instance/vapid_private.pem"
+   os.environ["VAPID_PUBLIC_KEY"] = "pega-aqui-la-clave-publica"
+   os.environ["VAPID_SUBJECT"] = "mailto:tu-correo@ejemplo.com"
+   ```
+
+   La variable privada contiene la ruta al archivo PEM, no la clave pública. No guardes estas variables en GitHub. Después recarga la aplicación en la pestaña **Web**.
+4. En cada dispositivo, inicia sesión y pulsa **Activar avisos y sonido**. Acepta el permiso de notificaciones. En Android, abre el sitio HTTPS en Chrome, selecciona **Añadir a pantalla de inicio** o **Instalar aplicación**, ábrela e inicia sesión para activarla.
+5. En Android, habilita notificaciones para Chrome o la aplicación instalada y escoge el tono desde los ajustes de notificaciones de Android. En PC, el sonido push depende de la configuración de notificaciones de Windows/macOS y del navegador.
+
+Con la página abierta, el navegador consulta la bandeja y repite un tono tipo alarma cada 3 segundos hasta que se atiendan las solicitudes. Si el navegador está cerrado o en segundo plano, el dispositivo recibe la notificación push del evento, pero la aplicación web no puede garantizar un sonido repetido cada 3 segundos. El tono de una notificación push cerrada lo controla el sistema operativo: Android permite escogerlo en los ajustes de notificaciones; una página web no puede imponer un sonido personalizado ni saltarse el modo silencioso.
+
 ### Enviar el histórico diario a Gmail
 
 La automatización usa un activador diario gratuito de Google Apps Script: alrededor de la 01:10 (hora de Venezuela) solicita a la aplicación el PDF del día anterior y lo envía como adjunto al Gmail configurado. Google puede ejecutar el activador dentro de una ventana aproximada de 15 minutos. El correo se identifica como `Histórico diario - DD-MM-AAAA`.

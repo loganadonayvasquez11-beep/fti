@@ -173,7 +173,7 @@ def csrf_field():
 
 def verificar_csrf():
     """Rechaza (400) cualquier POST cuyo token no coincida con el de la sesión."""
-    enviado = request.form.get("csrf_token", "")
+    enviado = request.form.get("csrf_token", "") or request.headers.get("X-CSRF-Token", "")
     esperado = session.get("csrf", "")
     if not esperado or not secrets.compare_digest(enviado, esperado):
         abort(400, "Token de seguridad inválido. Recarga la página e inténtalo de nuevo.")

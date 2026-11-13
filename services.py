@@ -552,6 +552,12 @@ def crear_venta(vendedor_id, form, items, permitir_cliente_otro_vendedor=False):
                      "Cuota inicial recibida al registrar la venta", vendedor_id),
                 )
     audit("venta_creada", f"V-{venta_id:06d} total_usd={total_usd} estado={estado}; cuota_inicial_usd={cuota_inicial_usd}")
+    if estado == "pendiente":
+        from push_notifications import avisar_rol
+        avisar_rol(
+            "admin", "Venta pendiente de aprobación", f"Revisa la venta V-{venta_id:06d}.",
+            f"/ventas/{venta_id}", f"venta-{venta_id}",
+        )
     return venta_id
 
 
@@ -714,6 +720,9 @@ def editar_venta_pendiente(venta_id, vendedor_id, items, descuento_porcentaje, n
     if reiniciar_armado:
         detalle += " armado_reiniciado=1"
     audit(accion, detalle)
+    if reiniciar_armado and armado is not None:
+        from push_notifications import cerrar_aviso_especiales
+        cerrar_aviso_especiales(f"armado-{armado['id']}")
 
 
 def _detalles_agrupados(db, venta_id):
@@ -749,6 +758,8 @@ def aprobar_venta(venta_id, admin_id):
         for deuda in db.execute("SELECT id FROM deudas WHERE venta_id = ?", (venta_id,)).fetchall():
             recalcular_deuda(db, deuda["id"])
     audit("venta_aprobada", v["numero"])
+    from push_notifications import cerrar_aviso_rol
+    cerrar_aviso_rol("admin", f"venta-{venta_id}")
 
 
 def rechazar_venta(venta_id, admin_id, motivo):
@@ -765,6 +776,8 @@ def rechazar_venta(venta_id, admin_id, motivo):
         db.execute("UPDATE abonos SET anulado=1 WHERE deuda_id IN (SELECT id FROM deudas WHERE venta_id=?) AND anulado=0", (venta_id,))
         db.execute("UPDATE deudas SET estado='anulada' WHERE venta_id=? AND estado='pendiente'", (venta_id,))
     audit("venta_rechazada", f"{v['numero']} — {motivo}; abonos iniciales asociados anulados")
+    from push_notifications import cerrar_aviso_rol
+    cerrar_aviso_rol("admin", f"venta-{venta_id}")
 
 
 def anular_venta(venta_id, admin_id, motivo):
@@ -778,6 +791,7 @@ def anular_venta(venta_id, admin_id, motivo):
     v = db.execute("SELECT * FROM ventas WHERE id = ?", (venta_id,)).fetchone()
     if v is None or v["estado"] != "aprobada":
         raise ValueError("Solo se pueden anular ventas aprobadas.")
+    armado = db.execute("SELECT id FROM armados WHERE venta_id = ?", (venta_id,)).fetchone()
     abonos = db.execute(
         """SELECT a.id, a.deuda_id FROM abonos a JOIN deudas d ON d.id = a.deuda_id
             WHERE d.venta_id = ? AND a.anulado = 0 ORDER BY a.id""", (venta_id,),
@@ -798,6 +812,9 @@ def anular_venta(venta_id, admin_id, motivo):
     for a in abonos:
         audit("abono_anulado_por_venta", f"abono #{a['id']} deuda #{a['deuda_id']} venta #{v['numero']}")
     audit("venta_anulada", f"{v['numero']} — {motivo}; stock devuelto; abonos anulados={len(abonos)}; deudas anuladas")
+    if armado is not None:
+        from push_notifications import cerrar_aviso_especiales
+        cerrar_aviso_especiales(f"armado-{armado['id']}")
 
 
 # =================================================================== deudas
@@ -1027,6 +1044,22 @@ def asignar_armado(venta_id, destino, admin_id):
             db.execute("UPDATE armados SET asignado_a=?, asignado_por=?, fecha_asignacion=? WHERE id=?",
                        (asignado, admin_id, ahora(), actual["id"]))
     audit("armado_asignado", f"{v['numero']} → {'cualquiera' if asignado is None else 'vendedor #' + str(asignado)}")
+    from push_notifications import enviar_a_usuarios
+    armado = db.execute("SELECT id FROM armados WHERE venta_id = ?", (venta_id,)).fetchone()
+    tag = f"armado-{armado['id']}"
+    if actual is not None:
+        from push_notifications import cerrar_aviso_especiales
+        cerrar_aviso_especiales(tag)
+    if asignado is None:
+        destinatarios = [usuario["id"] for usuario in vendedores_especiales()]
+    else:
+        destinatarios = [asignado]
+    enviar_a_usuarios(
+        destinatarios,
+        {"title": "Pedido asignado para armar",
+         "body": f"El pedido {v['numero']} está pendiente de armado.",
+         "url": "/armados/", "tag": tag},
+    )
 
 
 def confirmar_armado(armado_id, usuario):
@@ -1047,6 +1080,8 @@ def confirmar_armado(armado_id, usuario):
                            (armado_id,)).fetchone()
         raise ValueError(f"Ese pedido ya fue armado por {quien['nombre'] if quien else 'otro vendedor'}.")
     audit("pedido_armado", a["numero"])
+    from push_notifications import cerrar_aviso_especiales
+    cerrar_aviso_especiales(f"armado-{armado_id}")
 
 
 def admin_confirmar_armado(venta_id, admin_id):
@@ -1080,6 +1115,9 @@ def admin_confirmar_armado(venta_id, admin_id):
                 (venta_id, admin_id, fecha, admin_id, fecha),
             )
     audit("pedido_armado_por_admin", venta["numero"])
+    if actual is not None:
+        from push_notifications import cerrar_aviso_especiales
+        cerrar_aviso_especiales(f"armado-{actual['id']}")
 
 
 def programar_salida(armado_id, fecha_salida, usuario_id):

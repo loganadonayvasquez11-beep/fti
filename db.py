@@ -145,7 +145,19 @@ def migrar_roles_y_colores(db):
     db.execute("INSERT OR IGNORE INTO configuracion(clave, valor) VALUES ('stock_alerta_defecto', '10')")
     migrar_armados_y_precios(db)
     migrar_presupuestos(db)
+    migrar_suscripciones_notificaciones(db)
     db.commit()
+
+
+def migrar_suscripciones_notificaciones(db):
+    """Crea la tabla de suscripciones Web Push en bases existentes."""
+    db.execute("""CREATE TABLE IF NOT EXISTS notificaciones_push (
+        endpoint TEXT PRIMARY KEY,
+        usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        clave_publica TEXT NOT NULL,
+        clave_auth TEXT NOT NULL,
+        creado TEXT NOT NULL
+    )""")
 
 
 def migrar_armados_y_precios(db):

@@ -3,7 +3,7 @@ import os
 from datetime import timedelta, timezone
 
 import click
-from flask import Flask, g, render_template, request, session
+from flask import Flask, g, render_template, request, send_from_directory, session
 
 import db
 from config import Config
@@ -17,6 +17,9 @@ def create_app():
     """Crea y configura la aplicación: base de datos, filtros, seguridad y rutas."""
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.config["VAPID_PUBLIC_KEY"] = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
+    app.config["VAPID_PRIVATE_KEY"] = os.environ.get("VAPID_PRIVATE_KEY", "").strip()
+    app.config["VAPID_SUBJECT"] = os.environ.get("VAPID_SUBJECT", "").strip()
     db.init_app(app)
 
     # Actualiza el esquema existente y elimina los campos de venta al detal.
@@ -25,6 +28,13 @@ def create_app():
         if db.table_exists(connection, "usuarios"):
             db.migrar_roles_y_colores(connection)
             db.migrar_solo_mayor(connection)
+
+    @app.get("/service-worker.js")
+    def service_worker():
+        response = send_from_directory(app.static_folder, "service-worker.js")
+        response.headers["Service-Worker-Allowed"] = "/"
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
     # ----------------------------------------------------------- filtros Jinja
     app.add_template_filter(fmt_num, "num")            # {{ 1234.5|num }} -> 1.234,50
@@ -71,8 +81,10 @@ def create_app():
         return datos
 
     # --------------------------------------------------------------- rutas
-    from routes import admin, armados, auth, automaticos, catalogo, clientes, deudas, panel, ventas
-    for modulo in (auth, panel, clientes, catalogo, ventas, deudas, admin, armados, automaticos):
+    from routes import (admin, armados, auth, automaticos, catalogo, clientes, deudas,
+                        notificaciones, panel, ventas)
+    for modulo in (auth, panel, clientes, catalogo, ventas, deudas, admin, armados,
+                   automaticos, notificaciones):
         app.register_blueprint(modulo.bp)
 
     # La limpieza diaria se puede desactivar con ENABLE_ARCHIVE_SCHEDULER=0.

@@ -5,6 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  {% if g.user %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}
   <title>{{ self.titulo() }} · Inventario</title>
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='Logo.ico') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -77,7 +79,11 @@
       <header class="topbar">
         <label for="nav-toggle" class="burger" aria-label="Abrir menú">☰</label>
         <h1>{% block titulo %}{% endblock %}</h1>
-        <div class="topbar-right">{% block acciones %}{% endblock %}</div>
+        <div class="topbar-right">
+          <button type="button" class="btn sm" id="activar-notificaciones">Activar avisos y sonido</button>
+          <small id="estado-notificaciones" role="status" aria-live="polite"></small>
+          {% block acciones %}{% endblock %}
+        </div>
       </header>
       {{ flashes() }}
       {% block contenido %}{% endblock %}
@@ -88,6 +94,7 @@
 {% endif %}
 <footer class="site-footer">By Logan Vasquez</footer>
 {% if g.user %}<script src="{{ url_for('static', filename='js/decimal-inputs.js') }}"></script>{% endif %}
+{% if g.user %}<script src="{{ url_for('static', filename='js/notificaciones.js') }}"></script>{% endif %}
 {% block scripts %}{% endblock %}
 {% if g.user %}<script src="{{ url_for('static', filename='js/lightbox.js') }}"></script>{% endif %}
 </body>

@@ -21,6 +21,15 @@ CREATE TABLE IF NOT EXISTS usuarios (
     tipo_vendedor TEXT NOT NULL DEFAULT 'normal' CHECK (tipo_vendedor IN ('especial', 'normal'))
 );
 
+-- Suscripciones por dispositivo para enviar Web Push a cada usuario.
+CREATE TABLE IF NOT EXISTS notificaciones_push (
+    endpoint      TEXT PRIMARY KEY,
+    usuario_id    INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    clave_publica TEXT NOT NULL,
+    clave_auth    TEXT NOT NULL,
+    creado        TEXT NOT NULL
+);
+
 -- Parámetros generales (datos de la empresa, tasa de cambio, reglas)
 CREATE TABLE IF NOT EXISTS configuracion (
     clave TEXT PRIMARY KEY,
