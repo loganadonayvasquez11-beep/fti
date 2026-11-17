@@ -1,6 +1,9 @@
 """Punto de entrada de la aplicación Flask (fábrica de la app + comandos CLI)."""
 import os
+import smtplib
+import ssl
 from datetime import timedelta, timezone
+from email.message import EmailMessage
 
 import click
 from flask import Flask, g, render_template, request, send_from_directory, session
@@ -164,6 +167,71 @@ def create_app():
         from archivos import generar_archivo_diario
         fila, creado = generar_archivo_diario(None)
         click.echo(("PDF generado: " if creado else "PDF actualizado: ") + fila["ruta"])
+
+    @app.cli.command("send-daily-archive")
+    def send_daily_archive_cmd():
+        """Genera el PDF de ayer y lo envía por correo mediante SMTP sobre TLS."""
+        from datetime import datetime
+
+        from archivos import generar_archivo_diario, resolver_ruta_archivo_historico
+        from utils import hoy
+
+        usuario = os.environ.get("SMTP_USERNAME", "").strip()
+        contrasena = os.environ.get("SMTP_PASSWORD", "")
+        destinatario = os.environ.get("DAILY_ARCHIVE_RECIPIENT", "").strip()
+        servidor = os.environ.get("SMTP_SERVER", "smtp.gmail.com").strip()
+        remitente = os.environ.get("SMTP_SENDER", usuario).strip()
+        try:
+            puerto = int(os.environ.get("SMTP_PORT", "465"))
+        except ValueError as exc:
+            raise click.ClickException("SMTP_PORT debe ser 465 o 587.") from exc
+
+        if not usuario or not contrasena or not destinatario:
+            raise click.ClickException(
+                "Configura SMTP_USERNAME, SMTP_PASSWORD y DAILY_ARCHIVE_RECIPIENT "
+                "en la tarea programada."
+            )
+        if not servidor or not remitente or puerto not in (465, 587):
+            raise click.ClickException(
+                "SMTP_SERVER y SMTP_SENDER deben ser válidos; SMTP_PORT debe ser 465 o 587."
+            )
+
+        fecha = datetime.strptime(hoy(), "%Y-%m-%d").date() - timedelta(days=1)
+        fecha_iso = fecha.strftime("%Y-%m-%d")
+        fecha_texto = fecha.strftime("%d-%m-%Y")
+        fila, _ = generar_archivo_diario(fecha_reporte=fecha_iso)
+        ruta_pdf = resolver_ruta_archivo_historico(fila["ruta"])
+
+        mensaje = EmailMessage()
+        mensaje["From"] = remitente
+        mensaje["To"] = destinatario
+        mensaje["Subject"] = f"Histórico diario - {fecha_texto}"
+        mensaje.set_content(
+            f"Adjunto encontrarás el histórico diario correspondiente al {fecha_texto}."
+        )
+        mensaje.add_attachment(
+            ruta_pdf.read_bytes(),
+            maintype="application",
+            subtype="pdf",
+            filename=f"Historico diario - {fecha_texto}.pdf",
+        )
+
+        try:
+            if puerto == 465:
+                with smtplib.SMTP_SSL(
+                    servidor, puerto, timeout=30, context=ssl.create_default_context()
+                ) as smtp:
+                    smtp.login(usuario, contrasena)
+                    smtp.send_message(mensaje)
+            else:
+                with smtplib.SMTP(servidor, puerto, timeout=30) as smtp:
+                    smtp.starttls(context=ssl.create_default_context())
+                    smtp.login(usuario, contrasena)
+                    smtp.send_message(mensaje)
+        except (OSError, smtplib.SMTPException) as exc:
+            raise click.ClickException(f"No se pudo enviar el histórico por correo: {exc}") from exc
+
+        click.echo(f"Histórico de {fecha_texto} enviado a {destinatario}.")
 
     return app
 

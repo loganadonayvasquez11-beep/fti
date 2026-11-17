@@ -33,7 +33,11 @@
   <div class="table-wrap"><table class="stack">
     <thead><tr><th>Fecha</th><th>Concepto</th><th>Vence</th><th class="r">Monto</th><th class="r">Saldo</th><th>Estado</th></tr></thead>
     <tbody>{% for d in deudas %}
-      <tr><td data-label="Fecha">{{ d.fecha|fecha }}</td><td data-label="Concepto"><a href="{{ url_for('deudas.detalle', deuda_id=d.id) }}">{{ d.concepto }}</a></td>
+      <tr><td data-label="Fecha">{{ d.fecha|fecha }}</td><td data-label="Concepto">
+          {% if g.user.rol == 'admin' or d.vendedor_id == g.user.id %}
+          <a href="{{ url_for('deudas.detalle', deuda_id=d.id) }}">{{ d.concepto }}</a>
+          {% else %}{{ d.concepto }}{% endif %}
+        </td>
           <td data-label="Vence">{{ d.vencimiento|fecha }}</td><td data-label="Monto" class="r">$ {{ d.monto_usd|num }}</td>
           <td data-label="Saldo" class="r {{ 'deuda-roja' if d.estado == 'activa' and d.saldo_usd > 0.005 }}">$ {{ d.saldo_usd|num }}</td><td data-label="Estado">{{ estado_deuda_tag(d) }}</td></tr>
     {% endfor %}</tbody></table></div>

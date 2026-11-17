@@ -28,11 +28,12 @@ def lista():
     """Lista de clientes con su deuda actual. Filtros: búsqueda y (admin) vendedor."""
     q = request.args.get("q", "").strip()
     vendedor = to_int(request.args.get("vendedor"))
-    sql = """SELECT c.*, u.nombre AS vendedor_nombre,
+    filtro_deuda_vendedor = "" if g.user["rol"] == "admin" else " AND d.vendedor_id = ?"
+    sql = f"""SELECT c.*, u.nombre AS vendedor_nombre,
                     COALESCE((SELECT SUM(saldo_usd) FROM v_deudas d
-                               WHERE d.cliente_id = c.id AND d.estado = 'activa'), 0) AS deuda_usd
+                               WHERE d.cliente_id = c.id AND d.estado = 'activa'{filtro_deuda_vendedor}), 0) AS deuda_usd
                FROM clientes c JOIN usuarios u ON u.id = c.vendedor_id WHERE c.activo = 1"""
-    args = []
+    args = [g.user["id"]] if g.user["rol"] == "vendedor" else []
     if g.user["rol"] == "vendedor":
         sql += " AND c.vendedor_id = ?"; args.append(g.user["id"])
     elif vendedor:
@@ -104,15 +105,36 @@ def nuevo():
 def detalle(cliente_id):
     """Ficha del cliente: datos, deudas, ventas recientes y botón de estado de cuenta."""
     c = _cliente_o_404(cliente_id)
-    deudas = query("SELECT * FROM v_deudas WHERE cliente_id = ? AND estado != 'anulada' ORDER BY fecha DESC", (cliente_id,))
-    ventas = query("SELECT * FROM ventas WHERE cliente_id = ? ORDER BY id DESC LIMIT 10", (cliente_id,))
+    sql_deudas = "SELECT * FROM v_deudas WHERE cliente_id = ? AND estado != 'anulada'"
+    args_deudas = [cliente_id]
+    if g.user["rol"] == "vendedor":
+        sql_deudas += " AND vendedor_id = ?"
+        args_deudas.append(g.user["id"])
+    sql_deudas += " ORDER BY fecha DESC"
+    deudas = query(sql_deudas, args_deudas)
+    if g.user["rol"] == "admin":
+        saldo = saldo_cliente_usd(cliente_id)
+    else:
+        saldo = query(
+            """SELECT COALESCE(SUM(saldo_usd), 0) AS saldo
+                 FROM v_deudas WHERE cliente_id = ? AND vendedor_id = ? AND estado = 'activa'""",
+            (cliente_id, g.user["id"]), one=True,
+        )["saldo"]
+    if g.user["rol"] == "admin":
+        ventas = query("SELECT * FROM ventas WHERE cliente_id = ? ORDER BY id DESC LIMIT 10", (cliente_id,))
+    else:
+        ventas = query(
+            """SELECT * FROM ventas WHERE cliente_id = ? AND vendedor_id = ?
+                ORDER BY id DESC LIMIT 10""",
+            (cliente_id, g.user["id"]),
+        )
     presupuestos = query(
         """SELECT id, actualizado, tipo_pago, total, venta_id FROM presupuestos
             WHERE cliente_id = ? AND vendedor_id = ? ORDER BY actualizado DESC LIMIT 20""",
         (cliente_id, g.user["id"]),
     ) if g.user["rol"] == "vendedor" else []
     return render_template("clientes/detalle.html", c=c, deudas=deudas, ventas=ventas,
-                           saldo=saldo_cliente_usd(cliente_id), presupuestos=presupuestos)
+                           saldo=saldo, presupuestos=presupuestos)
 
 
 @bp.route("/<int:cliente_id>/editar", methods=["GET", "POST"])
@@ -182,7 +204,8 @@ def estado_cuenta_pdf(cliente_id):
     """Descarga el estado de cuenta del cliente en PDF."""
     c = _cliente_o_404(cliente_id)
     nombre = nombre_pdf_cliente(c["nombre"], "Estado de cuenta")
-    return responder_pdf(lambda escala: pdf.estado_cuenta(cliente_id, escala), nombre)
+    vendedor_id = g.user["id"] if g.user["rol"] == "vendedor" else None
+    return responder_pdf(lambda escala: pdf.estado_cuenta(cliente_id, escala, vendedor_id), nombre)
 
 
 @bp.route("/<int:cliente_id>/desactivar", methods=["POST"])

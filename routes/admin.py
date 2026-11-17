@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash
 from db import get_db, query
 from pdf_responses import responder_pdf
 from services import audit, get_config, set_config
+from services_kpi import resumen_kpis_mensuales
 from utils import ahora, aviso, hoy, roles_required, to_float, to_int
 from archivos import (generar_archivo_diario, generar_pdf_historico_periodo,
                       resolver_ruta_archivo_historico)
@@ -45,11 +46,11 @@ def vendedores():
                   COALESCE((SELECT SUM(saldo_usd) FROM v_deudas d WHERE d.vendedor_id = u.id AND d.estado='activa'), 0) AS por_cobrar,
                   COALESCE((SELECT SUM(saldo_usd) FROM v_deudas d WHERE d.vendedor_id = u.id AND d.estado='activa'
                              AND d.vencimiento < ?), 0) AS vencido,
-                  COALESCE((SELECT SUM(v.total_usd) FROM ventas v JOIN clientes c ON c.id = v.cliente_id
-                             WHERE c.vendedor_id = u.id AND v.estado='aprobada'
+                  COALESCE((SELECT SUM(v.total_usd) FROM ventas v
+                             WHERE v.vendedor_id = u.id AND v.estado='aprobada'
                                AND substr(v.fecha,1,7) = ?), 0) AS vendido_mes,
-                  (SELECT COUNT(*) FROM ventas v JOIN clientes c ON c.id = v.cliente_id
-                    WHERE c.vendedor_id = u.id AND v.estado='pendiente') AS pendientes
+                  (SELECT COUNT(*) FROM ventas v
+                    WHERE v.vendedor_id = u.id AND v.estado='pendiente') AS pendientes
              FROM usuarios u WHERE u.rol = 'vendedor' ORDER BY u.activo DESC, u.nombre""", (hoy(), mes))
     return render_template("admin/vendedores.html", vendedores=filas)
 
@@ -105,7 +106,7 @@ def vendedor_detalle(vid):
                   (SELECT MIN(vencimiento) FROM v_deudas d WHERE d.cliente_id = c.id AND d.estado='activa' AND d.saldo_usd > 0.005) AS prox_venc
              FROM clientes c WHERE c.vendedor_id = ? AND c.activo = 1 ORDER BY deuda_usd DESC, c.nombre""", (vid,))
     ventas = query("""SELECT v.*, c.nombre AS cliente FROM ventas v JOIN clientes c ON c.id = v.cliente_id
-                       WHERE c.vendedor_id = ? ORDER BY v.id DESC LIMIT 10""", (vid,))
+                       WHERE v.vendedor_id = ? ORDER BY v.id DESC LIMIT 10""", (vid,))
     otros = query("SELECT id, nombre FROM usuarios WHERE rol='vendedor' AND activo=1 AND id != ? ORDER BY nombre", (vid,))
     totales = query(
         """SELECT COALESCE(SUM(saldo_usd),0) AS por_cobrar,
@@ -123,28 +124,23 @@ def vendedor_editar(vid):
         return redirect(url_for("admin.vendedores"))
     if request.method == "POST":
         f = request.form
-        usuario = f.get("usuario", "").strip().lower()
         nombre = f.get("nombre", "").strip()
-        if not usuario or not nombre:
-            aviso("Usuario y nombre son obligatorios.", "error")
-        elif query("SELECT 1 FROM usuarios WHERE usuario = ? AND id != ?", (usuario, vid), one=True):
-            aviso("Ese nombre de usuario ya existe.", "error")
+        if not nombre:
+            aviso("El nombre es obligatorio.", "error")
         elif f.get("clave") and len(f.get("clave")) < 6:
             aviso("La nueva clave debe tener al menos 6 caracteres.", "error")
         else:
             db = get_db()
-            db.execute("UPDATE usuarios SET usuario=?, nombre=?, telefono=?, email=?, tipo_vendedor=? WHERE id=?",
-                       (usuario, nombre, f.get("telefono", "").strip(), f.get("email", "").strip(),
-                        _tipo_vendedor(f), vid))
+            db.execute("UPDATE usuarios SET nombre=?, telefono=?, email=?, tipo_vendedor=? WHERE id=?",
+                       (nombre, f.get("telefono", "").strip(), f.get("email", "").strip(), _tipo_vendedor(f), vid))
             if _tipo_vendedor(f) != u["tipo_vendedor"]:
                 audit("vendedor_tipo", f"{u['usuario']}: {u['tipo_vendedor']} -> {_tipo_vendedor(f)}")
             if f.get("clave"):
                 db.execute("UPDATE usuarios SET clave_hash=? WHERE id=?", (generate_password_hash(f.get("clave")), vid))
             db.commit()
-            audit("vendedor_editado", f"{u['usuario']} -> {usuario}")
+            audit("vendedor_editado", u["usuario"])
             aviso("Vendedor actualizado.")
             return redirect(url_for("admin.vendedor_detalle", vid=vid))
-        u = {**dict(u), **f, "usuario": f.get("usuario", "").strip()}
     return render_template("admin/vendedor_form.html", u=u, nuevo=False)
 
 
@@ -229,8 +225,7 @@ def reportes():
     hasta = request.args.get("hasta") or hoy()
     por_vendedor = query(
         """SELECT u.nombre, COUNT(v.id) AS n, COALESCE(SUM(v.total_usd),0) AS total
-             FROM usuarios u LEFT JOIN clientes c ON c.vendedor_id = u.id
-              LEFT JOIN ventas v ON v.cliente_id = c.id AND v.estado='aprobada'
+             FROM usuarios u LEFT JOIN ventas v ON v.vendedor_id = u.id AND v.estado='aprobada'
               AND substr(v.fecha,1,10) BETWEEN ? AND ?
             WHERE u.rol='vendedor' GROUP BY u.id ORDER BY total DESC""", (desde, hasta))
     top_productos = query(
@@ -242,12 +237,38 @@ def reportes():
         """SELECT v.id, v.numero, v.fecha, u.nombre AS vendedor, c.nombre AS cliente, p.nombre AS producto,
                   v.moneda, d.precio_lista, d.precio_unit
              FROM venta_detalles d JOIN ventas v ON v.id = d.venta_id JOIN clientes c ON c.id = v.cliente_id
-             JOIN usuarios u ON u.id = c.vendedor_id JOIN productos p ON p.id = d.producto_id
+             JOIN usuarios u ON u.id = v.vendedor_id JOIN productos p ON p.id = d.producto_id
             WHERE d.modificado = 1 AND v.estado IN ('pendiente','aprobada')
               AND substr(v.fecha,1,10) BETWEEN ? AND ? ORDER BY v.id DESC LIMIT 100""", (desde, hasta))
     valor = query("SELECT COALESCE(SUM(stock*precio_mayor_usd),0) AS mayor FROM productos WHERE activo=1", one=True)
     return render_template("admin/reportes.html", desde=desde, hasta=hasta, por_vendedor=por_vendedor,
                            top=top_productos, modificadas=modificadas, valor=valor)
+
+
+@bp.route("/kpis")
+@roles_required("admin")
+def kpis():
+    fecha_hoy = hoy()
+    periodo = request.args.get("periodo", fecha_hoy[:7]).strip()
+    try:
+        fecha_periodo = datetime.strptime(periodo, "%Y-%m")
+    except ValueError:
+        abort(400, "El mes seleccionado no es válido.")
+    if fecha_periodo.strftime("%Y-%m") != periodo or periodo > fecha_hoy[:7]:
+        abort(400, "El mes seleccionado no es válido.")
+
+    desde = periodo + "-01"
+    hasta = fecha_hoy if periodo == fecha_hoy[:7] else (
+        f"{periodo}-{calendar.monthrange(fecha_periodo.year, fecha_periodo.month)[1]:02d}"
+    )
+    return render_template(
+        "admin/kpis.html",
+        periodo=periodo,
+        periodo_max=fecha_hoy[:7],
+        desde=desde,
+        hasta=hasta,
+        datos=resumen_kpis_mensuales(desde, hasta),
+    )
 
 
 # =================================================================== auditoría
@@ -257,6 +278,12 @@ def auditoria():
     """Auditoría por período; por defecto muestra los últimos siete días."""
     desde = request.args.get("desde") or (datetime.strptime(hoy(), "%Y-%m-%d") - timedelta(days=6)).strftime("%Y-%m-%d")
     hasta = request.args.get("hasta") or hoy()
+    filas = query("""SELECT a.*, u.nombre AS usuario FROM auditoria a LEFT JOIN usuarios u ON u.id = a.usuario_id
+                      WHERE substr(a.fecha,1,10) BETWEEN ? AND ? ORDER BY a.id DESC LIMIT 2000""", (desde, hasta))
+    return render_template("admin/auditoria.html", filas=filas, desde=desde, hasta=hasta)
+
+
+# =========================================================== archivos históricos
 
 def _historial_anios():
     """Lista los años con actividad en la base para navegar por período."""
@@ -478,7 +505,6 @@ def _historial_filtro_vacio(detalle, tipo):
     return not detalle[claves[tipo]]
 
 
-# =========================================================== archivos históricos
 @bp.route("/historiales")
 @roles_required("admin")
 def historiales():

@@ -483,19 +483,23 @@ def recibo_abono(abono_id, escala=100):
 
 # =========================================================== estado de cuenta
 # =========================================================== estado de cuenta
-def estado_cuenta(cliente_id, escala=100):
-    """PDF con todas las deudas activas de un cliente, sus abonos y el saldo total."""
+def estado_cuenta(cliente_id, escala=100, vendedor_id=None):
+    """Genera el estado de cuenta del cliente, opcionalmente limitado a un vendedor."""
     c = query("SELECT c.*, u.nombre AS vendedor FROM clientes c JOIN usuarios u ON u.id = c.vendedor_id WHERE c.id = ?",
               (cliente_id,), one=True)
     if c is None:
         return None
-    deudas = query("SELECT * FROM v_deudas WHERE cliente_id = ? AND estado IN ('activa','pagada') ORDER BY fecha",
-                   (cliente_id,))
+    filtro_vendedor = "" if vendedor_id is None else " AND vendedor_id = ?"
+    args = (cliente_id,) if vendedor_id is None else (cliente_id, vendedor_id)
+    deudas = query(
+        f"""SELECT * FROM v_deudas WHERE cliente_id = ? AND estado IN ('activa','pagada')
+             {filtro_vendedor} ORDER BY fecha""", args)
 
     # Obtener la última fecha de vencimiento de compra (activa o pagada)
     ultima_venc = query(
-        "SELECT MAX(vencimiento) AS ultima FROM v_deudas WHERE cliente_id = ? AND estado IN ('activa','pagada')",
-        (cliente_id,), one=True
+        f"""SELECT MAX(vencimiento) AS ultima FROM v_deudas
+             WHERE cliente_id = ? AND estado IN ('activa','pagada'){filtro_vendedor}""",
+        args, one=True
     )
     fec_str = fmt_fecha(ultima_venc["ultima"]) if ultima_venc and ultima_venc["ultima"] else "—"
 

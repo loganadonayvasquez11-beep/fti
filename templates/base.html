@@ -10,20 +10,6 @@
   <title>{{ self.titulo() }} · Inventario</title>
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='Logo.ico') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <style>
-    .brand-logo {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-.logo-empresa {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-}
-  </style>
 </head>
 <body>
 {% if g.user %}
@@ -42,6 +28,7 @@
         <a href="{{ url_for('panel.inicio') }}" class="{{ 'on' if ep == 'panel.inicio' }}">{{ ico('home') }}<span>Panel</span></a>
         {% if g.user.rol == 'admin' %}
           <div class="nav-group">Cartera</div>
+          <a href="{{ url_for('admin.kpis') }}" class="{{ 'on' if ep == 'admin.kpis' }}">{{ ico('chart') }}<span>KPI mensual</span></a>
           <a href="{{ url_for('admin.vendedores') }}" class="{{ 'on' if ep.startswith('admin.vendedor') }}">{{ ico('brief') }}<span>Vendedores</span></a>
           <a href="{{ url_for('clientes.lista') }}" class="{{ 'on' if ep.startswith('clientes.') }}">{{ ico('users') }}<span>Clientes</span></a>
           <div class="nav-group">Operación</div>

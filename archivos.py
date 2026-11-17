@@ -99,14 +99,14 @@ def generar_archivo_diario(usuario_id=None, fecha_reporte=None):
         WHERE v.fecha BETWEEN ? AND ? ORDER BY v.fecha,v.id,d.id""", (desde, hasta)).fetchall()
     deudas = db.execute("""SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.monto_usd,d.vencimiento,d.estado,
         COALESCE((SELECT SUM(a.monto_usd) FROM abonos a WHERE a.deuda_id=d.id AND a.anulado=0),0) abonado
-        FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=c.vendedor_id
+        FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=d.vendedor_id
         WHERE d.fecha BETWEEN ? AND ? ORDER BY d.fecha,d.id""", (desde, hasta)).fetchall()
     deudas_pendientes = db.execute("""SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.concepto,d.vencimiento,
         d.monto_usd,
         COALESCE((SELECT SUM(a.monto_usd) FROM abonos a WHERE a.deuda_id=d.id AND a.anulado=0),0) abonado_usd,
         d.monto_usd - COALESCE((SELECT SUM(a.monto_usd) FROM abonos a
             WHERE a.deuda_id=d.id AND a.anulado=0),0) saldo_usd,d.estado
-        FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=c.vendedor_id
+        FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=d.vendedor_id
         WHERE d.estado IN ('activa','pendiente')
           AND d.monto_usd - COALESCE((SELECT SUM(a.monto_usd) FROM abonos a
             WHERE a.deuda_id=d.id AND a.anulado=0),0) > 0.005

@@ -6,6 +6,17 @@
     <a class="btn primary" href="{{ url_for('ventas.editar', venta_id=v.id) }}">{{ 'Editar venta' if g.user.rol == 'admin' else 'Editar pedido pendiente' }}</a>
   {% endif %}
   <a class="btn" href="{{ url_for('ventas.nota_pdf', venta_id=v.id) }}">Abrir nota de venta PDF</a>
+  {% if g.user.rol == 'admin' %}
+  <form method="post" action="{{ url_for('ventas.traspasar', venta_id=v.id) }}" class="inline-form"
+        onsubmit="return confirm('La venta y su deuda asociada pasarán al vendedor elegido. El cliente conservará su vendedor actual. ¿Continuar?');">
+    {{ csrf_field() }}
+    <select name="vendedor_id" aria-label="Traspasar venta {{ v.numero }}" required>
+      <option value="">Traspasar venta y deuda a…</option>
+      {% for vendedor in vendedores %}<option value="{{ vendedor.id }}">{{ vendedor.nombre }}</option>{% endfor %}
+    </select>
+    <button class="btn">Traspasar venta</button>
+  </form>
+  {% endif %}
 {% endblock %}
 {% block contenido %}
 <section class="card">
@@ -80,7 +91,7 @@
       Inicio del crédito: <b>{{ deuda.fecha|fecha }}</b> · Vence el <b>{{ deuda.vencimiento|fecha }}</b>
     {% endif %}
     · Saldo <b>$ {{ deuda.saldo_usd|num }}</b> {{ estado_deuda_tag(deuda) }}
-    {% if g.user.rol == 'admin' or v.cartera_vendedor_id == g.user.id %}<a class="btn sm" href="{{ url_for('deudas.detalle', deuda_id=deuda.id) }}">Ver deuda y abonos</a>{% endif %}</p>
+    {% if g.user.rol == 'admin' or deuda.vendedor_id == g.user.id %}<a class="btn sm" href="{{ url_for('deudas.detalle', deuda_id=deuda.id) }}">Ver deuda y abonos</a>{% endif %}</p>
 </section>
 {% endif %}
 

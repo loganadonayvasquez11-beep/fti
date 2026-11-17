@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% from '_macros.html' import estado_venta, tipo_pago_tag, armado_tag %}
 {% block titulo %}{{ 'Ventas' if g.user.rol == 'admin' or es_especial else 'Mis ventas' }}{% endblock %}
-{% block acciones %}{% if g.user.rol == 'vendedor' %}<a class="btn primary" href="{{ url_for('ventas.nueva') }}">Nueva venta</a>{% endif %}{% endblock %}
 {% block contenido %}
 <form class="filters card" method="get">
   <input name="q" value="{{ q }}" placeholder="Buscar por cliente o número">

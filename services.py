@@ -1277,8 +1277,8 @@ def resumen_panel(usuario):
     else:
         r["ventas_mes"] = uno(
             """SELECT COALESCE(SUM(v.total_usd),0) AS t, COUNT(*) AS n
-                 FROM ventas v JOIN clientes c ON c.id = v.cliente_id
-                WHERE v.estado='aprobada' AND substr(v.fecha,1,7)=? AND c.vendedor_id=?""",
+                 FROM ventas v
+                WHERE v.estado='aprobada' AND substr(v.fecha,1,7)=? AND v.vendedor_id=?""",
             (mes, usuario["id"]))
         r["cobrado_mes"] = total_cobrado_periodo(mes + "-01", hoy(), usuario["id"])
     if es_aprobador:
@@ -1287,8 +1287,8 @@ def resumen_panel(usuario):
     else:
         r["pendientes"] = uno(
             """SELECT COUNT(*) AS n, COALESCE(SUM(v.total_usd),0) AS t
-                 FROM ventas v JOIN clientes c ON c.id = v.cliente_id
-                WHERE v.estado='pendiente' AND c.vendedor_id=?""", (usuario["id"],))
+                 FROM ventas v WHERE v.estado='pendiente' AND v.vendedor_id=?""",
+            (usuario["id"],))
     r["por_cobrar"] = uno(
         f"SELECT COALESCE(SUM(saldo_usd),0) AS t, COUNT(*) AS n FROM v_deudas WHERE estado='activa'{filtro_v}", args)
     r["vencidas"] = uno(
@@ -1300,7 +1300,7 @@ def resumen_panel(usuario):
     r["ultimas"] = query(
         f"""SELECT v.id, v.numero, v.fecha, v.total, v.moneda, v.estado, c.nombre AS cliente
               FROM ventas v JOIN clientes c ON c.id = v.cliente_id
-             WHERE 1=1{" AND c.vendedor_id = ?" if not es_admin else ""}
+             WHERE 1=1{" AND v.vendedor_id = ?" if not es_admin else ""}
              ORDER BY v.id DESC LIMIT 6""", () if es_admin else (usuario["id"],))
     r["proximas"] = query(
         f"""SELECT id, cliente_nombre, vencimiento, saldo_usd FROM v_deudas
@@ -1309,8 +1309,7 @@ def resumen_panel(usuario):
         r["por_vendedor"] = query(
             """SELECT u.id, u.nombre,
                       COALESCE((SELECT SUM(v.total_usd) FROM ventas v
-                                 JOIN clientes c ON c.id = v.cliente_id
-                                WHERE c.vendedor_id=u.id AND v.estado='aprobada' AND substr(v.fecha,1,7)=?),0) AS vendido,
+                                WHERE v.vendedor_id=u.id AND v.estado='aprobada' AND substr(v.fecha,1,7)=?),0) AS vendido,
                       COALESCE((SELECT SUM(saldo_usd) FROM v_deudas
                                  WHERE vendedor_id=u.id AND estado='activa'),0) AS por_cobrar
                  FROM usuarios u WHERE u.rol='vendedor' AND u.activo=1 ORDER BY vendido DESC LIMIT 6""", (mes,))
