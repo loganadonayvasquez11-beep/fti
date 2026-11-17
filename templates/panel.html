@@ -5,6 +5,7 @@
 {% block contenido %}
 <section class="stats">
   <div class="stat"><span>Vendido este mes</span><b>$ {{ r.ventas_mes.t|num }}</b><small>{{ r.ventas_mes.n }} ventas aprobadas</small></div>
+  <div class="stat"><span>Cobrado este mes</span><b>$ {{ r.cobrado_mes|num }}</b><small>Pagos recibidos este mes</small></div>
   <a class="stat link {{ 'deuda-roja' if r.por_cobrar.t > 0.005 }}" href="{{ url_for('deudas.lista') }}"><span>Por cobrar</span><b>$ {{ r.por_cobrar.t|num }}</b><small>{{ r.por_cobrar.n }} deudas activas</small></a>
   <a class="stat link {{ 'danger deuda-roja' if r.vencidas.n }}" href="{{ url_for('deudas.lista', estado='vencidas') }}"><span>Vencido</span><b>$ {{ r.vencidas.t|num }}</b><small>{{ r.vencidas.n }} deudas vencidas</small></a>
   <a class="stat link {{ 'warn' if r.pendientes.n }}" href="{{ url_for('ventas.lista', estado='pendiente') }}"><span>{{ 'Por aprobar' if g.user.rol == 'admin' or es_especial else 'En espera de aprobación' }}</span><b>{{ r.pendientes.n }}</b><small>$ {{ r.pendientes.t|num }} en ventas</small></a>

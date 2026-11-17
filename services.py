@@ -53,6 +53,35 @@ def a_usd(monto, moneda, tasa):
     return round(monto, 2)
 
 
+def total_cobrado_periodo(desde, hasta, vendedor_id=None):
+    """Suma cobros recibidos por fecha de pago, no por fecha de creación de la venta."""
+    filtro_venta = ""
+    filtro_deuda = ""
+    args = [desde, hasta]
+    if vendedor_id is not None:
+        filtro_venta = " AND v.vendedor_id = ?"
+        filtro_deuda = " AND d.vendedor_id = ?"
+        args.append(vendedor_id)
+    args.extend((desde, hasta))
+    if vendedor_id is not None:
+        args.append(vendedor_id)
+    fila = query(
+        f"""SELECT COALESCE(SUM(monto), 0) AS total FROM (
+                SELECT v.total_usd AS monto
+                  FROM ventas v
+                 WHERE v.estado='aprobada' AND v.tipo_pago='contado' AND v.pagada=1
+                   AND substr(COALESCE(v.fecha_aprobacion, v.fecha),1,10) BETWEEN ? AND ?{filtro_venta}
+                UNION ALL
+                SELECT a.monto_usd AS monto
+                  FROM abonos a JOIN deudas d ON d.id=a.deuda_id
+                 WHERE a.anulado=0 AND substr(a.fecha,1,10) BETWEEN ? AND ?{filtro_deuda}
+            ) cobros""",
+        args,
+        one=True,
+    )
+    return float(fila["total"])
+
+
 # ============================================================ reglas de vendedor
 def msg_sin_stock(vendedor_id, nombre, stock):
     """Mensaje de falta de existencia. El vendedor normal NO ve cantidades: solo si se agotó o no alcanza."""
@@ -1199,12 +1228,14 @@ def resumen_panel(usuario):
         r["ventas_mes"] = uno(
             """SELECT COALESCE(SUM(total_usd),0) AS t, COUNT(*) AS n FROM ventas
                 WHERE estado='aprobada' AND substr(fecha,1,7)=?""", (mes,))
+        r["cobrado_mes"] = total_cobrado_periodo(mes + "-01", hoy(), None)
     else:
         r["ventas_mes"] = uno(
             """SELECT COALESCE(SUM(v.total_usd),0) AS t, COUNT(*) AS n
                  FROM ventas v JOIN clientes c ON c.id = v.cliente_id
                 WHERE v.estado='aprobada' AND substr(v.fecha,1,7)=? AND c.vendedor_id=?""",
             (mes, usuario["id"]))
+        r["cobrado_mes"] = total_cobrado_periodo(mes + "-01", hoy(), usuario["id"])
     if es_aprobador:
         r["pendientes"] = uno(
             "SELECT COUNT(*) AS n, COALESCE(SUM(total_usd),0) AS t FROM ventas WHERE estado='pendiente'")

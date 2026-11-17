@@ -111,9 +111,36 @@ def generar_archivo_diario(usuario_id=None, fecha_reporte=None):
           AND d.monto_usd - COALESCE((SELECT SUM(a.monto_usd) FROM abonos a
             WHERE a.deuda_id=d.id AND a.anulado=0),0) > 0.005
         ORDER BY d.vencimiento,c.nombre""").fetchall()
-    abonos = db.execute("""SELECT a.fecha,c.nombre cliente,u.nombre vendedor,a.monto,a.moneda,a.monto_usd,a.metodo,
-        a.referencia,a.anulado FROM abonos a JOIN deudas d ON d.id=a.deuda_id JOIN clientes c ON c.id=d.cliente_id
-        LEFT JOIN usuarios u ON u.id=a.registrado_por WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha,a.id""", (desde, hasta)).fetchall()
+    cobros = db.execute(
+        """SELECT fecha,cliente,vendedor,registrado_por,tipo,referencia,monto_usd,metodo,anulado
+             FROM (
+                 SELECT COALESCE(v.fecha_aprobacion,v.fecha) fecha,c.nombre cliente,
+                        u.nombre vendedor,COALESCE(aprobador.nombre,u.nombre) registrado_por,
+                        'Venta de contado' tipo,v.numero referencia,v.total_usd monto_usd,
+                        v.metodo_pago metodo,0 anulado
+                   FROM ventas v JOIN clientes c ON c.id=v.cliente_id
+                   JOIN usuarios u ON u.id=v.vendedor_id
+                   LEFT JOIN usuarios aprobador ON aprobador.id=v.aprobado_por
+                  WHERE v.estado='aprobada' AND v.tipo_pago='contado' AND v.pagada=1
+                    AND COALESCE(v.fecha_aprobacion,v.fecha) BETWEEN ? AND ?
+                 UNION ALL
+                 SELECT a.fecha,c.nombre,owner.nombre,collector.nombre,'Abono',
+                        COALESCE(NULLIF(a.referencia,''),v.numero,d.concepto),
+                        a.monto_usd,a.metodo,a.anulado
+                   FROM abonos a JOIN deudas d ON d.id=a.deuda_id
+                   JOIN clientes c ON c.id=d.cliente_id
+                   JOIN usuarios owner ON owner.id=d.vendedor_id
+                   LEFT JOIN usuarios collector ON collector.id=a.registrado_por
+                   LEFT JOIN ventas v ON v.id=d.venta_id
+                  WHERE a.fecha BETWEEN ? AND ?
+             ) pagos ORDER BY fecha,referencia""",
+        (desde, hasta, desde, hasta),
+    ).fetchall()
+    total_vendido = db.execute(
+        """SELECT COALESCE(SUM(total_usd),0) AS total FROM ventas
+            WHERE estado='aprobada' AND fecha BETWEEN ? AND ?""",
+        (desde, hasta),
+    ).fetchone()["total"]
 
     styles = getSampleStyleSheet()
     
@@ -213,8 +240,13 @@ def generar_archivo_diario(usuario_id=None, fecha_reporte=None):
                   [(r["fecha"],r["cliente"],r["vendedor"],r["concepto"],r["vencimiento"],
                     f'{r["monto_usd"]:.2f}',f'{r["abonado_usd"]:.2f}',f'{r["saldo_usd"]:.2f}',r["estado"])
                    for r in deudas_pendientes])
-    agregar_tabla("Abonos y recibos registrados", ["Fecha/hora","Cliente","Vendedor","Importe USD","Método","Referencia","Anulado"],
-                  [(r["fecha"],r["cliente"],r["vendedor"],f'{r["monto_usd"]:.2f}',r["metodo"],r["referencia"],"Sí" if r["anulado"] else "No") for r in abonos])
+    total_cobrado = sum(float(r["monto_usd"]) for r in cobros if not r["anulado"])
+    agregar_tabla("Resumen de caja", ["Vendido en el período USD","Cobrado en el período USD"],
+                  [(f"{total_vendido:.2f}", f"{total_cobrado:.2f}")])
+    agregar_tabla("Cobros recibidos (incluye pagos de ventas anteriores)", ["Fecha/hora","Tipo","Cliente","Vendedor","Registrado por","Monto USD","Método","Referencia","Anulado"],
+                  [(r["fecha"],r["tipo"],r["cliente"],r["vendedor"],r["registrado_por"],
+                    f'{r["monto_usd"]:.2f}',r["metodo"],r["referencia"],"Sí" if r["anulado"] else "No")
+                   for r in cobros])
     agregar_tabla("Auditoría del sistema", ["Fecha/hora","Usuario","Acción","Detalle"],
                   [(r["fecha"],r["usuario"],r["accion"],r["detalle"]) for r in aud])
 
@@ -259,3 +291,182 @@ def generar_archivo_diario(usuario_id=None, fecha_reporte=None):
     limpiar_archivos_historicos_vencidos(fecha_dia)
     fila = db.execute("SELECT * FROM archivos_historicos WHERE id=?", (archivo_id,)).fetchone()
     return dict(fila), existente is None
+
+
+def generar_pdf_historico_periodo(desde_fecha, hasta_fecha):
+    """Genera en memoria un PDF de actividad para un período arbitrario."""
+    desde = f"{desde_fecha} 00:00:00"
+    hasta = f"{hasta_fecha} 23:59:59"
+    db = get_db()
+
+    ventas = db.execute(
+        """SELECT v.fecha,v.numero,c.nombre cliente,u.nombre vendedor,v.estado,v.total_usd,
+                  d.cantidad,d.subtotal,p.codigo,p.nombre producto,p.unidad
+             FROM ventas v JOIN clientes c ON c.id=v.cliente_id
+             JOIN usuarios u ON u.id=v.vendedor_id
+             JOIN venta_detalles d ON d.venta_id=v.id
+             JOIN productos p ON p.id=d.producto_id
+            WHERE v.fecha BETWEEN ? AND ? ORDER BY v.fecha,v.id,d.id""",
+        (desde, hasta),
+    ).fetchall()
+    cobros = db.execute(
+        """SELECT fecha,cliente,vendedor,registrado_por,tipo,referencia,monto_usd,metodo,anulado
+             FROM (
+                 SELECT COALESCE(v.fecha_aprobacion,v.fecha) fecha,c.nombre cliente,
+                        u.nombre vendedor,COALESCE(a.nombre,u.nombre) registrado_por,
+                        'Venta de contado' tipo,v.numero referencia,v.total_usd monto_usd,
+                        v.metodo_pago metodo,0 anulado
+                   FROM ventas v JOIN clientes c ON c.id=v.cliente_id
+                   JOIN usuarios u ON u.id=v.vendedor_id
+                   LEFT JOIN usuarios a ON a.id=v.aprobado_por
+                  WHERE v.estado='aprobada' AND v.tipo_pago='contado' AND v.pagada=1
+                    AND COALESCE(v.fecha_aprobacion,v.fecha) BETWEEN ? AND ?
+                 UNION ALL
+                 SELECT a.fecha,c.nombre,owner.nombre,collector.nombre,'Abono',
+                        COALESCE(NULLIF(a.referencia,''),v.numero,d.concepto),
+                        a.monto_usd,a.metodo,a.anulado
+                   FROM abonos a JOIN deudas d ON d.id=a.deuda_id
+                   JOIN clientes c ON c.id=d.cliente_id
+                   JOIN usuarios owner ON owner.id=d.vendedor_id
+                   LEFT JOIN usuarios collector ON collector.id=a.registrado_por
+                   LEFT JOIN ventas v ON v.id=d.venta_id
+                  WHERE a.fecha BETWEEN ? AND ?
+             ) pagos ORDER BY fecha,referencia""",
+        (desde, hasta, desde, hasta),
+    ).fetchall()
+    movimientos = db.execute(
+        """SELECT m.fecha,p.codigo,p.nombre,m.tipo,m.cantidad,m.stock_resultante,m.motivo,u.nombre usuario
+             FROM movimientos_stock m JOIN productos p ON p.id=m.producto_id
+             LEFT JOIN usuarios u ON u.id=m.usuario_id
+            WHERE m.fecha BETWEEN ? AND ? ORDER BY m.fecha,m.id""",
+        (desde, hasta),
+    ).fetchall()
+    deudas = db.execute(
+        """SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.concepto,d.monto_usd,
+                  d.vencimiento,d.estado
+             FROM deudas d JOIN clientes c ON c.id=d.cliente_id
+             JOIN usuarios u ON u.id=d.vendedor_id
+            WHERE d.fecha BETWEEN ? AND ? ORDER BY d.fecha,d.id""",
+        (desde, hasta),
+    ).fetchall()
+    pendientes = db.execute(
+        """SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.concepto,d.monto_usd,
+                  d.vencimiento,d.estado,
+                  d.monto_usd-COALESCE((SELECT SUM(a.monto_usd) FROM abonos a
+                                        WHERE a.deuda_id=d.id AND a.anulado=0),0) saldo
+             FROM deudas d JOIN clientes c ON c.id=d.cliente_id
+             JOIN usuarios u ON u.id=d.vendedor_id
+            WHERE d.estado IN ('activa','pendiente')
+              AND d.monto_usd-COALESCE((SELECT SUM(a.monto_usd) FROM abonos a
+                                        WHERE a.deuda_id=d.id AND a.anulado=0),0)>0.005
+            ORDER BY d.vencimiento,c.nombre"""
+    ).fetchall()
+    auditoria = db.execute(
+        """SELECT a.fecha,u.nombre usuario,a.accion,a.detalle
+             FROM auditoria a LEFT JOIN usuarios u ON u.id=a.usuario_id
+            WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha,a.id""",
+        (desde, hasta),
+    ).fetchall()
+    total_vendido = db.execute(
+        """SELECT COALESCE(SUM(total_usd),0) AS total FROM ventas
+            WHERE estado='aprobada' AND fecha BETWEEN ? AND ?""",
+        (desde, hasta),
+    ).fetchone()["total"]
+    total_cobrado = sum(float(r["monto_usd"]) for r in cobros if not r["anulado"])
+
+    styles = getSampleStyleSheet()
+    titulo = ParagraphStyle("historico_titulo", parent=styles["Title"], fontSize=15, leading=18)
+    celda = ParagraphStyle("historico_celda", parent=styles["BodyText"], fontSize=7, leading=8)
+    from xml.sax.saxutils import escape
+
+    story = [
+        Paragraph(f"Histórico de actividad: {escape(desde_fecha)} a {escape(hasta_fecha)}", titulo),
+        Spacer(1, 5 * mm),
+        Paragraph(
+            f"Vendido en el período: ${float(total_vendido):,.2f} &nbsp;&nbsp;&nbsp; "
+            f"Cobrado en el período: ${total_cobrado:,.2f}",
+            styles["Heading2"],
+        ),
+        Spacer(1, 4 * mm),
+    ]
+
+    def agregar_tabla(titulo_tabla, encabezados, filas):
+        story.append(Paragraph(titulo_tabla, styles["Heading2"]))
+        datos = [[Paragraph(escape(str(x)), celda) for x in encabezados]]
+        if filas:
+            datos.extend([
+                [Paragraph(escape("" if valor is None else str(valor)), celda) for valor in fila]
+                for fila in filas
+            ])
+        else:
+            datos.append([Paragraph("Sin registros", celda)] + [""] * (len(datos[0]) - 1))
+        ancho = landscape(A4)[0] - 24 * mm
+        tabla = Table(
+            datos,
+            colWidths=[ancho / len(datos[0])] * len(datos[0]),
+            repeatRows=1,
+            hAlign="CENTER",
+        )
+        tabla.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), AZUL),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("GRID", (0, 0), (-1, -1), .35, colors.grey),
+            ("FONTSIZE", (0, 0), (-1, -1), 7),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, GRIS_CLARO]),
+        ]))
+        story.extend((tabla, Spacer(1, 4 * mm)))
+
+    agregar_tabla(
+        "Ventas",
+        ["Fecha", "N°", "Cliente", "Vendedor", "Producto", "Cantidad", "Importe línea", "Total", "Estado"],
+        [(r["fecha"], r["numero"], r["cliente"], r["vendedor"],
+          f'{r["codigo"]} - {r["producto"]}', r["cantidad"], f'{r["subtotal"]:.2f}',
+          f'{r["total_usd"]:.2f}', r["estado"]) for r in ventas],
+    )
+    agregar_tabla(
+        "Cobros recibidos",
+        ["Fecha", "Tipo", "Cliente", "Vendedor", "Registrado por", "Referencia", "Monto USD", "Método", "Anulado"],
+        [(r["fecha"], r["tipo"], r["cliente"], r["vendedor"], r["registrado_por"],
+          r["referencia"], f'{r["monto_usd"]:.2f}', r["metodo"], "Sí" if r["anulado"] else "No")
+         for r in cobros],
+    )
+    agregar_tabla(
+        "Movimientos de almacén",
+        ["Fecha", "Código", "Producto", "Tipo", "Cantidad", "Stock final", "Motivo", "Usuario"],
+        [(r["fecha"], r["codigo"], r["nombre"], r["tipo"], r["cantidad"],
+          r["stock_resultante"], r["motivo"], r["usuario"]) for r in movimientos],
+    )
+    agregar_tabla(
+        "Deudas creadas",
+        ["Fecha", "Cliente", "Vendedor", "Concepto", "Monto USD", "Vencimiento", "Estado"],
+        [(r["fecha"], r["cliente"], r["vendedor"], r["concepto"], f'{r["monto_usd"]:.2f}',
+          r["vencimiento"], r["estado"]) for r in deudas],
+    )
+    agregar_tabla(
+        "Saldo pendiente actual",
+        ["Fecha", "Cliente", "Vendedor", "Concepto", "Monto USD", "Saldo USD", "Vencimiento", "Estado"],
+        [(r["fecha"], r["cliente"], r["vendedor"], r["concepto"], f'{r["monto_usd"]:.2f}',
+          f'{r["saldo"]:.2f}', r["vencimiento"], r["estado"]) for r in pendientes],
+    )
+    agregar_tabla(
+        "Auditoría",
+        ["Fecha", "Usuario", "Acción", "Detalle"],
+        [(r["fecha"], r["usuario"], r["accion"], r["detalle"]) for r in auditoria],
+    )
+
+    salida = BytesIO()
+    doc = SimpleDocTemplate(
+        salida,
+        pagesize=landscape(A4),
+        rightMargin=12 * mm,
+        leftMargin=12 * mm,
+        topMargin=12 * mm,
+        bottomMargin=12 * mm,
+        title="Histórico de actividad",
+    )
+    doc.build(story, canvasmaker=CanvasEscalaImpresion)
+    contenido = salida.getvalue()
+    if not contenido.startswith(b"%PDF-") or len(contenido) < 500:
+        raise RuntimeError("No se pudo verificar el PDF histórico generado.")
+    return contenido

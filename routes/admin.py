@@ -1,4 +1,5 @@
 """Módulos del administrador: cartera de vendedores, configuración, reportes y auditoría."""
+import calendar
 from flask import Blueprint, current_app, g, redirect, render_template, request, url_for, send_file, abort
 from werkzeug.security import generate_password_hash
 
@@ -6,7 +7,7 @@ from db import get_db, query
 from pdf_responses import responder_pdf
 from services import audit, get_config, set_config
 from utils import ahora, aviso, hoy, roles_required, to_float, to_int
-from archivos import (generar_archivo_diario, limpiar_archivos_historicos_vencidos,
+from archivos import (generar_archivo_diario, generar_pdf_historico_periodo,
                       resolver_ruta_archivo_historico)
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -240,6 +241,202 @@ def auditoria():
     """Auditoría por período; por defecto muestra los últimos siete días."""
     desde = request.args.get("desde") or (datetime.strptime(hoy(), "%Y-%m-%d") - timedelta(days=6)).strftime("%Y-%m-%d")
     hasta = request.args.get("hasta") or hoy()
+
+def _historial_anios():
+    """Lista los años con actividad en la base para navegar por período."""
+    consulta = """
+        SELECT DISTINCT substr(fecha,1,4) AS anio
+        FROM (
+            SELECT fecha FROM ventas
+            UNION ALL SELECT fecha FROM deudas
+            UNION ALL SELECT fecha FROM abonos
+            UNION ALL SELECT fecha FROM movimientos_stock
+            UNION ALL SELECT fecha FROM auditoria
+        )
+        WHERE fecha IS NOT NULL
+        ORDER BY anio DESC
+    """
+    anios = {int(fila["anio"]) for fila in query(consulta)}
+    anios.add(int(hoy()[:4]))
+    return sorted(anios, reverse=True)
+
+
+def _historial_meses(anio):
+    """Devuelve los meses con actividad del año y el total vendido acumulado."""
+    nombres_meses = (
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+    )
+    rows = query(
+        """
+        SELECT substr(fecha,1,7) AS periodo,
+               COALESCE(SUM(CASE WHEN estado='aprobada' THEN total_usd ELSE 0 END), 0) AS vendido
+        FROM ventas
+        WHERE substr(fecha,1,4) = ?
+        GROUP BY substr(fecha,1,7)
+        ORDER BY periodo DESC
+        """,
+        (str(anio),),
+    )
+    mapa = {fila["periodo"]: float(fila["vendido"]) for fila in rows}
+    cobros = query(
+        """SELECT substr(fecha,1,7) AS periodo, SUM(monto) AS cobrado
+             FROM (
+                 SELECT COALESCE(fecha_aprobacion, fecha) AS fecha, total_usd AS monto
+                   FROM ventas
+                  WHERE estado='aprobada' AND tipo_pago='contado' AND pagada=1
+                 UNION ALL
+                 SELECT fecha, monto_usd AS monto FROM abonos WHERE anulado=0
+             ) pagos
+            WHERE substr(fecha,1,4)=?
+            GROUP BY substr(fecha,1,7)""",
+        (str(anio),),
+    )
+    mapa_cobros = {fila["periodo"]: float(fila["cobrado"]) for fila in cobros}
+    meses = []
+    for numero in range(1, 13):
+        periodo = f"{anio}-{numero:02d}"
+        meses.append({
+            "periodo": periodo,
+            "label": nombres_meses[numero - 1],
+            "vendido": mapa.get(periodo, 0.0),
+            "cobrado": mapa_cobros.get(periodo, 0.0),
+        })
+    return list(reversed(meses))
+
+
+def _historial_dias(periodo):
+    """Devuelve los días del mes con ventas o actividad para navegar por el mes."""
+    rows = query(
+        """
+        SELECT DISTINCT substr(fecha,1,10) AS dia
+        FROM (
+            SELECT fecha FROM ventas WHERE substr(fecha,1,7) = ?
+            UNION ALL SELECT fecha FROM deudas WHERE substr(fecha,1,7) = ?
+            UNION ALL SELECT fecha FROM abonos WHERE substr(fecha,1,7) = ?
+            UNION ALL SELECT fecha FROM movimientos_stock WHERE substr(fecha,1,7) = ?
+            UNION ALL SELECT fecha FROM auditoria WHERE substr(fecha,1,7) = ?
+        )
+        WHERE fecha IS NOT NULL
+        ORDER BY dia DESC
+        """,
+        (periodo, periodo, periodo, periodo, periodo),
+    )
+    dias = {fila["dia"] for fila in rows}
+    ventas = query(
+        """SELECT substr(fecha,1,10) AS dia, SUM(total_usd) AS vendido
+             FROM ventas WHERE estado='aprobada' AND substr(fecha,1,7)=?
+            GROUP BY substr(fecha,1,10)""",
+        (periodo,),
+    )
+    cobros = query(
+        """SELECT substr(fecha,1,10) AS dia, SUM(monto) AS cobrado
+             FROM (
+                 SELECT COALESCE(fecha_aprobacion, fecha) AS fecha, total_usd AS monto
+                   FROM ventas
+                  WHERE estado='aprobada' AND tipo_pago='contado' AND pagada=1
+                 UNION ALL
+                 SELECT fecha, monto_usd AS monto FROM abonos WHERE anulado=0
+             ) pagos
+            WHERE substr(fecha,1,7)=?
+            GROUP BY substr(fecha,1,10)""",
+        (periodo,),
+    )
+    ventas_por_dia = {fila["dia"]: float(fila["vendido"]) for fila in ventas}
+    cobros_por_dia = {fila["dia"]: float(fila["cobrado"]) for fila in cobros}
+    ultimo_dia = calendar.monthrange(int(periodo[:4]), int(periodo[5:7]))[1]
+    lista = []
+    for dia in range(1, ultimo_dia + 1):
+        fecha = f"{periodo}-{dia:02d}"
+        lista.append({
+            "dia": dia,
+            "fecha": fecha,
+            "vendido": ventas_por_dia.get(fecha, 0.0),
+            "cobrado": cobros_por_dia.get(fecha, 0.0),
+            "activo": fecha in dias,
+            "label": datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y"),
+        })
+    return list(reversed(lista))
+
+
+def _historial_cobros(desde, hasta):
+    """Lista ventas de contado pagadas y abonos según la fecha real del cobro."""
+    return query(
+        """SELECT fecha, cliente, vendedor, registrado_por, tipo, referencia, monto_usd, metodo, anulado
+             FROM (
+                 SELECT COALESCE(v.fecha_aprobacion, v.fecha) AS fecha, c.nombre AS cliente,
+                        u.nombre AS vendedor, COALESCE(a.nombre, u.nombre) AS registrado_por,
+                        'Venta de contado' AS tipo, v.numero AS referencia,
+                        v.total_usd AS monto_usd, v.metodo_pago AS metodo, 0 AS anulado
+                   FROM ventas v JOIN clientes c ON c.id=v.cliente_id
+                   JOIN usuarios u ON u.id=v.vendedor_id
+                   LEFT JOIN usuarios a ON a.id=v.aprobado_por
+                  WHERE v.estado='aprobada' AND v.tipo_pago='contado' AND v.pagada=1
+                    AND substr(COALESCE(v.fecha_aprobacion, v.fecha),1,10) BETWEEN ? AND ?
+                 UNION ALL
+                 SELECT a.fecha, c.nombre AS cliente, owner.nombre AS vendedor,
+                        collector.nombre AS registrado_por, 'Abono' AS tipo,
+                        COALESCE(NULLIF(a.referencia,''), v.numero, d.concepto) AS referencia,
+                        a.monto_usd, a.metodo, a.anulado
+                   FROM abonos a JOIN deudas d ON d.id=a.deuda_id
+                   JOIN clientes c ON c.id=d.cliente_id
+                   JOIN usuarios owner ON owner.id=d.vendedor_id
+                   LEFT JOIN usuarios collector ON collector.id=a.registrado_por
+                   LEFT JOIN ventas v ON v.id=d.venta_id
+                  WHERE substr(a.fecha,1,10) BETWEEN ? AND ?
+             ) cobros
+            ORDER BY fecha, referencia""",
+        (desde, hasta, desde, hasta),
+    )
+
+
+def _historial_detalle(fecha):
+    """Consulta la actividad del día para mostrarla en la pantalla de detalle."""
+    desde = f"{fecha} 00:00:00"
+    hasta = f"{fecha} 23:59:59"
+    movs = query(
+        """SELECT m.fecha,p.codigo,p.nombre,m.tipo,m.cantidad,m.stock_resultante,m.motivo,u.nombre usuario
+           FROM movimientos_stock m JOIN productos p ON p.id=m.producto_id LEFT JOIN usuarios u ON u.id=m.usuario_id
+           WHERE m.fecha BETWEEN ? AND ? ORDER BY m.fecha,m.id""",
+        (desde, hasta),
+    )
+    aud = query(
+        """SELECT a.fecha,u.nombre usuario,a.accion,a.detalle FROM auditoria a
+            LEFT JOIN usuarios u ON u.id=a.usuario_id WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha,a.id""",
+        (desde, hasta),
+    )
+    ventas = query(
+        """SELECT v.fecha,v.numero,c.nombre cliente,u.nombre vendedor,v.estado,v.total_usd,
+            v.moneda,d.cantidad,d.precio_unit,d.subtotal,p.codigo,p.nombre producto,p.unidad
+            FROM ventas v JOIN clientes c ON c.id=v.cliente_id JOIN usuarios u ON u.id=v.vendedor_id
+            JOIN venta_detalles d ON d.venta_id=v.id JOIN productos p ON p.id=d.producto_id
+            WHERE v.fecha BETWEEN ? AND ? ORDER BY v.fecha,v.id,d.id""",
+        (desde, hasta),
+    )
+    deudas = query(
+        """SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.concepto,d.monto_usd,d.vencimiento,d.estado,
+            COALESCE((SELECT SUM(a.monto_usd) FROM abonos a WHERE a.deuda_id=d.id AND a.anulado=0),0) abonado
+            FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=d.vendedor_id
+            WHERE d.fecha BETWEEN ? AND ? ORDER BY d.fecha,d.id""",
+        (desde, hasta),
+    )
+    cobros = _historial_cobros(fecha, fecha)
+    total_ventas = query(
+        "SELECT COALESCE(SUM(total_usd),0) AS total FROM ventas WHERE estado='aprobada' AND fecha BETWEEN ? AND ?",
+        (desde, hasta),
+        one=True,
+    )["total"]
+    return {
+        "movs": movs,
+        "aud": aud,
+        "ventas": ventas,
+        "deudas": deudas,
+        "cobros": cobros,
+        "total_ventas": float(total_ventas),
+        "total_cobrado": sum(float(c["monto_usd"]) for c in cobros if not c["anulado"]),
+    }
+
+
     filas = query("""SELECT a.*, u.nombre AS usuario FROM auditoria a LEFT JOIN usuarios u ON u.id = a.usuario_id
                       WHERE substr(a.fecha,1,10) BETWEEN ? AND ? ORDER BY a.id DESC LIMIT 2000""", (desde, hasta))
     return render_template("admin/auditoria.html", filas=filas, desde=desde, hasta=hasta)
@@ -249,9 +446,131 @@ def auditoria():
 @bp.route("/historiales")
 @roles_required("admin")
 def historiales():
-    limpiar_archivos_historicos_vencidos()
+    return render_template(
+        "admin/historiales.html",
+        archivos=[],
+        nivel="anios",
+        anios=_historial_anios(),
+    )
+
+
+@bp.route("/historiales/<int:anio>")
+@roles_required("admin")
+def historiales_anio(anio):
     archivos = query("SELECT * FROM archivos_historicos ORDER BY generado DESC LIMIT 500")
-    return render_template("admin/historiales.html", archivos=archivos)
+    meses = _historial_meses(anio)
+    return render_template(
+        "admin/historiales.html",
+        archivos=archivos,
+        detalle=None,
+        nivel="anio",
+        anio=anio,
+        anios=_historial_anios(),
+        meses=meses,
+        mes=None,
+        dia=None,
+        total_ventas=sum(float(m["vendido"]) for m in meses),
+        total_cobrado=sum(float(m["cobrado"]) for m in meses),
+    )
+
+
+@bp.route("/historiales/<int:anio>/<int:mes>")
+@roles_required("admin")
+def historiales_mes(anio, mes):
+    if mes < 1 or mes > 12:
+        abort(404)
+    periodo = f"{anio}-{mes:02d}"
+    fecha_filtro = request.args.get("fecha", "").strip()
+    if fecha_filtro:
+        try:
+            fecha_seleccionada = datetime.strptime(fecha_filtro, "%Y-%m-%d")
+        except ValueError:
+            abort(400, "Selecciona una fecha válida.")
+        if fecha_seleccionada.strftime("%Y-%m") != periodo:
+            abort(400, "La fecha seleccionada debe pertenecer al mes abierto.")
+        return redirect(url_for(
+            "admin.historiales_dia",
+            anio=anio,
+            mes=mes,
+            dia=fecha_seleccionada.day,
+        ))
+    archivos = query("SELECT * FROM archivos_historicos ORDER BY generado DESC LIMIT 500")
+    dias = _historial_dias(periodo)
+    vendido = sum(float(d["vendido"]) for d in dias if d["activo"])
+    cobrado = sum(float(d["cobrado"]) for d in dias if d["activo"])
+    ultimo_dia = calendar.monthrange(anio, mes)[1]
+    cobros_mes = _historial_cobros(f"{anio}-{mes:02d}-01", f"{anio}-{mes:02d}-{ultimo_dia:02d}")
+    return render_template(
+        "admin/historiales.html",
+        archivos=archivos,
+        detalle=None,
+        nivel="mes",
+        anio=anio,
+        mes=mes,
+        dia=None,
+        meses=_historial_meses(anio),
+        anios=_historial_anios(),
+        dias=dias,
+        total_ventas=vendido,
+        total_cobrado=cobrado,
+        cobros=cobros_mes,
+        fecha_min=f"{periodo}-01",
+        fecha_max=f"{periodo}-{ultimo_dia:02d}",
+    )
+
+
+@bp.route("/historiales/<int:anio>/<int:mes>/pdf")
+@roles_required("admin")
+def historial_pdf_mes(anio, mes):
+    if mes < 1 or mes > 12:
+        abort(404)
+    ultimo_dia = calendar.monthrange(anio, mes)[1]
+    desde = f"{anio}-{mes:02d}-01"
+    hasta = f"{anio}-{mes:02d}-{ultimo_dia:02d}"
+    contenido = generar_pdf_historico_periodo(desde, hasta)
+    nombre = f"historial_{anio}_{mes:02d}.pdf"
+    return responder_pdf(contenido, nombre)
+
+
+@bp.route("/historiales/<int:anio>/<int:mes>/<int:dia>")
+@roles_required("admin")
+def historiales_dia(anio, mes, dia):
+    if mes < 1 or mes > 12 or dia < 1:
+        abort(404)
+    ultimo_dia = calendar.monthrange(anio, mes)[1]
+    if dia > ultimo_dia:
+        abort(404)
+    fecha = f"{anio}-{mes:02d}-{dia:02d}"
+    detalle = _historial_detalle(fecha)
+    archivos = query("SELECT * FROM archivos_historicos ORDER BY generado DESC LIMIT 500")
+    return render_template(
+        "admin/historiales.html",
+        archivos=archivos,
+        detalle=detalle,
+        nivel="dia",
+        anio=anio,
+        mes=mes,
+        dia=dia,
+        fecha=fecha,
+        meses=_historial_meses(anio),
+        anios=_historial_anios(),
+        dias=_historial_dias(f"{anio}-{mes:02d}"),
+        total_ventas=detalle["total_ventas"],
+        total_cobrado=detalle["total_cobrado"],
+    )
+
+
+@bp.route("/historiales/<int:anio>/<int:mes>/<int:dia>/pdf")
+@roles_required("admin")
+def historial_pdf_dia(anio, mes, dia):
+    if mes < 1 or mes > 12 or dia < 1:
+        abort(404)
+    ultimo_dia = calendar.monthrange(anio, mes)[1]
+    if dia > ultimo_dia:
+        abort(404)
+    fecha = f"{anio}-{mes:02d}-{dia:02d}"
+    contenido = generar_pdf_historico_periodo(fecha, fecha)
+    return responder_pdf(contenido, f"historial_{fecha}.pdf")
 
 
 @bp.route("/historiales/generar", methods=["POST"])

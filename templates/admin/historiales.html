@@ -1,11 +1,247 @@
 {% extends 'base.html' %}
-{% block titulo %}Archivos históricos{% endblock %}
-{% block acciones %}<form method="post" action="{{ url_for('admin.historial_generar') }}">{{ csrf_field() }}<button class="btn primary" onclick="return confirm('¿Generar o actualizar el PDF histórico de hoy?')">Generar PDF de hoy</button></form>{% endblock %}
+{% block titulo %}Historial{% endblock %}
+{% block acciones %}
+  <form method="post" action="{{ url_for('admin.historial_generar') }}">{{ csrf_field() }}
+    <button class="btn primary" onclick="return confirm('¿Generar o actualizar el PDF histórico de hoy?')">Generar PDF de hoy</button>
+  </form>
+{% endblock %}
 {% block contenido %}
 <section class="card">
-  <p class="muted">Se conserva un único PDF por día con los movimientos, el detalle de ventas (producto, comprador, vendedor e importe) y los saldos pendientes. Si lo generas otra vez hoy, se actualiza el mismo archivo. Al cambiar el día, el PDF anterior se elimina; los registros originales de ventas, inventario y deudas permanecen en el sistema.</p>
-  {% if archivos %}<div class="table-wrap"><table class="stack"><thead><tr><th>Archivo</th><th>Período desde</th><th>Período hasta</th><th>Generado</th><th>Estado</th><th></th></tr></thead><tbody>
-  {% for a in archivos %}<tr><td data-label="Archivo">{{ a.titulo }} #{{ a.id }}</td><td data-label="Desde">{{ a.desde|fechahora }}</td><td data-label="Hasta">{{ a.hasta|fechahora }}</td><td data-label="Generado">{{ a.generado|fechahora }}</td><td>{{ a.estado }}</td><td><a class="btn sm" href="{{ url_for('admin.historial_descargar', archivo_id=a.id) }}">Abrir PDF</a></td></tr>{% endfor %}
-  </tbody></table></div>{% else %}<p class="muted">Todavía no se ha generado el PDF de hoy. Puedes generarlo con el botón superior.</p>{% endif %}
+  <p class="muted">El historial se navega por año, mes y día. El total vendido del mes se recalcula desde la base y vuelve a cero al cambiar al siguiente período.</p>
+
+  {% if nivel == 'anios' %}
+    <h2>Selecciona un año</h2>
+    <div class="grid-2">
+      {% for y in anios %}
+        <a class="card" href="{{ url_for('admin.historiales_anio', anio=y) }}" style="display:block; text-decoration:none; color:inherit;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <strong style="font-size:22px;">{{ y }}</strong>
+            <span class="badge info">Ver meses</span>
+          </div>
+          <p class="muted" style="margin:10px 0 0;">Abrir los meses y días de {{ y }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  {% elif nivel == 'anio' %}
+    <div class="filters" style="margin-bottom: 16px;">
+      <a class="btn" href="{{ url_for('admin.historiales') }}">Volver a años</a>
+      <strong>{{ anio }}</strong>
+    </div>
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card" style="background: rgba(255,255,255,.03);">
+        <strong>Vendido en {{ anio }}</strong>
+        <p><span class="badge info">{{ total_ventas|money }}</span></p>
+      </div>
+      <div class="card" style="background: rgba(255,255,255,.03);">
+        <strong>Cobrado en {{ anio }}</strong>
+        <p><span class="badge ok">{{ total_cobrado|money }}</span></p>
+      </div>
+    </div>
+    <div class="grid-2">
+      {% for mes in meses %}
+        <a class="card" href="{{ url_for('admin.historiales_mes', anio=anio, mes=mes.periodo[5:7]|int) }}" style="display:block; text-decoration:none; color:inherit;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <strong>{{ mes.label }}</strong>
+            <span class="badge info">Vendido: {{ mes.vendido|money }}</span>
+          </div>
+          <p class="muted" style="margin:10px 0 0;">Cobrado: {{ mes.cobrado|money }}. Ver actividad y movimientos del mes.</p>
+        </a>
+      {% endfor %}
+    </div>
+  {% elif nivel == 'mes' %}
+    <div class="filters" style="margin-bottom: 16px;">
+      <a class="btn" href="{{ url_for('admin.historiales_anio', anio=anio) }}">Volver al año</a>
+      <span class="muted">{{ anio }}-{{ '%02d' % mes }}</span>
+      <a class="btn primary" href="{{ url_for('admin.historial_pdf_mes', anio=anio, mes=mes) }}">PDF del mes</a>
+    </div>
+
+    <form class="filters" method="get" action="{{ url_for('admin.historiales_mes', anio=anio, mes=mes) }}" style="margin-bottom:16px;">
+      <label for="historial-fecha">Filtrar día</label>
+      <input id="historial-fecha" type="date" name="fecha" min="{{ fecha_min }}" max="{{ fecha_max }}" required>
+      <button class="btn" type="submit">Ver actividad</button>
+    </form>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card" style="background: rgba(255,255,255,.03);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <strong>Vendido este mes</strong>
+        <span class="badge info">{{ total_ventas|money }}</span>
+      </div>
+      </div>
+      <div class="card" style="background: rgba(255,255,255,.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <strong>Cobrado este mes</strong>
+          <span class="badge ok">{{ total_cobrado|money }}</span>
+        </div>
+        <p class="muted" style="margin:10px 0 0;">Incluye ventas de contado pagadas y abonos recibidos en el mes, aunque la venta sea anterior.</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      {% for dia in dias %}
+        {% if dia.activo %}
+          <a class="card" href="{{ url_for('admin.historiales_dia', anio=anio, mes=mes, dia=dia.dia) }}" style="display:block; text-decoration:none; color:inherit;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+              <strong>{{ dia.label }}</strong>
+              <span class="badge info">Vendido {{ dia.vendido|money }}</span>
+            </div>
+            <p class="muted" style="margin:10px 0 0;">Cobrado {{ dia.cobrado|money }} · Ver actividad</p>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% elif nivel == 'dia' %}
+    <div class="filters" style="margin-bottom: 16px;">
+      <a class="btn" href="{{ url_for('admin.historiales_mes', anio=anio, mes=mes) }}">Volver al mes</a>
+      <a class="btn primary" href="{{ url_for('admin.historial_pdf_dia', anio=anio, mes=mes, dia=dia) }}" onclick="return confirm('¿Descargar el PDF de este día?')">PDF del día</a>
+    </div>
+
+    <div class="card" style="margin-bottom:16px; background: rgba(255,255,255,.03);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <strong>{{ fecha|fecha }}</strong>
+        <span class="badge info">Vendido: {{ total_ventas|money }}</span>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
+        <span class="badge ok">Cobrado: {{ detalle.total_cobrado|money }}</span>
+      </div>
+    </div>
+
+    {% if detalle.ventas %}
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="stack">
+          <thead><tr><th>Venta</th><th>Cliente</th><th>Vendedor</th><th>Producto</th><th>Importe</th><th>Estado</th></tr></thead>
+          <tbody>
+            {% for v in detalle.ventas %}
+              <tr>
+                <td data-label="Venta">{{ v.numero }}</td>
+                <td data-label="Cliente">{{ v.cliente }}</td>
+                <td data-label="Vendedor">{{ v.vendedor }}</td>
+                <td data-label="Producto">{{ v.codigo }} - {{ v.producto }}</td>
+                <td data-label="Importe">{{ v.subtotal|money }}</td>
+                <td data-label="Estado">{{ v.estado }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {% if detalle.deudas %}
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="stack">
+          <thead><tr><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Concepto</th><th>Monto</th><th>Vencimiento</th><th>Estado</th></tr></thead>
+          <tbody>
+            {% for d in detalle.deudas %}
+              <tr>
+                <td data-label="Fecha">{{ d.fecha|fechahora }}</td>
+                <td data-label="Cliente">{{ d.cliente }}</td>
+                <td data-label="Vendedor">{{ d.vendedor }}</td>
+                <td data-label="Concepto">{{ d.concepto }}</td>
+                <td data-label="Monto">{{ d.monto_usd|money }}</td>
+                <td data-label="Vencimiento">{{ d.vencimiento|fecha }}</td>
+                <td data-label="Estado">{{ d.estado }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {% if detalle.cobros %}
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="stack">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Vendedor</th><th>Registrado por</th><th>Monto</th><th>Método</th><th>Referencia</th><th>Estado</th></tr></thead>
+          <tbody>
+            {% for c in detalle.cobros %}
+              <tr>
+                <td data-label="Fecha">{{ c.fecha|fechahora }}</td>
+                <td data-label="Tipo">{{ c.tipo }}</td>
+                <td data-label="Cliente">{{ c.cliente }}</td>
+                <td data-label="Vendedor">{{ c.vendedor }}</td>
+                <td data-label="Registrado por">{{ c.registrado_por or '—' }}</td>
+                <td data-label="Monto">{{ c.monto_usd|money }}</td>
+                <td data-label="Método">{{ c.metodo or '—' }}</td>
+                <td data-label="Referencia">{{ c.referencia or '—' }}</td>
+                <td data-label="Estado">{{ 'Anulado (no suma)' if c.anulado else 'Válido' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {% if nivel == 'mes' and cobros %}
+      <div style="margin-top:24px;">
+        <h3>Cobros registrados durante el mes</h3>
+        <div class="table-wrap">
+          <table class="stack">
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Vendedor</th><th>Registrado por</th><th>Monto</th><th>Método</th><th>Referencia</th><th>Estado</th></tr></thead>
+            <tbody>
+              {% for c in cobros %}
+                <tr>
+                  <td data-label="Fecha">{{ c.fecha|fechahora }}</td>
+                  <td data-label="Tipo">{{ c.tipo }}</td>
+                  <td data-label="Cliente">{{ c.cliente }}</td>
+                  <td data-label="Vendedor">{{ c.vendedor }}</td>
+                  <td data-label="Registrado por">{{ c.registrado_por or '—' }}</td>
+                  <td data-label="Monto">{{ c.monto_usd|money }}</td>
+                  <td data-label="Método">{{ c.metodo or '—' }}</td>
+                  <td data-label="Referencia">{{ c.referencia or '—' }}</td>
+                  <td data-label="Estado">{{ 'Anulado (no suma)' if c.anulado else 'Válido' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if detalle.movs %}
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="stack">
+          <thead><tr><th>Hora</th><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Stock final</th><th>Motivo</th></tr></thead>
+          <tbody>
+            {% for m in detalle.movs %}
+              <tr>
+                <td data-label="Hora">{{ m.fecha|fechahora }}</td>
+                <td data-label="Producto">{{ m.codigo }} - {{ m.nombre }}</td>
+                <td data-label="Tipo">{{ m.tipo }}</td>
+                <td data-label="Cantidad">{{ m.cantidad }}</td>
+                <td data-label="Stock final">{{ m.stock_resultante }}</td>
+                <td data-label="Motivo">{{ m.motivo }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {% if detalle.aud %}
+      <div class="table-wrap">
+        <table class="stack">
+          <thead><tr><th>Hora</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
+          <tbody>
+            {% for a in detalle.aud %}
+              <tr>
+                <td data-label="Hora">{{ a.fecha|fechahora }}</td>
+                <td data-label="Usuario">{{ a.usuario }}</td>
+                <td data-label="Acción">{{ a.accion }}</td>
+                <td data-label="Detalle">{{ a.detalle }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {% if archivos %}
+    <div style="margin-top:24px;">
+      <h3>PDF guardados</h3>
+      <div class="table-wrap"><table class="stack"><thead><tr><th>Archivo</th><th>Desde</th><th>Hasta</th><th>Generado</th><th></th></tr></thead><tbody>
+        {% for a in archivos %}<tr><td data-label="Archivo">{{ a.titulo }} #{{ a.id }}</td><td data-label="Desde">{{ a.desde|fechahora }}</td><td data-label="Hasta">{{ a.hasta|fechahora }}</td><td data-label="Generado">{{ a.generado|fechahora }}</td><td><a class="btn sm" href="{{ url_for('admin.historial_descargar', archivo_id=a.id) }}">Abrir PDF</a></td></tr>{% endfor %}
+      </tbody></table></div>
+    </div>
+  {% endif %}
 </section>
 {% endblock %}
