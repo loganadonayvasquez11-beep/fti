@@ -1,4 +1,16 @@
 {% extends 'base.html' %}
+{% macro kpi_crown(label) -%}
+<span class="kpi-crown" role="img" aria-label="{{ label }}" title="{{ label }}">
+  <svg viewBox="0 0 28 26" focusable="false" aria-hidden="true">
+    <path d="M3.3 7.5 8.7 12l5.3-8 5.3 8 5.4-4.5-2.4 11.2H5.7L3.3 7.5Z" fill="#f3c64e" stroke="#a97013" stroke-width="1.3" stroke-linejoin="round"/>
+    <path d="M6.1 18.2h15.8l-1.4 4H7.5l-1.4-4Z" fill="#d99c27" stroke="#a97013" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="m6.1 9.8 2.8 2.3 5.1-7.5 5.1 7.5 2.8-2.3-1.5 6.5H7.6l-1.5-6.5Z" fill="#ffdf78"/>
+    <circle cx="3.3" cy="7.5" r="2" fill="#ffe89b" stroke="#a97013" stroke-width="1"/>
+    <circle cx="24.7" cy="7.5" r="2" fill="#ffe89b" stroke="#a97013" stroke-width="1"/>
+    <circle cx="14" cy="4" r="2" fill="#fff0ad" stroke="#a97013" stroke-width="1"/>
+  </svg>
+</span>
+{%- endmacro %}
 {% block titulo %}KPI mensual{% endblock %}
 {% block contenido %}
 <section class="card">
@@ -39,7 +51,7 @@
       <article class="kpi-star">
         <h3>{{ etiqueta }}</h3>
         {% if estrella %}
-          <strong>{{ estrella.nombre }}</strong>
+          <strong>{{ kpi_crown(etiqueta) }} {{ estrella.nombre }}</strong>
           <p>$ {{ estrella.monto|num }} cobrados</p>
         {% else %}
           <p class="muted">Sin cobros en este período.</p>
@@ -83,7 +95,7 @@
       <tr>
         <td data-label="Producto">
           <details class="kpi-drilldown">
-            <summary>{{ p.nombre }} <small class="muted">· ver {{ p.ventas_detalle|length }} ventas</small></summary>
+            <summary>{% if p.mas %}{{ kpi_crown('Producto más vendido del mes') }}{% endif %} {{ p.nombre }} <small class="muted">· ver {{ p.ventas_detalle|length }} ventas</small></summary>
             <div class="table-wrap kpi-sales-detail">
               <table class="stack">
                 <thead><tr><th>Fecha</th><th>Venta</th><th>Vendedor</th><th>Cliente</th><th class="r">Unidades</th><th class="r">Vendido</th></tr></thead>
@@ -123,10 +135,11 @@
       <tr>
         <td data-label="Vendedor">
           <details class="kpi-drilldown">
-            <summary>{{ v.nombre }} <small class="muted">· ver productos y clientes</small></summary>
+            <summary>{% if v.mas_ventas %}{{ kpi_crown('Vendedor con más ventas del mes') }}{% endif %} {{ v.nombre }} <small class="muted">· ver productos y clientes</small></summary>
             <div class="kpi-drill-list">
               {% for p in v.productos_detalle %}
               <article class="kpi-drill-item">
+                {% if loop.first %}{{ kpi_crown('Producto más vendido de este vendedor') }}{% endif %}
                 <div class="kpi-drill-title"><strong><a href="{{ url_for('catalogo.productos', q=p.codigo) }}">{{ p.nombre }}</a></strong><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.65em;height:.65em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span></div>
                 <small class="muted">{{ p.unidades|qty }} unidades · vendido $ {{ p.vendido_usd|num }} · cobrado $ {{ p.cobrado_usd|num }}</small>
                 <ul class="kpi-client-list">
@@ -157,7 +170,7 @@
           <a class="mini-link" href="{{ url_for('admin.vendedor_detalle', vid=v.id) }}">Abrir ficha del vendedor</a>
         </td><td class="r" data-label="Ventas">{{ v.ventas }}</td>
         <td class="r" data-label="Unidades">{{ v.unidades|qty }}</td><td class="r" data-label="Vendido">$ {{ v.vendido_usd|num }}</td>
-        <td data-label="Producto líder">{% if v.productos_detalle %}<a href="{{ url_for('catalogo.productos', q=v.productos_detalle[0].codigo) }}">{{ v.productos_detalle[0].nombre }}</a> <small class="muted">({{ v.productos_detalle[0].unidades|qty }})</small>{% else %}—{% endif %}</td>
+        <td data-label="Producto líder">{% if v.productos_detalle %}{{ kpi_crown('Producto líder de este vendedor') }} <a href="{{ url_for('catalogo.productos', q=v.productos_detalle[0].codigo) }}">{{ v.productos_detalle[0].nombre }}</a> <small class="muted">({{ v.productos_detalle[0].unidades|qty }})</small>{% else %}—{% endif %}</td>
         <td data-label="Ranking">{% if v.mas_ventas %}<span class="badge ok">Más vendido</span>{% endif %}{% if v.menos_ventas %} <span class="badge bad">Menos vendido</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
@@ -175,7 +188,7 @@
       <tr>
         <td data-label="Vendedor">
           <details class="kpi-drilldown">
-            <summary>{{ v.nombre }} <small class="muted">· ver desglose por producto</small></summary>
+            <summary>{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más cobros del mes') }}{% endif %} {{ v.nombre }} <small class="muted">· ver desglose por producto</small></summary>
             {% if v.productos_cobros_detalle %}
             <ul class="kpi-payment-list">
               {% for p in v.productos_cobros_detalle %}
@@ -188,12 +201,12 @@
         </td><td class="r" data-label="Cobrado">$ {{ v.cobrado_usd|num }}</td>
         {% if v.productos_cobros_detalle %}
         {% set p_mas = v.productos_cobros_detalle[0] %}{% set p_menos = v.productos_cobros_detalle[-1] %}
-        <td data-label="Producto más cobrado"><a href="{{ url_for('catalogo.productos', q=p_mas.codigo) }}">{{ p_mas.nombre }}</a> <small class="muted">($ {{ p_mas.cobrado_usd|num }})</small></td>
+        <td data-label="Producto más cobrado">{{ kpi_crown('Producto con más cobros de este vendedor') }} <a href="{{ url_for('catalogo.productos', q=p_mas.codigo) }}">{{ p_mas.nombre }}</a> <small class="muted">($ {{ p_mas.cobrado_usd|num }})</small></td>
         <td data-label="Producto menos cobrado"><a href="{{ url_for('catalogo.productos', q=p_menos.codigo) }}">{{ p_menos.nombre }}</a> <small class="muted">($ {{ p_menos.cobrado_usd|num }})</small></td>
         {% else %}
         <td data-label="Producto más cobrado">Sin atribución a productos</td><td data-label="Producto menos cobrado">Sin atribución a productos</td>
         {% endif %}
-        <td data-label="Ranking">{% if v.mas_cobros %}<span class="badge ok">Más cobros</span>{% endif %}{% if v.menos_cobros %} <span class="badge bad">Menos cobros</span>{% endif %}</td>
+        <td data-label="Ranking">{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más cobros del mes') }} <span class="badge ok">Más cobros</span>{% endif %}{% if v.menos_cobros %} <span class="badge bad">Menos cobros</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
   </table></div>
@@ -210,7 +223,7 @@
       <tr>
         <td data-label="Cliente">
           <details class="kpi-drilldown">
-            <summary>{{ c.nombre }} <small class="muted">· ver {{ c.ventas_detalle|length }} compras</small></summary>
+            <summary>{% if c.mas_compras %}{{ kpi_crown('Cliente con más compras del mes') }}{% endif %} {{ c.nombre }} <small class="muted">· ver {{ c.ventas_detalle|length }} compras</small></summary>
             <div class="table-wrap kpi-sales-detail">
               <table class="stack">
                 <thead><tr><th>Fecha</th><th>Venta</th><th>Vendedor</th><th class="r">Productos</th><th class="r">Unidades</th><th class="r">Comprado</th></tr></thead>
@@ -244,7 +257,7 @@
     <thead><tr><th>Cliente</th><th class="r">Cobrado</th><th>Ranking</th></tr></thead>
     <tbody>{% for c in datos.clientes_cobros %}
       <tr>
-        <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a></td><td class="r" data-label="Cobrado">$ {{ c.cobrado_usd|num }}</td>
+        <td data-label="Cliente">{% if c.mas_pagos %}{{ kpi_crown('Cliente con más pagos del mes') }}{% endif %} <a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a></td><td class="r" data-label="Cobrado">$ {{ c.cobrado_usd|num }}</td>
         <td data-label="Ranking">{% if c.mas_pagos %}<span class="badge ok">Más pagos</span>{% endif %}{% if c.menos_pagos %} <span class="badge bad">Menos pagos</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
@@ -269,7 +282,7 @@
       {% if mes.disponible %}
         <a class="kpi-month-card {{ 'selected' if mes.periodo == periodo }}" href="{{ url_for('admin.kpis', periodo=mes.periodo) }}">
           <div class="kpi-month-card-heading">
-            <strong>{{ mes.nombre }}</strong>
+            <strong>{% if mes.mas_vendido and mes.mas_cobrado %}{{ kpi_crown('Mes con más ventas y cobros del año') }}{% elif mes.mas_vendido %}{{ kpi_crown('Mes con más ventas del año') }}{% elif mes.mas_cobrado %}{{ kpi_crown('Mes con más cobros del año') }}{% endif %} {{ mes.nombre }}</strong>
             {% if mes.periodo == periodo %}<span class="badge info">Seleccionado</span>{% endif %}
           </div>
           <strong class="kpi-month-amount">$ {{ mes.vendido_usd|num }}</strong>
@@ -327,6 +340,7 @@
             {% else %}
               <span>{{ mes.nombre }}</span>
             {% endif %}
+            {% if mes.mas_vendido and mes.mas_cobrado %}{{ kpi_crown('Mes con más ventas y cobros del año') }}{% elif mes.mas_vendido %}{{ kpi_crown('Mes con más ventas del año') }}{% elif mes.mas_cobrado %}{{ kpi_crown('Mes con más cobros del año') }}{% endif %}
           </div>
           <div class="kpi-trend-bars">
             <div class="kpi-trend-bar-line">

@@ -273,8 +273,12 @@ def kpis():
         (max(mes["vendido_usd"], mes["cobrado_usd"]) for mes in meses_anio),
         default=0,
     )
+    maximo_vendido = max((mes["vendido_usd"] for mes in meses_anio), default=0)
+    maximo_cobrado = max((mes["cobrado_usd"] for mes in meses_anio), default=0)
     for mes in meses_anio:
         mes["disponible"] = mes["periodo"] <= fecha_hoy[:7]
+        mes["mas_vendido"] = maximo_vendido > 0 and mes["vendido_usd"] == maximo_vendido
+        mes["mas_cobrado"] = maximo_cobrado > 0 and mes["cobrado_usd"] == maximo_cobrado
         mes["ancho_vendido"] = (
             round(mes["vendido_usd"] * 100 / maximo_mensual, 1)
             if maximo_mensual else 0
