@@ -17,10 +17,10 @@
           <tbody>{% for v in actividad.ventas %}
             <tr>
               <td data-label="Fecha">{{ v.fecha|fechahora }}</td>
-              <td data-label="Venta">{{ v.numero }}</td>
-              <td data-label="Cliente">{{ v.cliente }}</td>
+              <td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=v.venta_id) }}">{{ v.numero }}</a></td>
+              <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=v.cliente_id) }}">{{ v.cliente }}</a></td>
               <td data-label="Vendedor">{{ v.vendedor }}</td>
-              <td data-label="Producto">{{ v.codigo }} - {{ v.producto }}</td>
+              <td data-label="Producto"><a href="{{ url_for('catalogo.productos', q=v.codigo) }}">{{ v.codigo }} - {{ v.producto }}</a></td>
               <td data-label="Importe">{{ v.subtotal|money }}</td>
               <td data-label="Estado">{{ v.estado }}</td>
             </tr>
@@ -39,13 +39,27 @@
           <tbody>{% for c in actividad.cobros %}
             <tr>
               <td data-label="Fecha">{{ c.fecha|fechahora }}</td>
-              <td data-label="Tipo">{{ c.tipo }}</td>
-              <td data-label="Cliente">{{ c.cliente }}</td>
+              <td data-label="Tipo">
+                {% if c.abono_id %}
+                  <a href="{{ url_for('deudas.detalle', deuda_id=c.deuda_id, _anchor='abono-' ~ c.abono_id) }}">{{ c.tipo }}</a>
+                {% elif c.venta_id %}
+                  <a href="{{ url_for('ventas.detalle', venta_id=c.venta_id) }}">{{ c.tipo }}</a>
+                {% else %}{{ c.tipo }}{% endif %}
+              </td>
+              <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=c.cliente_id) }}">{{ c.cliente }}</a></td>
               <td data-label="Vendedor">{{ c.vendedor }}</td>
               <td data-label="Registrado por">{{ c.registrado_por or '—' }}</td>
               <td data-label="Monto">{{ c.monto_usd|money }}</td>
               <td data-label="Método">{{ c.metodo or '—' }}</td>
-              <td data-label="Referencia">{{ c.referencia or '—' }}</td>
+              <td data-label="Referencia">
+                {% if c.abono_id %}
+                  <a href="{{ url_for('deudas.detalle', deuda_id=c.deuda_id, _anchor='abono-' ~ c.abono_id) }}">{{ c.referencia or 'Ver abono' }}</a>
+                {% elif c.venta_id %}
+                  <a href="{{ url_for('ventas.detalle', venta_id=c.venta_id) }}">{{ c.referencia or 'Ver venta' }}</a>
+                {% elif c.deuda_id %}
+                  <a href="{{ url_for('deudas.detalle', deuda_id=c.deuda_id) }}">{{ c.referencia or 'Ver deuda' }}</a>
+                {% else %}{{ c.referencia or '—' }}{% endif %}
+              </td>
               <td data-label="Estado">{{ 'Anulado (no suma)' if c.anulado else 'Válido' }}</td>
             </tr>
           {% endfor %}</tbody>
@@ -63,9 +77,12 @@
           <tbody>{% for d in actividad.deudas %}
             <tr>
               <td data-label="Fecha">{{ d.fecha|fechahora }}</td>
-              <td data-label="Cliente">{{ d.cliente }}</td>
+              <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=d.cliente_id) }}">{{ d.cliente }}</a></td>
               <td data-label="Vendedor">{{ d.vendedor }}</td>
-              <td data-label="Concepto">{{ d.concepto }}</td>
+              <td data-label="Concepto">
+                <a href="{{ url_for('deudas.detalle', deuda_id=d.deuda_id) }}">{{ d.concepto }}</a>
+                {% if d.venta_id %}<br><small><a href="{{ url_for('ventas.detalle', venta_id=d.venta_id) }}">Ver venta</a></small>{% endif %}
+              </td>
               <td data-label="Monto">{{ d.monto_usd|money }}</td>
               <td data-label="Abonado">{{ d.abonado|money }}</td>
               <td data-label="Vencimiento">{{ d.vencimiento|fecha }}</td>
@@ -86,7 +103,7 @@
           <tbody>{% for m in actividad.movs %}
             <tr>
               <td data-label="Hora">{{ m.fecha|fechahora }}</td>
-              <td data-label="Producto">{{ m.codigo }} - {{ m.nombre }}</td>
+              <td data-label="Producto"><a href="{{ url_for('catalogo.productos', q=m.codigo) }}">{{ m.codigo }} - {{ m.nombre }}</a></td>
               <td data-label="Tipo">{{ m.tipo }}</td>
               <td data-label="Cantidad">{{ m.cantidad }}</td>
               <td data-label="Stock final">{{ m.stock_resultante }}</td>

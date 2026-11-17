@@ -410,22 +410,27 @@ def _historial_dias(periodo):
 def _historial_cobros(desde, hasta):
     """Lista ventas de contado pagadas y abonos según la fecha real del cobro."""
     return query(
-        """SELECT fecha, cliente, vendedor, registrado_por, tipo, referencia, monto_usd, metodo, anulado
+        """SELECT fecha, cliente, cliente_id, vendedor, registrado_por, tipo, referencia,
+                  monto_usd, metodo, anulado, venta_id, deuda_id, abono_id
              FROM (
                  SELECT COALESCE(v.fecha_aprobacion, v.fecha) AS fecha, c.nombre AS cliente,
+                        c.id AS cliente_id,
                         u.nombre AS vendedor, COALESCE(a.nombre, u.nombre) AS registrado_por,
                         'Venta de contado' AS tipo, v.numero AS referencia,
-                        v.total_usd AS monto_usd, v.metodo_pago AS metodo, 0 AS anulado
+                        v.total_usd AS monto_usd, v.metodo_pago AS metodo, 0 AS anulado,
+                        v.id AS venta_id, NULL AS deuda_id, NULL AS abono_id
                    FROM ventas v JOIN clientes c ON c.id=v.cliente_id
                    JOIN usuarios u ON u.id=v.vendedor_id
                    LEFT JOIN usuarios a ON a.id=v.aprobado_por
                   WHERE v.estado='aprobada' AND v.tipo_pago='contado' AND v.pagada=1
                     AND substr(COALESCE(v.fecha_aprobacion, v.fecha),1,10) BETWEEN ? AND ?
                  UNION ALL
-                 SELECT a.fecha, c.nombre AS cliente, owner.nombre AS vendedor,
+                 SELECT a.fecha, c.nombre AS cliente, c.id AS cliente_id,
+                        owner.nombre AS vendedor,
                         collector.nombre AS registrado_por, 'Abono' AS tipo,
                         COALESCE(NULLIF(a.referencia,''), v.numero, d.concepto) AS referencia,
-                        a.monto_usd, a.metodo, a.anulado
+                        a.monto_usd, a.metodo, a.anulado,
+                        d.venta_id AS venta_id, d.id AS deuda_id, a.id AS abono_id
                    FROM abonos a JOIN deudas d ON d.id=a.deuda_id
                    JOIN clientes c ON c.id=d.cliente_id
                    JOIN usuarios owner ON owner.id=d.vendedor_id
@@ -443,7 +448,8 @@ def _historial_detalle_periodo(desde_fecha, hasta_fecha):
     desde_fecha = desde_fecha[:10]
     hasta_fecha = hasta_fecha[:10]
     movs = query(
-        """SELECT m.fecha,p.codigo,p.nombre,m.tipo,m.cantidad,m.stock_resultante,m.motivo,u.nombre usuario
+        """SELECT m.producto_id,m.usuario_id,m.fecha,p.codigo,p.nombre,m.tipo,m.cantidad,
+                  m.stock_resultante,m.motivo,u.nombre usuario
            FROM movimientos_stock m JOIN productos p ON p.id=m.producto_id LEFT JOIN usuarios u ON u.id=m.usuario_id
            WHERE substr(m.fecha,1,10) BETWEEN ? AND ? ORDER BY m.fecha,m.id""",
         (desde_fecha, hasta_fecha),
@@ -455,7 +461,8 @@ def _historial_detalle_periodo(desde_fecha, hasta_fecha):
         (desde_fecha, hasta_fecha),
     )
     ventas = query(
-        """SELECT v.fecha,v.numero,c.nombre cliente,u.nombre vendedor,v.estado,v.total_usd,
+        """SELECT v.id AS venta_id,v.cliente_id,v.vendedor_id,d.producto_id,
+            v.fecha,v.numero,c.nombre cliente,u.nombre vendedor,v.estado,v.total_usd,
             v.moneda,d.cantidad,d.precio_unit,d.subtotal,p.codigo,p.nombre producto,p.unidad
             FROM ventas v JOIN clientes c ON c.id=v.cliente_id JOIN usuarios u ON u.id=v.vendedor_id
             JOIN venta_detalles d ON d.venta_id=v.id JOIN productos p ON p.id=d.producto_id
@@ -463,7 +470,8 @@ def _historial_detalle_periodo(desde_fecha, hasta_fecha):
         (desde_fecha, hasta_fecha),
     )
     deudas = query(
-        """SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.concepto,d.monto_usd,d.vencimiento,d.estado,
+        """SELECT d.id AS deuda_id,d.cliente_id,d.venta_id,d.vendedor_id,
+            d.fecha,c.nombre cliente,u.nombre vendedor,d.concepto,d.monto_usd,d.vencimiento,d.estado,
             COALESCE((SELECT SUM(a.monto_usd) FROM abonos a WHERE a.deuda_id=d.id AND a.anulado=0),0) abonado
             FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=d.vendedor_id
             WHERE substr(d.fecha,1,10) BETWEEN ? AND ? ORDER BY d.fecha,d.id""",

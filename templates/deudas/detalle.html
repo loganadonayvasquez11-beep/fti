@@ -45,7 +45,7 @@
   <div class="table-wrap"><table class="stack">
     <thead><tr><th>Fecha</th><th class="r">Monto</th><th class="r">En $</th><th>Método</th><th>Registró</th><th></th></tr></thead>
     <tbody>{% for a in abonos %}
-      <tr class="{{ 'inactivo' if a.anulado }}"><td data-label="Fecha">{{ a.fecha|fechahora }}</td>
+      <tr id="abono-{{ a.id }}" class="{{ 'inactivo' if a.anulado }}"><td data-label="Fecha">{{ a.fecha|fechahora }}</td>
           <td data-label="Monto" class="r">{{ a.monto|money(a.moneda) }}</td><td data-label="En $" class="r">$ {{ a.monto_usd|num }}</td>
           <td data-label="Método">{{ a.metodo or '—' }}{% if a.referencia %}<br><small class="muted">{{ a.referencia }}</small>{% endif %}</td>
           <td data-label="Registró">{{ a.registrador or '—' }}</td>
