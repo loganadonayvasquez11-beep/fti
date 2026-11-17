@@ -514,8 +514,8 @@ def historiales_anio(anio):
 @roles_required("admin")
 def historiales_mes(anio, mes):
     if mes < 1 or mes > 12:
-    filtro_tipo = _historial_filtro_actual()
         abort(404)
+    filtro_tipo = _historial_filtro_actual()
     periodo = f"{anio}-{mes:02d}"
     fecha_filtro = request.args.get("fecha", "").strip()
     if fecha_filtro:
@@ -529,15 +529,15 @@ def historiales_mes(anio, mes):
             "admin.historiales_dia",
             anio=anio,
             mes=mes,
-            tipo=filtro_tipo,
             dia=fecha_seleccionada.day,
+            tipo=filtro_tipo,
         ))
     archivos = query("SELECT * FROM archivos_historicos ORDER BY generado DESC LIMIT 500")
+    dias = _historial_dias(periodo)
     dias_visibles = [
         dia for dia in dias
         if filtro_tipo == "todo" or filtro_tipo in dia["tipos"]
     ]
-    dias = _historial_dias(periodo)
     vendido = sum(float(d["vendido"]) for d in dias if d["activo"])
     cobrado = sum(float(d["cobrado"]) for d in dias if d["activo"])
     ultimo_dia = calendar.monthrange(anio, mes)[1]
@@ -589,8 +589,8 @@ def historiales_dia(anio, mes, dia):
     ultimo_dia = calendar.monthrange(anio, mes)[1]
     if dia > ultimo_dia:
         abort(404)
-    filtro_tipo = _historial_filtro_actual()
     fecha = f"{anio}-{mes:02d}-{dia:02d}"
+    filtro_tipo = _historial_filtro_actual()
     detalle = _historial_detalle(fecha)
     archivos = query("SELECT * FROM archivos_historicos ORDER BY generado DESC LIMIT 500")
     return render_template(
@@ -606,11 +606,11 @@ def historiales_dia(anio, mes, dia):
         anios=_historial_anios(),
         dias=_historial_dias(f"{anio}-{mes:02d}"),
         total_ventas=detalle["total_ventas"],
+        total_cobrado=detalle["total_cobrado"],
         filtro_tipo=filtro_tipo,
         filtros_historial=HISTORIAL_FILTROS,
         actividad=detalle,
         filtro_vacio=_historial_filtro_vacio(detalle, filtro_tipo),
-        total_cobrado=detalle["total_cobrado"],
     )
 
 
