@@ -47,6 +47,11 @@ _COLOR_HEX = {
     "Multicolor": "#6366f1", "Producto": "#6b7280",
 }
 
+_NOMBRES_MESES = (
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+)
+
 
 def _tokens(texto):
     normalizado = unicodedata.normalize("NFKD", str(texto or "").casefold())
@@ -97,6 +102,54 @@ def _estrella(filas, campo, nombre_campo="nombre"):
         "nombre": ", ".join(str(fila[nombre_campo]) for fila in ganadores),
         "monto": round(maximo, 2),
     }
+
+
+def resumen_kpis_por_mes(anio):
+    """Resume ventas y cobros por mes para la vista anual del KPI."""
+    ventas = query(
+        """SELECT substr(fecha, 1, 7) AS periodo, COUNT(*) AS cantidad,
+                  COALESCE(SUM(total_usd), 0) AS vendido_usd
+             FROM ventas
+            WHERE estado = 'aprobada' AND substr(fecha, 1, 4) = ?
+            GROUP BY substr(fecha, 1, 7)""",
+        (str(anio),),
+    )
+    cobros = query(
+        """SELECT substr(fecha, 1, 7) AS periodo, COALESCE(SUM(monto), 0) AS cobrado_usd
+             FROM (
+                 SELECT COALESCE(fecha_aprobacion, fecha) AS fecha, total_usd AS monto
+                   FROM ventas
+                  WHERE estado = 'aprobada' AND tipo_pago = 'contado' AND pagada = 1
+                 UNION ALL
+                 SELECT fecha, monto_usd AS monto
+                   FROM abonos
+                  WHERE anulado = 0
+             ) pagos
+            WHERE substr(fecha, 1, 4) = ?
+            GROUP BY substr(fecha, 1, 7)""",
+        (str(anio),),
+    )
+    ventas_por_mes = {
+        fila["periodo"]: {
+            "cantidad": fila["cantidad"],
+            "vendido_usd": fila["vendido_usd"],
+        }
+        for fila in ventas
+    }
+    cobros_por_mes = {fila["periodo"]: float(fila["cobrado_usd"] or 0) for fila in cobros}
+    return [
+        {
+            "periodo": f"{anio}-{numero:02d}",
+            "nombre": _NOMBRES_MESES[numero - 1],
+            "ventas": int(ventas_por_mes.get(f"{anio}-{numero:02d}", {}).get("cantidad", 0) or 0),
+            "vendido_usd": round(
+                float(ventas_por_mes.get(f"{anio}-{numero:02d}", {}).get("vendido_usd", 0) or 0),
+                2,
+            ),
+            "cobrado_usd": round(cobros_por_mes.get(f"{anio}-{numero:02d}", 0.0), 2),
+        }
+        for numero in range(1, 13)
+    ]
 
 
 def resumen_kpis_mensuales(desde, hasta):

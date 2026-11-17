@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 from db import get_db, query
 from pdf_responses import responder_pdf
 from services import audit, get_config, set_config
-from services_kpi import resumen_kpis_mensuales
+from services_kpi import resumen_kpis_mensuales, resumen_kpis_por_mes
 from utils import ahora, aviso, hoy, roles_required, to_float, to_int
 from archivos import (generar_archivo_diario, generar_pdf_historico_periodo,
                       resolver_ruta_archivo_historico)
@@ -261,12 +261,67 @@ def kpis():
     hasta = fecha_hoy if periodo == fecha_hoy[:7] else (
         f"{periodo}-{calendar.monthrange(fecha_periodo.year, fecha_periodo.month)[1]:02d}"
     )
+    meses_anio = resumen_kpis_por_mes(fecha_periodo.year)
+    mes_seleccionado = meses_anio[fecha_periodo.month - 1]
+    fecha_anterior = fecha_periodo - timedelta(days=1)
+    if fecha_anterior.year == fecha_periodo.year:
+        mes_anterior = meses_anio[fecha_anterior.month - 1]
+    else:
+        mes_anterior = resumen_kpis_por_mes(fecha_anterior.year)[fecha_anterior.month - 1]
+
+    maximo_mensual = max(
+        (max(mes["vendido_usd"], mes["cobrado_usd"]) for mes in meses_anio),
+        default=0,
+    )
+    for mes in meses_anio:
+        mes["disponible"] = mes["periodo"] <= fecha_hoy[:7]
+        mes["ancho_vendido"] = (
+            round(mes["vendido_usd"] * 100 / maximo_mensual, 1)
+            if maximo_mensual else 0
+        )
+        mes["ancho_cobrado"] = (
+            round(mes["cobrado_usd"] * 100 / maximo_mensual, 1)
+            if maximo_mensual else 0
+        )
+
+    comparacion = []
+    for campo, etiqueta, monetario in (
+        ("ventas", "Ventas aprobadas", False),
+        ("vendido_usd", "Total vendido", True),
+        ("cobrado_usd", "Total cobrado", True),
+    ):
+        actual = mes_seleccionado[campo]
+        anterior = mes_anterior[campo]
+        diferencia = round(actual - anterior, 2) if monetario else actual - anterior
+        comparacion.append({
+            "etiqueta": etiqueta,
+            "actual": actual,
+            "anterior": anterior,
+            "diferencia": diferencia,
+            "porcentaje": round(diferencia * 100 / anterior, 1) if anterior else None,
+            "tendencia": "positivo" if diferencia > 0 else "negativo" if diferencia < 0 else "igual",
+            "monetario": monetario,
+        })
+
+    fecha_siguiente = (fecha_periodo.replace(day=28) + timedelta(days=4)).replace(day=1)
     return render_template(
         "admin/kpis.html",
         periodo=periodo,
         periodo_max=fecha_hoy[:7],
+        periodo_anterior=fecha_anterior.strftime("%Y-%m"),
+        periodo_siguiente=(
+            fecha_siguiente.strftime("%Y-%m")
+            if fecha_siguiente.strftime("%Y-%m") <= fecha_hoy[:7] else None
+        ),
         desde=desde,
         hasta=hasta,
+        anio_seleccionado=fecha_periodo.year,
+        mes_seleccionado=mes_seleccionado,
+        mes_anterior=mes_anterior,
+        meses_anio=meses_anio,
+        total_anio_vendido_usd=round(sum(mes["vendido_usd"] for mes in meses_anio), 2),
+        total_anio_cobrado_usd=round(sum(mes["cobrado_usd"] for mes in meses_anio), 2),
+        comparacion=comparacion,
         datos=resumen_kpis_mensuales(desde, hasta),
     )
 

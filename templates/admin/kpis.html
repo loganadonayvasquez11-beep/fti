@@ -2,9 +2,23 @@
 {% block titulo %}KPI mensual{% endblock %}
 {% block contenido %}
 <section class="card">
-  <h2>Indicadores del período</h2>
-  <form class="filters" method="get">
-    <label for="periodo">Mes</label>
+  <div class="kpi-period-heading">
+    <div>
+      <h2>Indicadores de {{ mes_seleccionado.nombre }} {{ anio_seleccionado }}</h2>
+      <p class="hint">Cada mes tiene sus propios resultados; cambiar de mes no borra el historial.</p>
+    </div>
+    <nav class="kpi-period-switch" aria-label="Cambiar mes">
+      <a class="btn" href="{{ url_for('admin.kpis', periodo=periodo_anterior) }}" aria-label="Mes anterior">‹ Anterior</a>
+      <strong>{{ mes_seleccionado.nombre }} {{ anio_seleccionado }}</strong>
+      {% if periodo_siguiente %}
+        <a class="btn" href="{{ url_for('admin.kpis', periodo=periodo_siguiente) }}" aria-label="Mes siguiente">Siguiente ›</a>
+      {% else %}
+        <span class="btn" aria-disabled="true">Siguiente ›</span>
+      {% endif %}
+    </nav>
+  </div>
+  <form class="filters kpi-period-form" method="get">
+    <label for="periodo">Ir a otro mes</label>
     <input id="periodo" type="month" name="periodo" value="{{ periodo }}" max="{{ periodo_max }}">
     <button class="btn primary" type="submit">Ver mes</button>
   </form>
@@ -50,6 +64,12 @@
   </button>
   <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-pagos-clientes" data-kpi-tab="pagos-clientes">
     <span>Pagos de clientes</span><strong>{{ datos.clientes_cobros|length }}</strong><small>Con pagos recibidos</small>
+  </button>
+  <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-meses" data-kpi-tab="meses">
+    <span>Meses de {{ anio_seleccionado }}</span><strong>12</strong><small>Resumen mensual del año</small>
+  </button>
+  <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-tendencia" data-kpi-tab="tendencia">
+    <span>Tendencia</span><strong>Mes a mes</strong><small>Comparación y evolución anual</small>
   </button>
 </nav>
 
@@ -230,6 +250,100 @@
     {% endfor %}</tbody>
   </table></div>
   {% else %}<p class="muted">No hay clientes con pagos en este período.</p>{% endif %}
+</section>
+
+<section class="card kpi-panel" id="kpi-panel-meses" role="tabpanel" data-kpi-panel="meses" hidden>
+  <div class="kpi-year-heading">
+    <div>
+      <h2>Resumen de {{ anio_seleccionado }}</h2>
+      <p class="hint">Selecciona un mes para abrir sus productos, vendedores, clientes y desglose.</p>
+    </div>
+    <a class="mini-link" href="{{ url_for('admin.historiales_anio', anio=anio_seleccionado) }}">Abrir historial diario del año</a>
+  </div>
+  <div class="kpi-year-totals">
+    <article><span>Vendido en el año</span><strong>$ {{ total_anio_vendido_usd|num }}</strong></article>
+    <article><span>Cobrado en el año</span><strong>$ {{ total_anio_cobrado_usd|num }}</strong></article>
+  </div>
+  <div class="kpi-month-grid">
+    {% for mes in meses_anio %}
+      {% if mes.disponible %}
+        <a class="kpi-month-card {{ 'selected' if mes.periodo == periodo }}" href="{{ url_for('admin.kpis', periodo=mes.periodo) }}">
+          <div class="kpi-month-card-heading">
+            <strong>{{ mes.nombre }}</strong>
+            {% if mes.periodo == periodo %}<span class="badge info">Seleccionado</span>{% endif %}
+          </div>
+          <strong class="kpi-month-amount">$ {{ mes.vendido_usd|num }}</strong>
+          <span>{{ mes.ventas }} ventas aprobadas</span>
+          <small class="muted">Cobrado $ {{ mes.cobrado_usd|num }}</small>
+        </a>
+      {% else %}
+        <article class="kpi-month-card future" aria-disabled="true">
+          <div class="kpi-month-card-heading"><strong>{{ mes.nombre }}</strong><span class="badge">Próximo</span></div>
+          <strong class="kpi-month-amount">$ 0,00</strong>
+          <span>El mes aún no comienza</span>
+          <small class="muted">Se habilitará automáticamente</small>
+        </article>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card kpi-panel" id="kpi-panel-tendencia" role="tabpanel" data-kpi-panel="tendencia" hidden>
+  <h2>Comparación mensual</h2>
+  <p class="hint">Compara {{ mes_seleccionado.nombre }} {{ anio_seleccionado }} con {{ mes_anterior.nombre }} {{ mes_anterior.periodo[:4] }} y revisa la evolución del año seleccionado.</p>
+  <div class="kpi-comparison-grid">
+    {% for item in comparacion %}
+      <article class="kpi-comparison-card">
+        <span>{{ item.etiqueta }}</span>
+        <strong>{% if item.monetario %}$ {{ item.actual|num }}{% else %}{{ item.actual }}{% endif %}</strong>
+        <small>Mes anterior: {% if item.monetario %}$ {{ item.anterior|num }}{% else %}{{ item.anterior }}{% endif %}</small>
+        <div class="kpi-comparison-change">
+          <span class="badge {{ 'ok' if item.tendencia == 'positivo' else 'bad' if item.tendencia == 'negativo' else 'info' }}">
+            {% if item.diferencia > 0 %}+{% endif %}{% if item.monetario %}$ {{ item.diferencia|num }}{% else %}{{ item.diferencia }} ventas{% endif %}
+          </span>
+          {% if item.porcentaje is not none %}
+            <small class="{{ 'pos' if item.tendencia == 'positivo' else 'neg' if item.tendencia == 'negativo' else 'muted' }}">
+              {% if item.porcentaje > 0 %}+{% endif %}{{ item.porcentaje|num }}%
+            </small>
+          {% else %}
+            <small class="muted">Sin base del mes anterior</small>
+          {% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+
+  <div class="kpi-trend-heading">
+    <h3>Vendido y cobrado por mes</h3>
+    <div class="kpi-trend-legend"><span><i class="sold"></i>Vendido</span><span><i class="collected"></i>Cobrado</span></div>
+  </div>
+  {% if total_anio_vendido_usd or total_anio_cobrado_usd %}
+    <div class="kpi-trend-chart">
+      {% for mes in meses_anio %}
+        <div class="kpi-trend-row {{ 'current' if mes.periodo == periodo }}">
+          <div class="kpi-trend-month">
+            {% if mes.disponible %}
+              <a href="{{ url_for('admin.kpis', periodo=mes.periodo) }}">{{ mes.nombre }}</a>
+            {% else %}
+              <span>{{ mes.nombre }}</span>
+            {% endif %}
+          </div>
+          <div class="kpi-trend-bars">
+            <div class="kpi-trend-bar-line">
+              <span class="kpi-trend-track"><i class="sold" style="width:{{ mes.ancho_vendido }}%"></i></span>
+              <small>$ {{ mes.vendido_usd|num }}</small>
+            </div>
+            <div class="kpi-trend-bar-line">
+              <span class="kpi-trend-track"><i class="collected" style="width:{{ mes.ancho_cobrado }}%"></i></span>
+              <small>$ {{ mes.cobrado_usd|num }}</small>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">Aún no hay ventas ni cobros registrados en este año.</p>
+  {% endif %}
 </section>
 {% endblock %}
 {% block scripts %}
