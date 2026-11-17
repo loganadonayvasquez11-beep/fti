@@ -70,9 +70,9 @@
                 <tbody>{% for s in p.ventas_detalle %}
                   <tr>
                     <td data-label="Fecha">{{ s.fecha|fecha }}</td>
-                    <td data-label="Venta">{{ s.numero }}</td>
-                    <td data-label="Vendedor">{{ s.vendedor }}</td>
-                    <td data-label="Cliente">{{ s.cliente }}</td>
+                    <td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=s.venta_id) }}">{{ s.numero }}</a></td>
+                    <td data-label="Vendedor">{% if s.vendedor_es_vendedor %}<a href="{{ url_for('admin.vendedor_detalle', vid=s.vendedor_id) }}">{{ s.vendedor }}</a>{% else %}{{ s.vendedor }}{% endif %}</td>
+                    <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=s.cliente_id) }}">{{ s.cliente }}</a></td>
                     <td class="r" data-label="Unidades">{{ s.unidades|qty }}</td>
                     <td class="r" data-label="Vendido">$ {{ s.vendido_usd|num }}</td>
                   </tr>
@@ -80,7 +80,7 @@
               </table>
             </div>
           </details>
-          <small class="muted">{{ p.codigo }}</small>
+          <small class="muted"><a href="{{ url_for('catalogo.productos', q=p.codigo) }}">{{ p.codigo }}</a></small>
         </td>
         <td data-label="Color"><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.7em;height:.7em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span></td>
         <td class="r" data-label="Unidades">{{ p.unidades|qty }}</td>
@@ -95,7 +95,7 @@
 
 <section class="card kpi-panel" id="kpi-panel-vendedores" role="tabpanel" data-kpi-panel="vendedores" hidden>
   <h2>Vendedores: más y menos ventas</h2>
-  <p class="hint">Ordenados por USD vendido. Pulsa un vendedor para desplegar sus productos y clientes; el detalle va de más a menos unidades.</p>
+  <p class="hint">Ordenados por USD vendido. Pulsa un vendedor para desplegar sus ventas, productos y clientes. Cada venta abre su ficha.</p>
   {% if datos.vendedores_ventas %}
   <div class="table-wrap"><table class="stack">
     <thead><tr><th>Vendedor y detalle</th><th class="r">Ventas</th><th class="r">Unidades</th><th class="r">Vendido</th><th>Producto líder</th><th>Ranking</th></tr></thead>
@@ -107,20 +107,37 @@
             <div class="kpi-drill-list">
               {% for p in v.productos_detalle %}
               <article class="kpi-drill-item">
-                <div class="kpi-drill-title"><strong>{{ p.nombre }}</strong><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.65em;height:.65em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span></div>
+                <div class="kpi-drill-title"><strong><a href="{{ url_for('catalogo.productos', q=p.codigo) }}">{{ p.nombre }}</a></strong><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.65em;height:.65em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span></div>
                 <small class="muted">{{ p.unidades|qty }} unidades · vendido $ {{ p.vendido_usd|num }} · cobrado $ {{ p.cobrado_usd|num }}</small>
                 <ul class="kpi-client-list">
                   {% for c in p.clientes %}
-                  <li>{{ c.nombre }} <span class="muted">· {{ c.unidades|qty }} unidades · $ {{ c.vendido_usd|num }}</span></li>
+                  <li><a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a> <span class="muted">· {{ c.unidades|qty }} unidades · $ {{ c.vendido_usd|num }}</span></li>
                   {% endfor %}
                 </ul>
               </article>
               {% endfor %}
             </div>
+            <h3>Ventas del vendedor</h3>
+            <div class="table-wrap kpi-sales-detail">
+              <table class="stack">
+                <thead><tr><th>Fecha</th><th>Venta</th><th>Cliente</th><th class="r">Productos</th><th class="r">Unidades</th><th class="r">Vendido</th></tr></thead>
+                <tbody>{% for s in v.ventas_detalle %}
+                  <tr>
+                    <td data-label="Fecha">{{ s.fecha|fecha }}</td>
+                    <td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=s.venta_id) }}">{{ s.numero }}</a></td>
+                    <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=s.cliente_id) }}">{{ s.cliente }}</a></td>
+                    <td class="r" data-label="Productos">{{ s.productos }}</td>
+                    <td class="r" data-label="Unidades">{{ s.unidades|qty }}</td>
+                    <td class="r" data-label="Vendido">$ {{ s.vendido_usd|num }}</td>
+                  </tr>
+                {% endfor %}</tbody>
+              </table>
+            </div>
           </details>
+          <a class="mini-link" href="{{ url_for('admin.vendedor_detalle', vid=v.id) }}">Abrir ficha del vendedor</a>
         </td><td class="r" data-label="Ventas">{{ v.ventas }}</td>
         <td class="r" data-label="Unidades">{{ v.unidades|qty }}</td><td class="r" data-label="Vendido">$ {{ v.vendido_usd|num }}</td>
-        <td data-label="Producto líder">{% if v.productos_detalle %}{{ v.productos_detalle[0].nombre }} <small class="muted">({{ v.productos_detalle[0].unidades|qty }})</small>{% else %}—{% endif %}</td>
+        <td data-label="Producto líder">{% if v.productos_detalle %}<a href="{{ url_for('catalogo.productos', q=v.productos_detalle[0].codigo) }}">{{ v.productos_detalle[0].nombre }}</a> <small class="muted">({{ v.productos_detalle[0].unidades|qty }})</small>{% else %}—{% endif %}</td>
         <td data-label="Ranking">{% if v.mas_ventas %}<span class="badge ok">Más vendido</span>{% endif %}{% if v.menos_ventas %} <span class="badge bad">Menos vendido</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
@@ -142,16 +159,17 @@
             {% if v.productos_cobros_detalle %}
             <ul class="kpi-payment-list">
               {% for p in v.productos_cobros_detalle %}
-              <li><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.65em;height:.65em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span> {{ p.nombre }} <strong>$ {{ p.cobrado_usd|num }}</strong></li>
+              <li><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.65em;height:.65em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span> <a href="{{ url_for('catalogo.productos', q=p.codigo) }}">{{ p.nombre }}</a> <strong>$ {{ p.cobrado_usd|num }}</strong></li>
               {% endfor %}
             </ul>
             {% else %}<p class="muted">Estos cobros no se pueden atribuir a productos.</p>{% endif %}
           </details>
+          <a class="mini-link" href="{{ url_for('admin.vendedor_detalle', vid=v.id) }}">Abrir ficha del vendedor</a>
         </td><td class="r" data-label="Cobrado">$ {{ v.cobrado_usd|num }}</td>
         {% if v.productos_cobros_detalle %}
         {% set p_mas = v.productos_cobros_detalle[0] %}{% set p_menos = v.productos_cobros_detalle[-1] %}
-        <td data-label="Producto más cobrado">{{ p_mas.nombre }} <small class="muted">($ {{ p_mas.cobrado_usd|num }})</small></td>
-        <td data-label="Producto menos cobrado">{{ p_menos.nombre }} <small class="muted">($ {{ p_menos.cobrado_usd|num }})</small></td>
+        <td data-label="Producto más cobrado"><a href="{{ url_for('catalogo.productos', q=p_mas.codigo) }}">{{ p_mas.nombre }}</a> <small class="muted">($ {{ p_mas.cobrado_usd|num }})</small></td>
+        <td data-label="Producto menos cobrado"><a href="{{ url_for('catalogo.productos', q=p_menos.codigo) }}">{{ p_menos.nombre }}</a> <small class="muted">($ {{ p_menos.cobrado_usd|num }})</small></td>
         {% else %}
         <td data-label="Producto más cobrado">Sin atribución a productos</td><td data-label="Producto menos cobrado">Sin atribución a productos</td>
         {% endif %}
@@ -170,7 +188,27 @@
     <thead><tr><th>Cliente</th><th class="r">Ventas</th><th class="r">Unidades</th><th class="r">Comprado</th><th>Ranking</th></tr></thead>
     <tbody>{% for c in datos.clientes_ventas %}
       <tr>
-        <td data-label="Cliente">{{ c.nombre }}</td><td class="r" data-label="Ventas">{{ c.ventas }}</td>
+        <td data-label="Cliente">
+          <details class="kpi-drilldown">
+            <summary>{{ c.nombre }} <small class="muted">· ver {{ c.ventas_detalle|length }} compras</small></summary>
+            <div class="table-wrap kpi-sales-detail">
+              <table class="stack">
+                <thead><tr><th>Fecha</th><th>Venta</th><th>Vendedor</th><th class="r">Productos</th><th class="r">Unidades</th><th class="r">Comprado</th></tr></thead>
+                <tbody>{% for s in c.ventas_detalle %}
+                  <tr>
+                    <td data-label="Fecha">{{ s.fecha|fecha }}</td>
+                    <td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=s.venta_id) }}">{{ s.numero }}</a></td>
+                    <td data-label="Vendedor">{% if s.vendedor_es_vendedor %}<a href="{{ url_for('admin.vendedor_detalle', vid=s.vendedor_id) }}">{{ s.vendedor }}</a>{% else %}{{ s.vendedor }}{% endif %}</td>
+                    <td class="r" data-label="Productos">{{ s.productos }}</td>
+                    <td class="r" data-label="Unidades">{{ s.unidades|qty }}</td>
+                    <td class="r" data-label="Comprado">$ {{ s.vendido_usd|num }}</td>
+                  </tr>
+                {% endfor %}</tbody>
+              </table>
+            </div>
+          </details>
+          <a class="mini-link" href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">Abrir ficha del cliente</a>
+        </td><td class="r" data-label="Ventas">{{ c.ventas }}</td>
         <td class="r" data-label="Unidades">{{ c.unidades|qty }}</td><td class="r" data-label="Comprado">$ {{ c.vendido_usd|num }}</td>
         <td data-label="Ranking">{% if c.mas_compras %}<span class="badge ok">Más compras</span>{% endif %}{% if c.menos_compras %} <span class="badge bad">Menos compras</span>{% endif %}</td>
       </tr>
@@ -186,7 +224,7 @@
     <thead><tr><th>Cliente</th><th class="r">Cobrado</th><th>Ranking</th></tr></thead>
     <tbody>{% for c in datos.clientes_cobros %}
       <tr>
-        <td data-label="Cliente">{{ c.nombre }}</td><td class="r" data-label="Cobrado">$ {{ c.cobrado_usd|num }}</td>
+        <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a></td><td class="r" data-label="Cobrado">$ {{ c.cobrado_usd|num }}</td>
         <td data-label="Ranking">{% if c.mas_pagos %}<span class="badge ok">Más pagos</span>{% endif %}{% if c.menos_pagos %} <span class="badge bad">Menos pagos</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>

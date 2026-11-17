@@ -120,6 +120,7 @@ def resumen_kpis_mensuales(desde, hasta):
         fila["id"]: {
             "id": fila["id"], "nombre": fila["nombre"], "ventas": 0,
             "unidades": 0.0, "vendido_usd": 0.0, "cobrado_usd": 0.0,
+            "ventas_detalle": [],
         }
         for fila in query("SELECT id, nombre FROM usuarios WHERE rol = 'vendedor' ORDER BY nombre")
     }
@@ -127,6 +128,7 @@ def resumen_kpis_mensuales(desde, hasta):
         fila["id"]: {
             "id": fila["id"], "nombre": fila["nombre"], "ventas": 0,
             "unidades": 0.0, "vendido_usd": 0.0, "cobrado_usd": 0.0,
+            "ventas_detalle": [],
         }
         for fila in query("SELECT id, nombre FROM clientes ORDER BY nombre")
     }
@@ -153,6 +155,42 @@ def resumen_kpis_mensuales(desde, hasta):
             clientes[fila["cliente_id"]]["ventas"] += cantidad
             clientes[fila["cliente_id"]]["vendido_usd"] += monto
 
+    ventas_detalle = query(
+        """SELECT v.id AS venta_id,
+                  COALESCE(NULLIF(v.numero, ''), 'V-' || CAST(v.id AS TEXT)) AS numero,
+                  substr(v.fecha, 1, 10) AS fecha, v.vendedor_id, u.nombre AS vendedor,
+                  v.cliente_id, c.nombre AS cliente,
+                  COUNT(DISTINCT vd.producto_id) AS productos, SUM(vd.cantidad) AS unidades,
+                  v.total_usd AS vendido_usd
+             FROM ventas v
+             JOIN usuarios u ON u.id = v.vendedor_id
+             JOIN clientes c ON c.id = v.cliente_id
+             JOIN venta_detalles vd ON vd.venta_id = v.id
+            WHERE v.estado = 'aprobada' AND substr(v.fecha, 1, 10) BETWEEN ? AND ?
+            GROUP BY v.id, v.numero, v.fecha, v.vendedor_id, u.nombre,
+                     v.cliente_id, c.nombre, v.total_usd
+            ORDER BY v.total_usd DESC, v.fecha DESC, v.id DESC""",
+        (desde, hasta),
+    )
+    for fila in ventas_detalle:
+        detalle_venta = {
+            "venta_id": fila["venta_id"],
+            "numero": fila["numero"],
+            "fecha": fila["fecha"],
+            "vendedor_id": fila["vendedor_id"],
+            "vendedor": fila["vendedor"],
+            "vendedor_es_vendedor": fila["vendedor_id"] in vendedores,
+            "cliente_id": fila["cliente_id"],
+            "cliente": fila["cliente"],
+            "productos": int(fila["productos"] or 0),
+            "unidades": round(float(fila["unidades"] or 0), 3),
+            "vendido_usd": round(float(fila["vendido_usd"] or 0), 2),
+        }
+        if fila["vendedor_id"] in vendedores:
+            vendedores[fila["vendedor_id"]]["ventas_detalle"].append(detalle_venta)
+        if fila["cliente_id"] in clientes:
+            clientes[fila["cliente_id"]]["ventas_detalle"].append(detalle_venta)
+
     lineas = query(
         """SELECT v.vendedor_id, v.cliente_id, vd.producto_id,
                   SUM(vd.cantidad) AS unidades,
@@ -168,7 +206,7 @@ def resumen_kpis_mensuales(desde, hasta):
         (desde, hasta),
     )
     ventas_detalle_producto = query(
-        """SELECT vd.producto_id, v.id AS venta_id,
+        """SELECT vd.producto_id, v.id AS venta_id, v.vendedor_id, v.cliente_id,
                   COALESCE(NULLIF(v.numero, ''), 'V-' || CAST(v.id AS TEXT)) AS numero,
                   substr(v.fecha, 1, 10) AS fecha, u.nombre AS vendedor, c.nombre AS cliente,
                   SUM(vd.cantidad) AS unidades,
@@ -182,7 +220,8 @@ def resumen_kpis_mensuales(desde, hasta):
              JOIN (SELECT venta_id, SUM(subtotal) AS subtotal_lineas
                      FROM venta_detalles GROUP BY venta_id) totales ON totales.venta_id = v.id
             WHERE v.estado = 'aprobada' AND substr(v.fecha, 1, 10) BETWEEN ? AND ?
-            GROUP BY vd.producto_id, v.id, v.numero, v.fecha, u.nombre, c.nombre
+            GROUP BY vd.producto_id, v.id, v.vendedor_id, v.cliente_id,
+                     v.numero, v.fecha, u.nombre, c.nombre
             ORDER BY v.fecha DESC, v.id DESC""",
         (desde, hasta),
     )
@@ -190,9 +229,13 @@ def resumen_kpis_mensuales(desde, hasta):
         if fila["producto_id"] in productos:
             productos[fila["producto_id"]]["ventas_detalle"].append(
                 {
+                    "venta_id": fila["venta_id"],
                     "fecha": fila["fecha"],
                     "numero": fila["numero"],
+                    "vendedor_id": fila["vendedor_id"],
+                    "vendedor_es_vendedor": fila["vendedor_id"] in vendedores,
                     "vendedor": fila["vendedor"],
+                    "cliente_id": fila["cliente_id"],
                     "cliente": fila["cliente"],
                     "unidades": round(float(fila["unidades"] or 0), 3),
                     "vendido_usd": round(float(fila["vendido_usd"] or 0), 2),
@@ -219,6 +262,7 @@ def resumen_kpis_mensuales(desde, hasta):
                 pid,
                 {
                     "id": pid,
+                    "codigo": productos[pid]["codigo"],
                     "nombre": productos[pid]["nombre"],
                     "color": productos[pid]["color"],
                     "color_hex": productos[pid]["color_hex"],
@@ -232,6 +276,7 @@ def resumen_kpis_mensuales(desde, hasta):
             detalle_cliente = detalle_producto["clientes"].setdefault(
                 cliente_id,
                 {
+                    "id": cliente_id,
                     "nombre": clientes[cliente_id]["nombre"],
                     "unidades": 0.0,
                     "vendido_usd": 0.0,
@@ -324,6 +369,7 @@ def resumen_kpis_mensuales(desde, hasta):
             detalle["clientes"] = sorted(
                 (
                     {
+                        "id": cliente["id"],
                         "nombre": cliente["nombre"],
                         "unidades": round(cliente["unidades"], 3),
                         "vendido_usd": round(cliente["vendido_usd"], 2),
@@ -341,6 +387,7 @@ def resumen_kpis_mensuales(desde, hasta):
             (
                 {
                     "nombre": producto["nombre"],
+                    "codigo": producto["codigo"],
                     "color": producto["color"],
                     "color_hex": producto["color_hex"],
                     "cobrado_usd": round(monto, 2),
