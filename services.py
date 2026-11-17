@@ -82,6 +82,51 @@ def total_cobrado_periodo(desde, hasta, vendedor_id=None):
     return float(fila["total"])
 
 
+def listar_cobros_periodo(desde, hasta, vendedor_id=None):
+    """Lista las ventas de contado pagadas y los abonos válidos recibidos en un período."""
+    filtro_venta = ""
+    filtro_deuda = ""
+    args = [desde, hasta]
+    if vendedor_id is not None:
+        filtro_venta = " AND v.vendedor_id = ?"
+        filtro_deuda = " AND d.vendedor_id = ?"
+        args.append(vendedor_id)
+    args.extend((desde, hasta))
+    if vendedor_id is not None:
+        args.append(vendedor_id)
+    return query(
+        f"""SELECT fecha,fecha_origen,tipo,cliente,vendedor,registrado_por,
+                   referencia,venta_numero,monto_usd,metodo,venta_id,deuda_id
+              FROM (
+                  SELECT COALESCE(v.fecha_aprobacion,v.fecha) AS fecha,
+                         v.fecha AS fecha_origen,'Venta de contado' AS tipo,
+                         c.nombre AS cliente,u.nombre AS vendedor,
+                         COALESCE(aprobador.nombre,u.nombre) AS registrado_por,
+                         v.numero AS referencia,v.numero AS venta_numero,v.total_usd AS monto_usd,
+                         v.metodo_pago AS metodo,v.id AS venta_id,NULL AS deuda_id
+                    FROM ventas v JOIN clientes c ON c.id=v.cliente_id
+                    JOIN usuarios u ON u.id=v.vendedor_id
+                    LEFT JOIN usuarios aprobador ON aprobador.id=v.aprobado_por
+                   WHERE v.estado='aprobada' AND v.tipo_pago='contado' AND v.pagada=1
+                     AND substr(COALESCE(v.fecha_aprobacion,v.fecha),1,10) BETWEEN ? AND ?{filtro_venta}
+                  UNION ALL
+                  SELECT a.fecha AS fecha,d.fecha AS fecha_origen,'Abono' AS tipo,
+                         c.nombre AS cliente,owner.nombre AS vendedor,collector.nombre AS registrado_por,
+                         COALESCE(NULLIF(a.referencia,''),v.numero,d.concepto) AS referencia,
+                         v.numero AS venta_numero,
+                         a.monto_usd AS monto_usd,a.metodo AS metodo,v.id AS venta_id,d.id AS deuda_id
+                    FROM abonos a JOIN deudas d ON d.id=a.deuda_id
+                    JOIN clientes c ON c.id=d.cliente_id
+                    JOIN usuarios owner ON owner.id=d.vendedor_id
+                    LEFT JOIN usuarios collector ON collector.id=a.registrado_por
+                    LEFT JOIN ventas v ON v.id=d.venta_id
+                   WHERE a.anulado=0 AND substr(a.fecha,1,10) BETWEEN ? AND ?{filtro_deuda}
+              ) cobros
+             ORDER BY fecha DESC,referencia""",
+        args,
+    )
+
+
 # ============================================================ reglas de vendedor
 def msg_sin_stock(vendedor_id, nombre, stock):
     """Mensaje de falta de existencia. El vendedor normal NO ve cantidades: solo si se agotó o no alcanza."""

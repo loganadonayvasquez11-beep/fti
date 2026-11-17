@@ -1,0 +1,121 @@
+<section class="card" style="margin-top: 20px;">
+  <h2>Actividad del período</h2>
+  {% if filtro_vacio %}
+    {% if filtro_tipo == 'ventas' %}<p class="muted">No hay ventas para este período.</p>
+    {% elif filtro_tipo == 'cobros' %}<p class="muted">No hay cobros para este período.</p>
+    {% elif filtro_tipo == 'deudas' %}<p class="muted">No hay deudas registradas para este período.</p>
+    {% elif filtro_tipo == 'inventario' %}<p class="muted">No hay movimientos de inventario para este período.</p>
+    {% elif filtro_tipo == 'auditoria' %}<p class="muted">No hay acciones de auditoría para este período.</p>
+    {% else %}<p class="muted">No hay actividad registrada para este período.</p>{% endif %}
+  {% else %}
+    {% if filtro_tipo in ('todo', 'ventas') and (actividad.ventas or filtro_tipo == 'ventas') %}
+      <h3>Ventas</h3>
+      {% if actividad.ventas %}
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="stack">
+          <thead><tr><th>Fecha</th><th>Venta</th><th>Cliente</th><th>Vendedor</th><th>Producto</th><th>Importe</th><th>Estado</th></tr></thead>
+          <tbody>{% for v in actividad.ventas %}
+            <tr>
+              <td data-label="Fecha">{{ v.fecha|fechahora }}</td>
+              <td data-label="Venta">{{ v.numero }}</td>
+              <td data-label="Cliente">{{ v.cliente }}</td>
+              <td data-label="Vendedor">{{ v.vendedor }}</td>
+              <td data-label="Producto">{{ v.codigo }} - {{ v.producto }}</td>
+              <td data-label="Importe">{{ v.subtotal|money }}</td>
+              <td data-label="Estado">{{ v.estado }}</td>
+            </tr>
+          {% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}<p class="muted">No hay ventas para este período.</p>{% endif %}
+    {% endif %}
+
+    {% if filtro_tipo in ('todo', 'cobros') and (actividad.cobros or filtro_tipo == 'cobros') %}
+      <h3>Cobros</h3>
+      {% if actividad.cobros %}
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="stack">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Cliente</th><th>Vendedor</th><th>Registrado por</th><th>Monto</th><th>Método</th><th>Referencia</th><th>Estado</th></tr></thead>
+          <tbody>{% for c in actividad.cobros %}
+            <tr>
+              <td data-label="Fecha">{{ c.fecha|fechahora }}</td>
+              <td data-label="Tipo">{{ c.tipo }}</td>
+              <td data-label="Cliente">{{ c.cliente }}</td>
+              <td data-label="Vendedor">{{ c.vendedor }}</td>
+              <td data-label="Registrado por">{{ c.registrado_por or '—' }}</td>
+              <td data-label="Monto">{{ c.monto_usd|money }}</td>
+              <td data-label="Método">{{ c.metodo or '—' }}</td>
+              <td data-label="Referencia">{{ c.referencia or '—' }}</td>
+              <td data-label="Estado">{{ 'Anulado (no suma)' if c.anulado else 'Válido' }}</td>
+            </tr>
+          {% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}<p class="muted">No hay cobros para este período.</p>{% endif %}
+    {% endif %}
+
+    {% if filtro_tipo in ('todo', 'deudas') and (actividad.deudas or filtro_tipo == 'deudas') %}
+      <h3>Deudas</h3>
+      {% if actividad.deudas %}
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="stack">
+          <thead><tr><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Concepto</th><th>Monto</th><th>Abonado</th><th>Vencimiento</th><th>Estado</th></tr></thead>
+          <tbody>{% for d in actividad.deudas %}
+            <tr>
+              <td data-label="Fecha">{{ d.fecha|fechahora }}</td>
+              <td data-label="Cliente">{{ d.cliente }}</td>
+              <td data-label="Vendedor">{{ d.vendedor }}</td>
+              <td data-label="Concepto">{{ d.concepto }}</td>
+              <td data-label="Monto">{{ d.monto_usd|money }}</td>
+              <td data-label="Abonado">{{ d.abonado|money }}</td>
+              <td data-label="Vencimiento">{{ d.vencimiento|fecha }}</td>
+              <td data-label="Estado">{{ d.estado }}</td>
+            </tr>
+          {% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}<p class="muted">No hay deudas registradas para este período.</p>{% endif %}
+    {% endif %}
+
+    {% if filtro_tipo in ('todo', 'inventario') and (actividad.movs or filtro_tipo == 'inventario') %}
+      <h3>Movimientos de inventario</h3>
+      {% if actividad.movs %}
+      <div class="table-wrap" style="margin-bottom:18px;">
+        <table class="stack">
+          <thead><tr><th>Hora</th><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Stock final</th><th>Motivo</th><th>Usuario</th></tr></thead>
+          <tbody>{% for m in actividad.movs %}
+            <tr>
+              <td data-label="Hora">{{ m.fecha|fechahora }}</td>
+              <td data-label="Producto">{{ m.codigo }} - {{ m.nombre }}</td>
+              <td data-label="Tipo">{{ m.tipo }}</td>
+              <td data-label="Cantidad">{{ m.cantidad }}</td>
+              <td data-label="Stock final">{{ m.stock_resultante }}</td>
+              <td data-label="Motivo">{{ m.motivo }}</td>
+              <td data-label="Usuario">{{ m.usuario or '—' }}</td>
+            </tr>
+          {% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}<p class="muted">No hay movimientos de inventario para este período.</p>{% endif %}
+    {% endif %}
+
+    {% if filtro_tipo in ('todo', 'auditoria') and (actividad.aud or filtro_tipo == 'auditoria') %}
+      <h3>Auditoría</h3>
+      {% if actividad.aud %}
+      <div class="table-wrap">
+        <table class="stack">
+          <thead><tr><th>Hora</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
+          <tbody>{% for a in actividad.aud %}
+            <tr>
+              <td data-label="Hora">{{ a.fecha|fechahora }}</td>
+              <td data-label="Usuario">{{ a.usuario or '—' }}</td>
+              <td data-label="Acción">{{ a.accion }}</td>
+              <td data-label="Detalle">{{ a.detalle }}</td>
+            </tr>
+          {% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}<p class="muted">No hay acciones de auditoría para este período.</p>{% endif %}
+    {% endif %}
+  {% endif %}
+</section>

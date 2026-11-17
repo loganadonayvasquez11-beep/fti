@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block titulo %}Cobrado este mes{% endblock %}
+{% block acciones %}<a class="btn" href="{{ url_for('panel.inicio') }}">Volver al panel</a>{% endblock %}
+{% block contenido %}
+<section class="card">
+  <div class="resumen-lista">
+    <span class="muted">Cobros recibidos del {{ desde|fecha }} al {{ hasta|fecha }}</span>
+    <b>$ {{ total|num }}</b>
+  </div>
+  {% if cobros %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Fecha de cobro</th><th>Tipo</th><th>Venta/deuda</th><th>Fecha de venta/deuda</th><th>Cliente</th>
+      <th>Vendedor</th><th>Registrado por</th><th>Método</th><th class="r">Monto</th></tr></thead>
+    <tbody>{% for cobro in cobros %}
+      <tr>
+        <td data-label="Fecha de cobro">{{ cobro.fecha|fechahora }}</td>
+        <td data-label="Tipo">{{ cobro.tipo }}</td>
+        <td data-label="Venta/deuda">
+          {% if cobro.venta_id %}<a href="{{ url_for('ventas.detalle', venta_id=cobro.venta_id) }}">{{ cobro.venta_numero or cobro.referencia }}</a>
+          {% elif cobro.deuda_id %}<a href="{{ url_for('deudas.detalle', deuda_id=cobro.deuda_id) }}">{{ cobro.referencia }}</a>
+          {% else %}{{ cobro.referencia or '—' }}{% endif %}
+          {% if cobro.tipo == 'Abono' and cobro.referencia and cobro.referencia != cobro.venta_numero %}
+          <small>Referencia: {{ cobro.referencia }}</small>{% endif %}
+        </td>
+        <td data-label="Fecha de venta/deuda">{{ cobro.fecha_origen|fechahora if cobro.fecha_origen else '—' }}</td>
+        <td data-label="Cliente">{{ cobro.cliente }}</td>
+        <td data-label="Vendedor">{{ cobro.vendedor }}</td>
+        <td data-label="Registrado por">{{ cobro.registrado_por or '—' }}</td>
+        <td data-label="Método">{{ cobro.metodo or '—' }}</td>
+        <td data-label="Monto" class="r">$ {{ cobro.monto_usd|num }}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">Todavía no hay cobros registrados este mes.</p>{% endif %}
+</section>
+{% endblock %}

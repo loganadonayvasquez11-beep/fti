@@ -14,6 +14,22 @@ from datetime import datetime, timedelta
 
 bp = Blueprint("admin", __name__)
 
+HISTORIAL_FILTROS = (
+    ("todo", "Todo"),
+    ("ventas", "Ventas"),
+    ("cobros", "Cobros"),
+    ("deudas", "Deudas"),
+    ("inventario", "Inventario"),
+    ("auditoria", "Auditoría"),
+)
+
+
+def _historial_filtro_actual():
+    tipo = request.args.get("tipo", "todo")
+    if tipo not in {valor for valor, _ in HISTORIAL_FILTROS}:
+        abort(400, "El filtro del historial no es válido.")
+    return tipo
+
 
 # ============================================================ cartera de vendedores
 @bp.route("/vendedores")
@@ -307,22 +323,26 @@ def _historial_meses(anio):
 
 def _historial_dias(periodo):
     """Devuelve los días del mes con ventas o actividad para navegar por el mes."""
-    rows = query(
+    actividad = query(
         """
-        SELECT DISTINCT substr(fecha,1,10) AS dia
+        SELECT substr(fecha,1,10) AS dia,tipo
         FROM (
-            SELECT fecha FROM ventas WHERE substr(fecha,1,7) = ?
-            UNION ALL SELECT fecha FROM deudas WHERE substr(fecha,1,7) = ?
-            UNION ALL SELECT fecha FROM abonos WHERE substr(fecha,1,7) = ?
-            UNION ALL SELECT fecha FROM movimientos_stock WHERE substr(fecha,1,7) = ?
-            UNION ALL SELECT fecha FROM auditoria WHERE substr(fecha,1,7) = ?
-        )
-        WHERE fecha IS NOT NULL
-        ORDER BY dia DESC
+            SELECT fecha,'ventas' AS tipo FROM ventas
+            UNION ALL SELECT COALESCE(fecha_aprobacion,fecha),'cobros'
+              FROM ventas WHERE estado='aprobada' AND tipo_pago='contado' AND pagada=1
+            UNION ALL SELECT fecha,'cobros' FROM abonos
+            UNION ALL SELECT fecha,'deudas' FROM deudas
+            UNION ALL SELECT fecha,'inventario' FROM movimientos_stock
+            UNION ALL SELECT fecha,'auditoria' FROM auditoria
+        ) actividad
+        WHERE fecha IS NOT NULL AND substr(fecha,1,7)=?
+        ORDER BY dia DESC,tipo
         """,
-        (periodo, periodo, periodo, periodo, periodo),
+        (periodo,),
     )
-    dias = {fila["dia"] for fila in rows}
+    tipos_por_dia = {}
+    for fila in actividad:
+        tipos_por_dia.setdefault(fila["dia"], set()).add(fila["tipo"])
     ventas = query(
         """SELECT substr(fecha,1,10) AS dia, SUM(total_usd) AS vendido
              FROM ventas WHERE estado='aprobada' AND substr(fecha,1,7)=?
@@ -353,7 +373,8 @@ def _historial_dias(periodo):
             "fecha": fecha,
             "vendido": ventas_por_dia.get(fecha, 0.0),
             "cobrado": cobros_por_dia.get(fecha, 0.0),
-            "activo": fecha in dias,
+            "activo": fecha in tipos_por_dia,
+            "tipos": tipos_por_dia.get(fecha, set()),
             "label": datetime.strptime(fecha, "%Y-%m-%d").strftime("%d/%m/%Y"),
         })
     return list(reversed(lista))
@@ -390,40 +411,42 @@ def _historial_cobros(desde, hasta):
     )
 
 
-def _historial_detalle(fecha):
-    """Consulta la actividad del día para mostrarla en la pantalla de detalle."""
-    desde = f"{fecha} 00:00:00"
-    hasta = f"{fecha} 23:59:59"
+def _historial_detalle_periodo(desde_fecha, hasta_fecha):
+    """Consulta ventas, cobros y demás actividad registrada dentro de un período."""
+    desde_fecha = desde_fecha[:10]
+    hasta_fecha = hasta_fecha[:10]
     movs = query(
         """SELECT m.fecha,p.codigo,p.nombre,m.tipo,m.cantidad,m.stock_resultante,m.motivo,u.nombre usuario
            FROM movimientos_stock m JOIN productos p ON p.id=m.producto_id LEFT JOIN usuarios u ON u.id=m.usuario_id
-           WHERE m.fecha BETWEEN ? AND ? ORDER BY m.fecha,m.id""",
-        (desde, hasta),
+           WHERE substr(m.fecha,1,10) BETWEEN ? AND ? ORDER BY m.fecha,m.id""",
+        (desde_fecha, hasta_fecha),
     )
     aud = query(
         """SELECT a.fecha,u.nombre usuario,a.accion,a.detalle FROM auditoria a
-            LEFT JOIN usuarios u ON u.id=a.usuario_id WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha,a.id""",
-        (desde, hasta),
+            LEFT JOIN usuarios u ON u.id=a.usuario_id
+            WHERE substr(a.fecha,1,10) BETWEEN ? AND ? ORDER BY a.fecha,a.id""",
+        (desde_fecha, hasta_fecha),
     )
     ventas = query(
         """SELECT v.fecha,v.numero,c.nombre cliente,u.nombre vendedor,v.estado,v.total_usd,
             v.moneda,d.cantidad,d.precio_unit,d.subtotal,p.codigo,p.nombre producto,p.unidad
             FROM ventas v JOIN clientes c ON c.id=v.cliente_id JOIN usuarios u ON u.id=v.vendedor_id
             JOIN venta_detalles d ON d.venta_id=v.id JOIN productos p ON p.id=d.producto_id
-            WHERE v.fecha BETWEEN ? AND ? ORDER BY v.fecha,v.id,d.id""",
-        (desde, hasta),
+            WHERE substr(v.fecha,1,10) BETWEEN ? AND ? ORDER BY v.fecha,v.id,d.id""",
+        (desde_fecha, hasta_fecha),
     )
     deudas = query(
         """SELECT d.fecha,c.nombre cliente,u.nombre vendedor,d.concepto,d.monto_usd,d.vencimiento,d.estado,
             COALESCE((SELECT SUM(a.monto_usd) FROM abonos a WHERE a.deuda_id=d.id AND a.anulado=0),0) abonado
             FROM deudas d JOIN clientes c ON c.id=d.cliente_id JOIN usuarios u ON u.id=d.vendedor_id
-            WHERE d.fecha BETWEEN ? AND ? ORDER BY d.fecha,d.id""",
-        (desde, hasta),
+            WHERE substr(d.fecha,1,10) BETWEEN ? AND ? ORDER BY d.fecha,d.id""",
+        (desde_fecha, hasta_fecha),
     )
-    cobros = _historial_cobros(fecha, fecha)
+    cobros = _historial_cobros(desde_fecha[:10], hasta_fecha[:10])
     total_ventas = query(
-        "SELECT COALESCE(SUM(total_usd),0) AS total FROM ventas WHERE estado='aprobada' AND fecha BETWEEN ? AND ?",
-        (desde, hasta),
+        """SELECT COALESCE(SUM(total_usd),0) AS total FROM ventas
+            WHERE estado='aprobada' AND substr(fecha,1,10) BETWEEN ? AND ?""",
+        (desde_fecha, hasta_fecha),
         one=True,
     )["total"]
     return {
@@ -437,9 +460,22 @@ def _historial_detalle(fecha):
     }
 
 
-    filas = query("""SELECT a.*, u.nombre AS usuario FROM auditoria a LEFT JOIN usuarios u ON u.id = a.usuario_id
-                      WHERE substr(a.fecha,1,10) BETWEEN ? AND ? ORDER BY a.id DESC LIMIT 2000""", (desde, hasta))
-    return render_template("admin/auditoria.html", filas=filas, desde=desde, hasta=hasta)
+def _historial_detalle(fecha):
+    """Consulta la actividad de un día."""
+    return _historial_detalle_periodo(fecha, fecha)
+
+
+def _historial_filtro_vacio(detalle, tipo):
+    claves = {
+        "ventas": "ventas",
+        "cobros": "cobros",
+        "deudas": "deudas",
+        "inventario": "movs",
+        "auditoria": "aud",
+    }
+    if tipo == "todo":
+        return not any(detalle[clave] for clave in claves.values())
+    return not detalle[claves[tipo]]
 
 
 # =========================================================== archivos históricos
@@ -478,6 +514,7 @@ def historiales_anio(anio):
 @roles_required("admin")
 def historiales_mes(anio, mes):
     if mes < 1 or mes > 12:
+    filtro_tipo = _historial_filtro_actual()
         abort(404)
     periodo = f"{anio}-{mes:02d}"
     fecha_filtro = request.args.get("fecha", "").strip()
@@ -492,14 +529,22 @@ def historiales_mes(anio, mes):
             "admin.historiales_dia",
             anio=anio,
             mes=mes,
+            tipo=filtro_tipo,
             dia=fecha_seleccionada.day,
         ))
     archivos = query("SELECT * FROM archivos_historicos ORDER BY generado DESC LIMIT 500")
+    dias_visibles = [
+        dia for dia in dias
+        if filtro_tipo == "todo" or filtro_tipo in dia["tipos"]
+    ]
     dias = _historial_dias(periodo)
     vendido = sum(float(d["vendido"]) for d in dias if d["activo"])
     cobrado = sum(float(d["cobrado"]) for d in dias if d["activo"])
     ultimo_dia = calendar.monthrange(anio, mes)[1]
-    cobros_mes = _historial_cobros(f"{anio}-{mes:02d}-01", f"{anio}-{mes:02d}-{ultimo_dia:02d}")
+    detalle_mes = _historial_detalle_periodo(
+        f"{periodo}-01",
+        f"{periodo}-{ultimo_dia:02d}",
+    )
     return render_template(
         "admin/historiales.html",
         archivos=archivos,
@@ -513,7 +558,11 @@ def historiales_mes(anio, mes):
         dias=dias,
         total_ventas=vendido,
         total_cobrado=cobrado,
-        cobros=cobros_mes,
+        actividad=detalle_mes,
+        filtro_tipo=filtro_tipo,
+        filtros_historial=HISTORIAL_FILTROS,
+        dias_visibles=dias_visibles,
+        filtro_vacio=_historial_filtro_vacio(detalle_mes, filtro_tipo),
         fecha_min=f"{periodo}-01",
         fecha_max=f"{periodo}-{ultimo_dia:02d}",
     )
@@ -540,6 +589,7 @@ def historiales_dia(anio, mes, dia):
     ultimo_dia = calendar.monthrange(anio, mes)[1]
     if dia > ultimo_dia:
         abort(404)
+    filtro_tipo = _historial_filtro_actual()
     fecha = f"{anio}-{mes:02d}-{dia:02d}"
     detalle = _historial_detalle(fecha)
     archivos = query("SELECT * FROM archivos_historicos ORDER BY generado DESC LIMIT 500")
@@ -556,6 +606,10 @@ def historiales_dia(anio, mes, dia):
         anios=_historial_anios(),
         dias=_historial_dias(f"{anio}-{mes:02d}"),
         total_ventas=detalle["total_ventas"],
+        filtro_tipo=filtro_tipo,
+        filtros_historial=HISTORIAL_FILTROS,
+        actividad=detalle,
+        filtro_vacio=_historial_filtro_vacio(detalle, filtro_tipo),
         total_cobrado=detalle["total_cobrado"],
     )
 
