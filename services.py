@@ -436,7 +436,7 @@ def productos_en_alerta(limite=None):
 
 
 def mover_stock(db, producto_id, cantidad, tipo, motivo="", venta_id=None, usuario_id=None):
-    """Aplica un movimiento al almacén central y lo registra en el kardex.
+    """Aplica un movimiento al almacén central y conserva su registro histórico.
 
     cantidad lleva signo: positivo = entra, negativo = sale.
     No hace commit (lo hace quien la llama dentro de su transacción).

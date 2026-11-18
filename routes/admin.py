@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 from db import get_db, query
 from pdf_responses import responder_pdf
 from services import audit, get_config, set_config
-from services_kpi import resumen_kpis_mensuales, resumen_kpis_por_mes
+from services_kpi import resumen_kpis_mensuales
 from utils import ahora, aviso, hoy, roles_required, to_float, to_int
 from archivos import (generar_archivo_diario, generar_pdf_historico_periodo,
                       resolver_ruta_archivo_historico)
@@ -217,32 +217,211 @@ def configuracion():
 
 
 # ==================================================================== reportes
+MESES_REPORTE = (
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+)
+
+
+def _reportes_anios():
+    filas = query(
+        """SELECT DISTINCT substr(fecha,1,4) AS anio
+             FROM (
+                 SELECT fecha FROM ventas
+                 UNION ALL SELECT fecha FROM deudas
+                 UNION ALL SELECT fecha FROM abonos
+             )
+            WHERE fecha IS NOT NULL"""
+    )
+    anio_actual = int(hoy()[:4])
+    anios = {
+        int(fila["anio"]) for fila in filas
+        if str(fila["anio"]).isdigit() and 1900 <= int(fila["anio"]) <= anio_actual
+    }
+    anios.add(anio_actual)
+    return sorted(anios, reverse=True)
+
+
+def _reportes_periodo():
+    modo = request.args.get("modo", "anio")
+    if modo not in ("anio", "mes", "dia", "personalizado"):
+        abort(400, "El tipo de período no es válido.")
+
+    fecha_hoy = datetime.strptime(hoy(), "%Y-%m-%d").date()
+    try:
+        anio = int(request.args.get("anio", fecha_hoy.year))
+    except (TypeError, ValueError):
+        abort(400, "El año seleccionado no es válido.")
+    if anio < 1900 or anio > fecha_hoy.year:
+        abort(400, "El año seleccionado no es válido.")
+
+    try:
+        mes = int(request.args.get("mes", fecha_hoy.month))
+        dia = int(request.args.get("dia", fecha_hoy.day))
+    except (TypeError, ValueError):
+        abort(400, "La fecha seleccionada no es válida.")
+    if mes < 1 or mes > 12 or dia < 1 or dia > 31:
+        abort(400, "La fecha seleccionada no es válida.")
+
+    if modo == "anio":
+        desde, hasta = datetime(anio, 1, 1).date(), datetime(anio, 12, 31).date()
+    elif modo == "mes":
+        desde = datetime(anio, mes, 1).date()
+        hasta = datetime(anio, mes, calendar.monthrange(anio, mes)[1]).date()
+    elif modo == "dia":
+        try:
+            desde = hasta = datetime(anio, mes, dia).date()
+        except ValueError:
+            abort(400, "La fecha seleccionada no existe.")
+    else:
+        try:
+            desde = datetime.strptime(
+                request.args.get("desde", f"{fecha_hoy.year}-01-01"), "%Y-%m-%d"
+            ).date()
+            hasta = datetime.strptime(
+                request.args.get("hasta", fecha_hoy.isoformat()), "%Y-%m-%d"
+            ).date()
+        except ValueError:
+            abort(400, "El rango personalizado debe usar fechas válidas.")
+        if (desde.isoformat() != request.args.get("desde", desde.isoformat())
+                or hasta.isoformat() != request.args.get("hasta", hasta.isoformat())):
+            abort(400, "El rango personalizado debe usar fechas válidas.")
+    if desde > hasta:
+        abort(400, "La fecha inicial no puede ser posterior a la fecha final.")
+
+    return modo, anio, mes, dia, desde, hasta
+
+
+def _reportes_serie(desde, hasta, pagos):
+    inicio = datetime.strptime(desde, "%Y-%m-%d").date()
+    fin = datetime.strptime(hasta, "%Y-%m-%d").date()
+    por_mes = (fin - inicio).days > 45
+    largo = 7 if por_mes else 10
+    ventas = query(
+        f"""SELECT substr(fecha,1,{largo}) AS periodo, COALESCE(SUM(total_usd),0) AS total
+              FROM ventas
+             WHERE estado='aprobada' AND substr(fecha,1,10) BETWEEN ? AND ?
+             GROUP BY substr(fecha,1,{largo})""",
+        (desde, hasta),
+    )
+    ventas_por_periodo = {fila["periodo"]: float(fila["total"]) for fila in ventas}
+    pagos_por_periodo = {}
+    for pago in pagos:
+        if pago["anulado"]:
+            continue
+        periodo = pago["fecha"][:7] if por_mes else pago["fecha"][:10]
+        pagos_por_periodo[periodo] = pagos_por_periodo.get(periodo, 0.0) + float(pago["monto_usd"])
+
+    periodos = []
+    cursor = inicio.replace(day=1) if por_mes else inicio
+    while cursor <= fin:
+        clave = cursor.strftime("%Y-%m" if por_mes else "%Y-%m-%d")
+        vendido = ventas_por_periodo.get(clave, 0.0)
+        pago = pagos_por_periodo.get(clave, 0.0)
+        periodos.append({
+            "clave": clave,
+            "label": f"{MESES_REPORTE[cursor.month - 1]} {cursor.year}" if por_mes
+                     else cursor.strftime("%d %b"),
+            "vendido": vendido,
+            "pago": pago,
+            "anio": cursor.year,
+            "mes": cursor.month,
+            "dia": cursor.day,
+        })
+        if por_mes:
+            cursor = datetime(cursor.year + (cursor.month == 12), cursor.month % 12 + 1, 1).date()
+        else:
+            cursor += timedelta(days=1)
+
+    maximo = max((max(p["vendido"], p["pago"]) for p in periodos), default=0.0)
+    for periodo in periodos:
+        periodo["ancho_vendido"] = round(periodo["vendido"] * 100 / maximo) if maximo else 0
+        periodo["ancho_pago"] = round(periodo["pago"] * 100 / maximo) if maximo else 0
+    return periodos, "mes" if por_mes else "dia"
+
+
 @bp.route("/reportes")
 @roles_required("admin")
 def reportes():
-    """Reportes: ventas por vendedor, deuda por vendedor, ventas con precio modificado y stock valorizado."""
-    desde = request.args.get("desde") or hoy()[:8] + "01"
-    hasta = request.args.get("hasta") or hoy()
+    """Panel financiero con ventas por fecha de venta y pagos por fecha de recepción."""
+    modo, anio, mes, dia, fecha_desde, fecha_hasta = _reportes_periodo()
+    desde, hasta = fecha_desde.isoformat(), fecha_hasta.isoformat()
+    resumen = query(
+        """SELECT COUNT(*) AS registradas,
+                  SUM(CASE WHEN estado='aprobada' THEN 1 ELSE 0 END) AS aprobadas,
+                  COALESCE(SUM(CASE WHEN estado='aprobada' THEN total_usd ELSE 0 END),0) AS vendido
+             FROM ventas WHERE substr(fecha,1,10) BETWEEN ? AND ?""",
+        (desde, hasta), one=True,
+    )
+    pagos = list(reversed(_historial_cobros(desde, hasta)))
+    pagos_validos = [p for p in pagos if not p["anulado"]]
+    total_pagos = sum(float(p["monto_usd"]) for p in pagos_validos)
+    saldo_pendiente = query(
+        """SELECT COALESCE(SUM(CASE WHEN estado='activa' AND saldo_usd > 0
+                                    THEN saldo_usd ELSE 0 END),0) AS total
+             FROM v_deudas WHERE substr(fecha,1,10) BETWEEN ? AND ?""",
+        (desde, hasta), one=True,
+    )
     por_vendedor = query(
-        """SELECT u.nombre, COUNT(v.id) AS n, COALESCE(SUM(v.total_usd),0) AS total
+        """SELECT u.id, u.nombre, COUNT(v.id) AS n, COALESCE(SUM(v.total_usd),0) AS total
              FROM usuarios u LEFT JOIN ventas v ON v.vendedor_id = u.id AND v.estado='aprobada'
               AND substr(v.fecha,1,10) BETWEEN ? AND ?
-            WHERE u.rol='vendedor' GROUP BY u.id ORDER BY total DESC""", (desde, hasta))
-    top_productos = query(
+            WHERE u.rol='vendedor' GROUP BY u.id ORDER BY total DESC, u.nombre""", (desde, hasta))
+    por_cliente = query(
+        """SELECT c.id, c.nombre, COUNT(v.id) AS n, COALESCE(SUM(v.total_usd),0) AS total
+             FROM clientes c JOIN ventas v ON v.cliente_id=c.id AND v.estado='aprobada'
+              AND substr(v.fecha,1,10) BETWEEN ? AND ?
+            GROUP BY c.id ORDER BY total DESC, c.nombre""", (desde, hasta))
+    productos = query(
         """SELECT p.codigo, p.nombre, SUM(d.cantidad) AS cant FROM venta_detalles d
              JOIN ventas v ON v.id = d.venta_id JOIN productos p ON p.id = d.producto_id
             WHERE v.estado='aprobada' AND substr(v.fecha,1,10) BETWEEN ? AND ?
-            GROUP BY p.id ORDER BY cant DESC LIMIT 10""", (desde, hasta))
+            GROUP BY p.id ORDER BY cant DESC, p.nombre""", (desde, hasta))
     modificadas = query(
-        """SELECT v.id, v.numero, v.fecha, u.nombre AS vendedor, c.nombre AS cliente, p.nombre AS producto,
+        """SELECT v.id, v.numero, v.fecha, v.vendedor_id, u.nombre AS vendedor,
+                  v.cliente_id, c.nombre AS cliente, p.codigo, p.nombre AS producto,
                   v.moneda, d.precio_lista, d.precio_unit
-             FROM venta_detalles d JOIN ventas v ON v.id = d.venta_id JOIN clientes c ON c.id = v.cliente_id
-             JOIN usuarios u ON u.id = v.vendedor_id JOIN productos p ON p.id = d.producto_id
-            WHERE d.modificado = 1 AND v.estado IN ('pendiente','aprobada')
-              AND substr(v.fecha,1,10) BETWEEN ? AND ? ORDER BY v.id DESC LIMIT 100""", (desde, hasta))
-    valor = query("SELECT COALESCE(SUM(stock*precio_mayor_usd),0) AS mayor FROM productos WHERE activo=1", one=True)
-    return render_template("admin/reportes.html", desde=desde, hasta=hasta, por_vendedor=por_vendedor,
-                           top=top_productos, modificadas=modificadas, valor=valor)
+             FROM venta_detalles d JOIN ventas v ON v.id=d.venta_id
+             JOIN clientes c ON c.id=v.cliente_id JOIN usuarios u ON u.id=v.vendedor_id
+             JOIN productos p ON p.id=d.producto_id
+            WHERE d.modificado=1 AND v.estado IN ('pendiente','aprobada')
+              AND substr(v.fecha,1,10) BETWEEN ? AND ?
+            ORDER BY v.fecha DESC, v.id DESC, d.id""", (desde, hasta))
+    valor_inventario = query(
+        "SELECT COALESCE(SUM(stock*precio_mayor_usd),0) AS mayor FROM productos WHERE activo=1",
+        one=True,
+    )
+    ventas = query(
+        """SELECT v.id, v.numero, v.fecha, v.estado, v.tipo_pago, v.total_usd,
+                  v.cliente_id, c.nombre AS cliente, v.vendedor_id, u.nombre AS vendedor,
+                  COALESCE(saldo.saldo,0) AS saldo_pendiente
+             FROM ventas v JOIN clientes c ON c.id=v.cliente_id
+             JOIN usuarios u ON u.id=v.vendedor_id
+             LEFT JOIN (
+                 SELECT venta_id, SUM(CASE WHEN estado='activa' AND saldo_usd > 0
+                                           THEN saldo_usd ELSE 0 END) AS saldo
+                   FROM v_deudas WHERE venta_id IS NOT NULL GROUP BY venta_id
+             ) saldo ON saldo.venta_id=v.id
+            WHERE substr(v.fecha,1,10) BETWEEN ? AND ?
+            ORDER BY v.fecha DESC, v.id DESC""", (desde, hasta))
+    deudas = query(
+        """SELECT d.id, d.venta_id, d.fecha, d.concepto, d.estado, d.monto_usd,
+                  d.saldo_usd, d.cliente_id, d.cliente_nombre AS cliente,
+                  d.vendedor_id, d.vendedor_nombre AS vendedor
+             FROM v_deudas d WHERE substr(d.fecha,1,10) BETWEEN ? AND ?
+            ORDER BY d.fecha DESC, d.id DESC""", (desde, hasta))
+    serie, granularidad = _reportes_serie(desde, hasta, pagos)
+    return render_template(
+        "admin/reportes.html",
+        modo=modo, anio=anio, mes=mes, dia=dia, desde=desde, hasta=hasta,
+        anios=_reportes_anios(), meses=MESES_REPORTE,
+        resumen=resumen, total_pagos=total_pagos, cantidad_pagos=len(pagos_validos),
+        saldo_pendiente=float(saldo_pendiente["total"]),
+        pagos=pagos, ventas=ventas, deudas=deudas, por_vendedor=por_vendedor,
+        por_cliente=por_cliente, productos=productos, modificadas=modificadas,
+        valor_inventario=float(valor_inventario["mayor"]), serie=serie,
+        granularidad=granularidad,
+    )
 
 
 @bp.route("/kpis")
@@ -261,52 +440,8 @@ def kpis():
     hasta = fecha_hoy if periodo == fecha_hoy[:7] else (
         f"{periodo}-{calendar.monthrange(fecha_periodo.year, fecha_periodo.month)[1]:02d}"
     )
-    meses_anio = resumen_kpis_por_mes(fecha_periodo.year)
-    mes_seleccionado = meses_anio[fecha_periodo.month - 1]
+    mes_seleccionado = {"nombre": MESES_REPORTE[fecha_periodo.month - 1]}
     fecha_anterior = fecha_periodo - timedelta(days=1)
-    if fecha_anterior.year == fecha_periodo.year:
-        mes_anterior = meses_anio[fecha_anterior.month - 1]
-    else:
-        mes_anterior = resumen_kpis_por_mes(fecha_anterior.year)[fecha_anterior.month - 1]
-
-    maximo_mensual = max(
-        (max(mes["vendido_usd"], mes["cobrado_usd"]) for mes in meses_anio),
-        default=0,
-    )
-    maximo_vendido = max((mes["vendido_usd"] for mes in meses_anio), default=0)
-    maximo_cobrado = max((mes["cobrado_usd"] for mes in meses_anio), default=0)
-    for mes in meses_anio:
-        mes["disponible"] = mes["periodo"] <= fecha_hoy[:7]
-        mes["mas_vendido"] = maximo_vendido > 0 and mes["vendido_usd"] == maximo_vendido
-        mes["mas_cobrado"] = maximo_cobrado > 0 and mes["cobrado_usd"] == maximo_cobrado
-        mes["ancho_vendido"] = (
-            round(mes["vendido_usd"] * 100 / maximo_mensual, 1)
-            if maximo_mensual else 0
-        )
-        mes["ancho_cobrado"] = (
-            round(mes["cobrado_usd"] * 100 / maximo_mensual, 1)
-            if maximo_mensual else 0
-        )
-
-    comparacion = []
-    for campo, etiqueta, monetario in (
-        ("ventas", "Ventas aprobadas", False),
-        ("vendido_usd", "Total vendido", True),
-        ("cobrado_usd", "Total cobrado", True),
-    ):
-        actual = mes_seleccionado[campo]
-        anterior = mes_anterior[campo]
-        diferencia = round(actual - anterior, 2) if monetario else actual - anterior
-        comparacion.append({
-            "etiqueta": etiqueta,
-            "actual": actual,
-            "anterior": anterior,
-            "diferencia": diferencia,
-            "porcentaje": round(diferencia * 100 / anterior, 1) if anterior else None,
-            "tendencia": "positivo" if diferencia > 0 else "negativo" if diferencia < 0 else "igual",
-            "monetario": monetario,
-        })
-
     fecha_siguiente = (fecha_periodo.replace(day=28) + timedelta(days=4)).replace(day=1)
     return render_template(
         "admin/kpis.html",
@@ -321,11 +456,6 @@ def kpis():
         hasta=hasta,
         anio_seleccionado=fecha_periodo.year,
         mes_seleccionado=mes_seleccionado,
-        mes_anterior=mes_anterior,
-        meses_anio=meses_anio,
-        total_anio_vendido_usd=round(sum(mes["vendido_usd"] for mes in meses_anio), 2),
-        total_anio_cobrado_usd=round(sum(mes["cobrado_usd"] for mes in meses_anio), 2),
-        comparacion=comparacion,
         datos=resumen_kpis_mensuales(desde, hasta),
     )
 
@@ -469,11 +599,12 @@ def _historial_dias(periodo):
 def _historial_cobros(desde, hasta):
     """Lista ventas de contado pagadas y abonos según la fecha real del cobro."""
     return query(
-        """SELECT fecha, cliente, cliente_id, vendedor, registrado_por, tipo, referencia,
+        """SELECT fecha, cliente, cliente_id, vendedor_id, vendedor, registrado_por, tipo, referencia,
                   monto_usd, metodo, anulado, venta_id, deuda_id, abono_id
              FROM (
                  SELECT COALESCE(v.fecha_aprobacion, v.fecha) AS fecha, c.nombre AS cliente,
                         c.id AS cliente_id,
+                        v.vendedor_id AS vendedor_id,
                         u.nombre AS vendedor, COALESCE(a.nombre, u.nombre) AS registrado_por,
                         'Venta de contado' AS tipo, v.numero AS referencia,
                         v.total_usd AS monto_usd, v.metodo_pago AS metodo, 0 AS anulado,
@@ -485,6 +616,7 @@ def _historial_cobros(desde, hasta):
                     AND substr(COALESCE(v.fecha_aprobacion, v.fecha),1,10) BETWEEN ? AND ?
                  UNION ALL
                  SELECT a.fecha, c.nombre AS cliente, c.id AS cliente_id,
+                        d.vendedor_id AS vendedor_id,
                         owner.nombre AS vendedor,
                         collector.nombre AS registrado_por, 'Abono' AS tipo,
                         COALESCE(NULLIF(a.referencia,''), v.numero, d.concepto) AS referencia,

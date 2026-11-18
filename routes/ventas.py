@@ -92,6 +92,16 @@ def _guardar_borrador(b):
     session.modified = True
 
 
+def _vendedor_responsable_presupuesto():
+    if g.user["rol"] != "admin":
+        return g.user["id"]
+    cliente = query(
+        "SELECT vendedor_id FROM clientes WHERE id = ? AND activo = 1",
+        (to_int(_borrador().get("cliente_id")),), one=True,
+    )
+    return cliente["vendedor_id"] if cliente else None
+
+
 def _limpiar_venta():
     session.pop(CARRITO, None)
     session.pop(ORDEN_CARRITO, None)
@@ -119,7 +129,7 @@ def _productos_del_carrito():
 
 
 @bp.route("/nueva")
-@roles_required("vendedor")
+@roles_required("admin", "vendedor")
 def nueva():
     """PASO 1 · Productos: catálogo estilo tienda con buscador; cada producto se añade al carrito."""
     cliente = to_int(request.args.get("cliente"))
@@ -139,7 +149,7 @@ def nueva():
 
 
 @bp.route("/carrito/agregar", methods=["POST"])
-@roles_required("vendedor")
+@roles_required("admin", "vendedor")
 def carrito_agregar():
     """Añade un producto al carrito (responde JSON si lo pide el JavaScript de la tienda)."""
     quiere_json = request.headers.get("X-Requested-With") == "fetch"
@@ -166,7 +176,7 @@ def carrito_agregar():
 
 
 @bp.route("/carrito/agregar-varios", methods=["POST"])
-@roles_required("vendedor")
+@roles_required("admin", "vendedor")
 def carrito_agregar_varios():
     """Añade al carrito todos los productos marcados en la tabla (campos 'sel' y 'cant_<id>').
 
@@ -205,7 +215,7 @@ def carrito_agregar_varios():
 
 
 @bp.route("/carrito/quitar", methods=["POST"])
-@roles_required("vendedor")
+@roles_required("admin", "vendedor")
 def carrito_quitar():
     """Quita un producto del carrito (o lo vacía si se pide)."""
     cart = _carrito()
@@ -219,7 +229,7 @@ def carrito_quitar():
 
 
 @bp.route("/carrito", methods=["GET", "POST"])
-@roles_required("vendedor")
+@roles_required("admin", "vendedor")
 def carrito():
     """PASO 2 · Carrito y cliente: cantidades, precios, cliente y condiciones de la venta."""
     if not _carrito():
@@ -227,6 +237,8 @@ def carrito():
         return redirect(url_for("ventas.nueva"))
     if request.method == "POST":
         f = request.form
+        if g.user["rol"] == "admin" and f.get("accion") != "presupuesto":
+            abort(403)
         cart = {}
         for pid, cant_actual in _carrito().items():
             cant = float(to_float(f.get(f"cant_{pid}"), cant_actual))
@@ -265,7 +277,11 @@ def carrito():
         except ValueError as e:
             aviso(str(e), "error")
             return redirect(url_for("ventas.carrito"))
-    clientes = query("SELECT * FROM clientes WHERE vendedor_id = ? AND activo = 1 ORDER BY nombre", (g.user["id"],))
+    if g.user["rol"] == "admin":
+        clientes = query("SELECT * FROM clientes WHERE activo = 1 ORDER BY nombre")
+    else:
+        clientes = query("SELECT * FROM clientes WHERE vendedor_id = ? AND activo = 1 ORDER BY nombre",
+                         (g.user["id"],))
     return render_template("ventas/carrito.html", lineas=_productos_del_carrito(), clientes=clientes,
                            b=_borrador(), paso=2, presupuesto_origen=session.get(PRESUPUESTO_ORIGEN))
 
@@ -331,36 +347,45 @@ def confirmar():
 
 
 @bp.route("/presupuesto.pdf")
-@roles_required("vendedor")
+@roles_required("admin", "vendedor")
 def presupuesto_pdf():
     """Genera un presupuesto temporal con los datos de venta, sin modificar inventario."""
     cart = _carrito()
     if not cart:
         aviso("Tu carrito está vacío: elige primero los productos.", "warn")
         return redirect(url_for("ventas.nueva"))
+    vendedor_id = _vendedor_responsable_presupuesto()
+    if vendedor_id is None:
+        aviso("Selecciona un cliente activo para el presupuesto.", "error")
+        return redirect(url_for("ventas.carrito"))
     try:
-        r = services.resumen_presupuesto(g.user["id"], _borrador(), cart)
+        r = services.resumen_presupuesto(vendedor_id, _borrador(), cart)
     except ValueError as e:
         aviso(str(e), "error")
         return redirect(url_for("ventas.carrito"))
     nombre = nombre_pdf_cliente(r["cliente"]["nombre"], "Presupuesto")
+    nombre_vendedor = query("SELECT nombre FROM usuarios WHERE id = ?", (vendedor_id,), one=True)["nombre"]
     return responder_pdf(
-        lambda escala: pdf.presupuesto(r, g.user["nombre"], escala),
+        lambda escala: pdf.presupuesto(r, nombre_vendedor, escala),
         nombre,
         guardar_url=url_for("ventas.guardar_presupuesto_desde_pdf"),
     )
 
 
 @bp.route("/presupuesto/guardar", methods=["POST"])
-@roles_required("vendedor")
+@roles_required("admin", "vendedor")
 def guardar_presupuesto_desde_pdf():
     """Guarda el presupuesto actual desde el editor PDF, sin crear una venta."""
     cart = _carrito()
     if not cart:
         aviso("Tu carrito está vacío; no se puede guardar el presupuesto.", "error")
         return redirect(url_for("ventas.carrito"))
+    vendedor_id = _vendedor_responsable_presupuesto()
+    if vendedor_id is None:
+        aviso("Selecciona un cliente activo para el presupuesto.", "error")
+        return redirect(url_for("ventas.carrito"))
     try:
-        presupuesto_id = services.guardar_presupuesto(g.user["id"], _borrador(), cart)
+        presupuesto_id = services.guardar_presupuesto(vendedor_id, _borrador(), cart)
     except ValueError as e:
         aviso(str(e), "error")
         return redirect(url_for("ventas.presupuesto_pdf"))
@@ -534,46 +559,7 @@ def traspasar_presupuesto(presupuesto_id):
 @bp.route("/presupuestos/<int:presupuesto_id>/convertir", methods=["POST"])
 @login_required
 def convertir_presupuesto(presupuesto_id):
-    """Permite al vendedor preparar el carrito o al admin crear la venta directamente."""
-    if g.user["rol"] == "admin":
-        p = query("SELECT * FROM presupuestos WHERE id = ?", (presupuesto_id,), one=True)
-        if p is None or p["venta_id"] is not None:
-            abort(404)
-        guardado = services.presupuesto_vendedor(presupuesto_id, p["vendedor_id"])
-        if guardado is None:
-            abort(404)
-        items = [
-            {"producto_id": l["producto_id"], "cantidad": l["cantidad"], "precio": l["precio_unit"]}
-            for l in guardado["lineas"]
-        ]
-        borrador = {
-            "cliente_id": p["cliente_id"], "tipo_pago": p["tipo_pago"],
-            "metodo_pago": p["metodo_pago"] or "", "cuota_inicial": p["cuota_inicial"],
-            "descuento_porcentaje": p["descuento_porcentaje"], "nota": p["nota"] or "",
-        }
-        try:
-            venta_id = services.crear_venta(
-                p["vendedor_id"], borrador, items,
-                permitir_cliente_otro_vendedor=True,
-            )
-        except ValueError as e:
-            aviso(str(e), "error")
-            return redirect(url_for("ventas.presupuestos"))
-        try:
-            services.marcar_presupuesto_convertido(
-                presupuesto_id, p["vendedor_id"], venta_id,
-                cuota_inicial=to_float(p["cuota_inicial"]),
-            )
-        except ValueError as e:
-            aviso(f"La venta se creó, pero no se pudo actualizar su presupuesto: {e}", "error")
-            return redirect(url_for("ventas.detalle", venta_id=venta_id))
-        venta = query("SELECT estado FROM ventas WHERE id = ?", (venta_id,), one=True)
-        aviso(
-            "Presupuesto convertido en venta. "
-            + ("Venta registrada y cobrada." if venta["estado"] == "aprobada"
-               else "Venta enviada para aprobación.")
-        )
-        return redirect(url_for("ventas.detalle", venta_id=venta_id))
+    """Permite al vendedor preparar el carrito; solo este puede crear la venta al confirmarla."""
     if g.user["rol"] != "vendedor":
         abort(403)
     guardado = services.presupuesto_vendedor(presupuesto_id, g.user["id"])
@@ -685,7 +671,9 @@ def confirmar_armado_admin(venta_id):
         aviso("Pedido marcado como armado por el administrador.")
     except ValueError as e:
         aviso(str(e), "error")
-    return redirect(url_for("ventas.detalle", venta_id=venta_id))
+    destino = request.form.get("volver", "")
+    return redirect(destino if destino.startswith("/") and not destino.startswith("//")
+                    else url_for("ventas.detalle", venta_id=venta_id))
 
 
 @bp.route("/<int:venta_id>")

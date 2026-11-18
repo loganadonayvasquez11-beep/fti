@@ -20,7 +20,7 @@
   </div>
   {% if not nuevo and g.user.rol == 'admin' %}<label class="check"><input type="checkbox" name="activo" value="1" {{ 'checked' if p.activo }}> Producto activo (visible para los vendedores)</label>{% endif %}
   {% if not nuevo %}<p class="muted">Al cambiar un precio, queda igual en todo el sistema (stock, catálogo y ventas) y el producto aparece 48 horas en la lista de «Precios actualizados». </p>
-  <p class="muted">El stock solo cambia con movimientos (entradas, ajustes o ventas) para que quede registrado en el kardex.</p>{% endif %}
+  <p class="muted">El stock solo cambia con movimientos (entradas, ajustes o ventas) para conservar su historial.</p>{% endif %}
   <div class="actions"><button class="btn primary">Guardar</button><a class="btn" href="{{ url_for('catalogo.productos') }}">Cancelar</a></div>
 </form>
 {% endblock %}

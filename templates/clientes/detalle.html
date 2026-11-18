@@ -43,9 +43,9 @@
     {% endfor %}</tbody></table></div>
   {% else %}<p class="muted">Este cliente no tiene deudas.</p>{% endif %}
 </section>
-{% if g.user.rol == 'vendedor' %}
+{% if g.user.rol in ('vendedor', 'admin') %}
 <section class="card">
-  <div class="topbar"><h2>Presupuestos de este cliente</h2><a class="btn sm" href="{{ url_for('ventas.presupuestos') }}">Todos mis presupuestos</a></div>
+  <div class="topbar"><h2>Presupuestos de este cliente</h2><a class="btn sm" href="{{ url_for('ventas.presupuestos') }}">{{ 'Todos los presupuestos' if g.user.rol == 'admin' else 'Todos mis presupuestos' }}</a></div>
   {% if presupuestos %}
   <div class="table-wrap"><table class="stack compacta">
     <thead><tr><th>Presupuesto</th><th>Actualizado</th><th>Forma de pago</th><th class="r">Total</th><th>Estado</th></tr></thead>
@@ -72,7 +72,8 @@
           <td data-label="Pago">{{ tipo_pago_tag(v.tipo_pago) }}</td><td data-label="Total" class="r">{{ v.total|money(v.moneda) }}</td><td data-label="Estado">{{ estado_venta(v.estado) }}</td></tr>
     {% endfor %}</tbody></table></div>
   {% else %}<p class="muted">Sin ventas todavía.</p>{% endif %}
-  {% if g.user.rol == 'vendedor' %}<div class="actions"><a class="btn primary" href="{{ url_for('ventas.nueva', cliente=c.id) }}">Vender a este cliente</a></div>{% endif %}
+  {% if g.user.rol == 'vendedor' %}<div class="actions"><a class="btn primary" href="{{ url_for('ventas.nueva', cliente=c.id) }}">Vender a este cliente</a></div>
+  {% elif g.user.rol == 'admin' %}<div class="actions"><a class="btn primary" href="{{ url_for('ventas.nueva', cliente=c.id) }}">Crear presupuesto</a></div>{% endif %}
 </section>
 <form method="post" action="{{ url_for('clientes.desactivar', cliente_id=c.id) }}" onsubmit="return confirm('¿Quitar a este cliente de la cartera?');">
   {{ csrf_field() }}<button class="btn danger sm">Quitar de la cartera</button>

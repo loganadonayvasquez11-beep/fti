@@ -34,17 +34,17 @@
     <input id="periodo" type="month" name="periodo" value="{{ periodo }}" max="{{ periodo_max }}">
     <button class="btn primary" type="submit">Ver mes</button>
   </form>
-  <p class="hint">Período: {{ desde }} al {{ hasta }}. Las ventas se cuentan por fecha de venta aprobada; los cobros, por fecha en que se recibió el pago.</p>
+  <p class="hint">Período: {{ desde }} al {{ hasta }}. Las ventas se cuentan por fecha de venta aprobada; los pagos, por fecha en que se recibieron.</p>
 </section>
 
 <section class="stats">
   <div class="stat"><span>Vendido</span><b>$ {{ datos.resumen.vendido_usd|num }}</b><small>{{ datos.resumen.ventas }} ventas aprobadas</small></div>
-  <div class="stat"><span>Cobrado</span><b>$ {{ datos.resumen.cobrado_usd|num }}</b><small>Contado pagado y abonos vigentes</small></div>
+  <div class="stat"><span>Pagos recibidos</span><b>$ {{ datos.resumen.cobrado_usd|num }}</b><small>Contado pagado y abonos vigentes</small></div>
   <div class="stat"><span>Unidades vendidas</span><b>{{ datos.resumen.unidades|qty }}</b><small>{{ datos.resumen.productos_vendidos }} de {{ datos.resumen.productos }} productos con ventas</small></div>
 </section>
 
 <section class="card">
-  <h2>Estrellas del período <small class="muted">(según cobros recibidos)</small></h2>
+  <h2>Estrellas del período <small class="muted">(según pagos recibidos)</small></h2>
   <div class="kpi-star-grid">
     {% for clave, etiqueta in [('producto', 'Producto estrella'), ('cliente', 'Cliente estrella'), ('vendedor', 'Vendedor estrella')] %}
       {% set estrella = datos.estrellas[clave] %}
@@ -52,9 +52,9 @@
         <h3>{{ etiqueta }}</h3>
         {% if estrella %}
           <strong>{{ kpi_crown(etiqueta) }} {{ estrella.nombre }}</strong>
-          <p>$ {{ estrella.monto|num }} cobrados</p>
+          <p>$ {{ estrella.monto|num }} en pagos</p>
         {% else %}
-          <p class="muted">Sin cobros en este período.</p>
+          <p class="muted">Sin pagos en este período.</p>
         {% endif %}
       </article>
     {% endfor %}
@@ -62,35 +62,29 @@
 </section>
 
 <nav class="kpi-nav" role="tablist" aria-label="Secciones de KPI">
-  <button class="kpi-nav-card" type="button" role="tab" aria-selected="true" aria-controls="kpi-panel-productos" data-kpi-tab="productos">
-    <span>Productos</span><strong>{{ datos.productos|length }}</strong><small>Con ventas · ordenados por unidades</small>
+  <button class="kpi-nav-card" type="button" role="tab" aria-selected="true" aria-controls="kpi-panel-inventario" data-kpi-tab="inventario">
+    <span>Inventario</span><strong>{{ datos.productos|length }}</strong><small>Productos con ventas · ordenados por unidades</small>
   </button>
   <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-vendedores" data-kpi-tab="vendedores">
     <span>Vendedores</span><strong>{{ datos.vendedores_ventas|length }}</strong><small>Con ventas · pulsa para ver detalle</small>
   </button>
-  <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-cobros-vendedores" data-kpi-tab="cobros-vendedores">
-    <span>Cobros por vendedor</span><strong>{{ datos.vendedores_cobros|length }}</strong><small>Con cobros recibidos</small>
+  <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-pagos-vendedores" data-kpi-tab="pagos-vendedores">
+    <span>Pagos por vendedor</span><strong>{{ datos.vendedores_cobros|length }}</strong><small>Vendedores con pagos recibidos</small>
   </button>
   <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-clientes" data-kpi-tab="clientes">
-    <span>Compras de clientes</span><strong>{{ datos.clientes_ventas|length }}</strong><small>Con compras aprobadas</small>
+    <span>Ventas</span><strong>{{ datos.clientes_ventas|length }}</strong><small>Clientes con ventas aprobadas</small>
   </button>
   <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-pagos-clientes" data-kpi-tab="pagos-clientes">
-    <span>Pagos de clientes</span><strong>{{ datos.clientes_cobros|length }}</strong><small>Con pagos recibidos</small>
-  </button>
-  <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-meses" data-kpi-tab="meses">
-    <span>Meses de {{ anio_seleccionado }}</span><strong>12</strong><small>Resumen mensual del año</small>
-  </button>
-  <button class="kpi-nav-card" type="button" role="tab" aria-selected="false" aria-controls="kpi-panel-tendencia" data-kpi-tab="tendencia">
-    <span>Tendencia</span><strong>Mes a mes</strong><small>Comparación y evolución anual</small>
+    <span>Pagos</span><strong>{{ datos.clientes_cobros|length }}</strong><small>Clientes con pagos recibidos</small>
   </button>
 </nav>
 
-<section class="card kpi-panel" id="kpi-panel-productos" role="tabpanel" data-kpi-panel="productos">
-  <h2>Productos más y menos vendidos</h2>
+<section class="card kpi-panel" id="kpi-panel-inventario" role="tabpanel" data-kpi-panel="inventario">
+  <h2>Inventario: productos más y menos vendidos</h2>
   <p class="hint">Solo aparecen productos vendidos. Pulsa el nombre de un producto para ver todas sus ventas de este período.</p>
   {% if datos.productos %}
   <div class="table-wrap"><table class="stack">
-    <thead><tr><th>Producto</th><th>Color</th><th class="r">Unidades</th><th class="r">Vendido</th><th class="r">Cobrado</th><th>Ranking</th></tr></thead>
+    <thead><tr><th>Producto</th><th>Color</th><th class="r">Unidades</th><th class="r">Vendido</th><th class="r">Pagos</th><th>Ranking</th></tr></thead>
     <tbody>{% for p in datos.productos %}
       <tr>
         <td data-label="Producto">
@@ -117,7 +111,7 @@
         <td data-label="Color"><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.7em;height:.7em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span></td>
         <td class="r" data-label="Unidades">{{ p.unidades|qty }}</td>
         <td class="r" data-label="Vendido">$ {{ p.vendido_usd|num }}</td>
-        <td class="r" data-label="Cobrado">$ {{ p.cobrado_usd|num }}</td>
+        <td class="r" data-label="Pagos">$ {{ p.cobrado_usd|num }}</td>
         <td data-label="Ranking">{% if p.mas %}<span class="badge ok">Más unidades</span>{% endif %}{% if p.menos %} <span class="badge bad">Menos unidades</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
@@ -141,7 +135,7 @@
               <article class="kpi-drill-item">
                 {% if loop.first %}{{ kpi_crown('Producto más vendido de este vendedor') }}{% endif %}
                 <div class="kpi-drill-title"><strong><a href="{{ url_for('catalogo.productos', q=p.codigo) }}">{{ p.nombre }}</a></strong><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.65em;height:.65em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span></div>
-                <small class="muted">{{ p.unidades|qty }} unidades · vendido $ {{ p.vendido_usd|num }} · cobrado $ {{ p.cobrado_usd|num }}</small>
+                <small class="muted">{{ p.unidades|qty }} unidades · vendido $ {{ p.vendido_usd|num }} · pagos $ {{ p.cobrado_usd|num }}</small>
                 <ul class="kpi-client-list">
                   {% for c in p.clientes %}
                   <li><a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a> <span class="muted">· {{ c.unidades|qty }} unidades · $ {{ c.vendido_usd|num }}</span></li>
@@ -178,55 +172,55 @@
   {% else %}<p class="muted">No hay vendedores con ventas en este período.</p>{% endif %}
 </section>
 
-<section class="card kpi-panel" id="kpi-panel-cobros-vendedores" role="tabpanel" data-kpi-panel="cobros-vendedores" hidden>
-  <h2>Vendedores: más y menos cobros</h2>
-  <p class="hint">Los cobros de una venta se distribuyen proporcionalmente entre sus productos. Los cobros de deudas manuales cuentan para el vendedor, pero no se atribuyen a productos.</p>
+<section class="card kpi-panel" id="kpi-panel-pagos-vendedores" role="tabpanel" data-kpi-panel="pagos-vendedores" hidden>
+  <h2>Vendedores: más y menos pagos</h2>
+  <p class="hint">Los pagos de una venta se distribuyen proporcionalmente entre sus productos. Los pagos de deudas manuales cuentan para el vendedor, pero no se atribuyen a productos.</p>
   {% if datos.vendedores_cobros %}
   <div class="table-wrap"><table class="stack">
-    <thead><tr><th>Vendedor y productos pagados</th><th class="r">Cobrado</th><th>Producto más cobrado</th><th>Producto menos cobrado</th><th>Ranking</th></tr></thead>
+    <thead><tr><th>Vendedor y productos pagados</th><th class="r">Pagos recibidos</th><th>Producto con más pagos</th><th>Producto con menos pagos</th><th>Ranking</th></tr></thead>
     <tbody>{% for v in datos.vendedores_cobros %}
       <tr>
         <td data-label="Vendedor">
           <details class="kpi-drilldown">
-            <summary>{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más cobros del mes') }}{% endif %} {{ v.nombre }} <small class="muted">· ver desglose por producto</small></summary>
+            <summary>{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más pagos del mes') }}{% endif %} {{ v.nombre }} <small class="muted">· ver desglose por producto</small></summary>
             {% if v.productos_cobros_detalle %}
             <ul class="kpi-payment-list">
               {% for p in v.productos_cobros_detalle %}
               <li><span class="badge" style="border-color:{{ p.color_hex }}"><span aria-hidden="true" style="display:inline-block;width:.65em;height:.65em;border-radius:50%;background:{{ p.color_hex }};border:1px solid #9ca3af"></span> {{ p.color }}</span> <a href="{{ url_for('catalogo.productos', q=p.codigo) }}">{{ p.nombre }}</a> <strong>$ {{ p.cobrado_usd|num }}</strong></li>
               {% endfor %}
             </ul>
-            {% else %}<p class="muted">Estos cobros no se pueden atribuir a productos.</p>{% endif %}
+            {% else %}<p class="muted">Estos pagos no se pueden atribuir a productos.</p>{% endif %}
           </details>
           <a class="mini-link" href="{{ url_for('admin.vendedor_detalle', vid=v.id) }}">Abrir ficha del vendedor</a>
-        </td><td class="r" data-label="Cobrado">$ {{ v.cobrado_usd|num }}</td>
+        </td><td class="r" data-label="Pagos recibidos">$ {{ v.cobrado_usd|num }}</td>
         {% if v.productos_cobros_detalle %}
         {% set p_mas = v.productos_cobros_detalle[0] %}{% set p_menos = v.productos_cobros_detalle[-1] %}
-        <td data-label="Producto más cobrado">{{ kpi_crown('Producto con más cobros de este vendedor') }} <a href="{{ url_for('catalogo.productos', q=p_mas.codigo) }}">{{ p_mas.nombre }}</a> <small class="muted">($ {{ p_mas.cobrado_usd|num }})</small></td>
-        <td data-label="Producto menos cobrado"><a href="{{ url_for('catalogo.productos', q=p_menos.codigo) }}">{{ p_menos.nombre }}</a> <small class="muted">($ {{ p_menos.cobrado_usd|num }})</small></td>
+        <td data-label="Producto con más pagos">{{ kpi_crown('Producto con más pagos de este vendedor') }} <a href="{{ url_for('catalogo.productos', q=p_mas.codigo) }}">{{ p_mas.nombre }}</a> <small class="muted">($ {{ p_mas.cobrado_usd|num }})</small></td>
+        <td data-label="Producto con menos pagos"><a href="{{ url_for('catalogo.productos', q=p_menos.codigo) }}">{{ p_menos.nombre }}</a> <small class="muted">($ {{ p_menos.cobrado_usd|num }})</small></td>
         {% else %}
-        <td data-label="Producto más cobrado">Sin atribución a productos</td><td data-label="Producto menos cobrado">Sin atribución a productos</td>
+        <td data-label="Producto con más pagos">Sin atribución a productos</td><td data-label="Producto con menos pagos">Sin atribución a productos</td>
         {% endif %}
-        <td data-label="Ranking">{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más cobros del mes') }} <span class="badge ok">Más cobros</span>{% endif %}{% if v.menos_cobros %} <span class="badge bad">Menos cobros</span>{% endif %}</td>
+        <td data-label="Ranking">{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más pagos del mes') }} <span class="badge ok">Más pagos</span>{% endif %}{% if v.menos_cobros %} <span class="badge bad">Menos pagos</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
   </table></div>
-  {% else %}<p class="muted">No hay vendedores con cobros en este período.</p>{% endif %}
+  {% else %}<p class="muted">No hay vendedores con pagos en este período.</p>{% endif %}
 </section>
 
 <section class="card kpi-panel" id="kpi-panel-clientes" role="tabpanel" data-kpi-panel="clientes" hidden>
-  <h2>Clientes: más y menos compras</h2>
+  <h2>Clientes: más y menos ventas</h2>
   <p class="hint">Ordenado por USD de ventas aprobadas del período.</p>
   {% if datos.clientes_ventas %}
   <div class="table-wrap"><table class="stack">
-    <thead><tr><th>Cliente</th><th class="r">Ventas</th><th class="r">Unidades</th><th class="r">Comprado</th><th>Ranking</th></tr></thead>
+    <thead><tr><th>Cliente</th><th class="r">Ventas</th><th class="r">Unidades</th><th class="r">Total vendido</th><th>Ranking</th></tr></thead>
     <tbody>{% for c in datos.clientes_ventas %}
       <tr>
         <td data-label="Cliente">
           <details class="kpi-drilldown">
-            <summary>{% if c.mas_compras %}{{ kpi_crown('Cliente con más compras del mes') }}{% endif %} {{ c.nombre }} <small class="muted">· ver {{ c.ventas_detalle|length }} compras</small></summary>
+            <summary>{% if c.mas_compras %}{{ kpi_crown('Cliente con más ventas del mes') }}{% endif %} {{ c.nombre }} <small class="muted">· ver {{ c.ventas_detalle|length }} ventas</small></summary>
             <div class="table-wrap kpi-sales-detail">
               <table class="stack">
-                <thead><tr><th>Fecha</th><th>Venta</th><th>Vendedor</th><th class="r">Productos</th><th class="r">Unidades</th><th class="r">Comprado</th></tr></thead>
+                <thead><tr><th>Fecha</th><th>Venta</th><th>Vendedor</th><th class="r">Productos</th><th class="r">Unidades</th><th class="r">Total vendido</th></tr></thead>
                 <tbody>{% for s in c.ventas_detalle %}
                   <tr>
                     <td data-label="Fecha">{{ s.fecha|fecha }}</td>
@@ -234,7 +228,7 @@
                     <td data-label="Vendedor">{% if s.vendedor_es_vendedor %}<a href="{{ url_for('admin.vendedor_detalle', vid=s.vendedor_id) }}">{{ s.vendedor }}</a>{% else %}{{ s.vendedor }}{% endif %}</td>
                     <td class="r" data-label="Productos">{{ s.productos }}</td>
                     <td class="r" data-label="Unidades">{{ s.unidades|qty }}</td>
-                    <td class="r" data-label="Comprado">$ {{ s.vendido_usd|num }}</td>
+                    <td class="r" data-label="Total vendido">$ {{ s.vendido_usd|num }}</td>
                   </tr>
                 {% endfor %}</tbody>
               </table>
@@ -242,22 +236,22 @@
           </details>
           <a class="mini-link" href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">Abrir ficha del cliente</a>
         </td><td class="r" data-label="Ventas">{{ c.ventas }}</td>
-        <td class="r" data-label="Unidades">{{ c.unidades|qty }}</td><td class="r" data-label="Comprado">$ {{ c.vendido_usd|num }}</td>
-        <td data-label="Ranking">{% if c.mas_compras %}<span class="badge ok">Más compras</span>{% endif %}{% if c.menos_compras %} <span class="badge bad">Menos compras</span>{% endif %}</td>
+        <td class="r" data-label="Unidades">{{ c.unidades|qty }}</td><td class="r" data-label="Total vendido">$ {{ c.vendido_usd|num }}</td>
+        <td data-label="Ranking">{% if c.mas_compras %}<span class="badge ok">Más ventas</span>{% endif %}{% if c.menos_compras %} <span class="badge bad">Menos ventas</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
   </table></div>
-  {% else %}<p class="muted">No hay clientes con compras en este período.</p>{% endif %}
+  {% else %}<p class="muted">No hay clientes con ventas en este período.</p>{% endif %}
 </section>
 
 <section class="card kpi-panel" id="kpi-panel-pagos-clientes" role="tabpanel" data-kpi-panel="pagos-clientes" hidden>
   <h2>Clientes: más y menos pagos</h2>
   {% if datos.clientes_cobros %}
   <div class="table-wrap"><table class="stack">
-    <thead><tr><th>Cliente</th><th class="r">Cobrado</th><th>Ranking</th></tr></thead>
+    <thead><tr><th>Cliente</th><th class="r">Pagos recibidos</th><th>Ranking</th></tr></thead>
     <tbody>{% for c in datos.clientes_cobros %}
       <tr>
-        <td data-label="Cliente">{% if c.mas_pagos %}{{ kpi_crown('Cliente con más pagos del mes') }}{% endif %} <a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a></td><td class="r" data-label="Cobrado">$ {{ c.cobrado_usd|num }}</td>
+        <td data-label="Cliente">{% if c.mas_pagos %}{{ kpi_crown('Cliente con más pagos del mes') }}{% endif %} <a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a></td><td class="r" data-label="Pagos recibidos">$ {{ c.cobrado_usd|num }}</td>
         <td data-label="Ranking">{% if c.mas_pagos %}<span class="badge ok">Más pagos</span>{% endif %}{% if c.menos_pagos %} <span class="badge bad">Menos pagos</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
@@ -265,100 +259,6 @@
   {% else %}<p class="muted">No hay clientes con pagos en este período.</p>{% endif %}
 </section>
 
-<section class="card kpi-panel" id="kpi-panel-meses" role="tabpanel" data-kpi-panel="meses" hidden>
-  <div class="kpi-year-heading">
-    <div>
-      <h2>Resumen de {{ anio_seleccionado }}</h2>
-      <p class="hint">Selecciona un mes para abrir sus productos, vendedores, clientes y desglose.</p>
-    </div>
-    <a class="mini-link" href="{{ url_for('admin.historiales_anio', anio=anio_seleccionado) }}">Abrir historial diario del año</a>
-  </div>
-  <div class="kpi-year-totals">
-    <article><span>Vendido en el año</span><strong>$ {{ total_anio_vendido_usd|num }}</strong></article>
-    <article><span>Cobrado en el año</span><strong>$ {{ total_anio_cobrado_usd|num }}</strong></article>
-  </div>
-  <div class="kpi-month-grid">
-    {% for mes in meses_anio %}
-      {% if mes.disponible %}
-        <a class="kpi-month-card {{ 'selected' if mes.periodo == periodo }}" href="{{ url_for('admin.kpis', periodo=mes.periodo) }}">
-          <div class="kpi-month-card-heading">
-            <strong>{% if mes.mas_vendido and mes.mas_cobrado %}{{ kpi_crown('Mes con más ventas y cobros del año') }}{% elif mes.mas_vendido %}{{ kpi_crown('Mes con más ventas del año') }}{% elif mes.mas_cobrado %}{{ kpi_crown('Mes con más cobros del año') }}{% endif %} {{ mes.nombre }}</strong>
-            {% if mes.periodo == periodo %}<span class="badge info">Seleccionado</span>{% endif %}
-          </div>
-          <strong class="kpi-month-amount">$ {{ mes.vendido_usd|num }}</strong>
-          <span>{{ mes.ventas }} ventas aprobadas</span>
-          <small class="muted">Cobrado $ {{ mes.cobrado_usd|num }}</small>
-        </a>
-      {% else %}
-        <article class="kpi-month-card future" aria-disabled="true">
-          <div class="kpi-month-card-heading"><strong>{{ mes.nombre }}</strong><span class="badge">Próximo</span></div>
-          <strong class="kpi-month-amount">$ 0,00</strong>
-          <span>El mes aún no comienza</span>
-          <small class="muted">Se habilitará automáticamente</small>
-        </article>
-      {% endif %}
-    {% endfor %}
-  </div>
-</section>
-
-<section class="card kpi-panel" id="kpi-panel-tendencia" role="tabpanel" data-kpi-panel="tendencia" hidden>
-  <h2>Comparación mensual</h2>
-  <p class="hint">Compara {{ mes_seleccionado.nombre }} {{ anio_seleccionado }} con {{ mes_anterior.nombre }} {{ mes_anterior.periodo[:4] }} y revisa la evolución del año seleccionado.</p>
-  <div class="kpi-comparison-grid">
-    {% for item in comparacion %}
-      <article class="kpi-comparison-card">
-        <span>{{ item.etiqueta }}</span>
-        <strong>{% if item.monetario %}$ {{ item.actual|num }}{% else %}{{ item.actual }}{% endif %}</strong>
-        <small>Mes anterior: {% if item.monetario %}$ {{ item.anterior|num }}{% else %}{{ item.anterior }}{% endif %}</small>
-        <div class="kpi-comparison-change">
-          <span class="badge {{ 'ok' if item.tendencia == 'positivo' else 'bad' if item.tendencia == 'negativo' else 'info' }}">
-            {% if item.diferencia > 0 %}+{% endif %}{% if item.monetario %}$ {{ item.diferencia|num }}{% else %}{{ item.diferencia }} ventas{% endif %}
-          </span>
-          {% if item.porcentaje is not none %}
-            <small class="{{ 'pos' if item.tendencia == 'positivo' else 'neg' if item.tendencia == 'negativo' else 'muted' }}">
-              {% if item.porcentaje > 0 %}+{% endif %}{{ item.porcentaje|num }}%
-            </small>
-          {% else %}
-            <small class="muted">Sin base del mes anterior</small>
-          {% endif %}
-        </div>
-      </article>
-    {% endfor %}
-  </div>
-
-  <div class="kpi-trend-heading">
-    <h3>Vendido y cobrado por mes</h3>
-    <div class="kpi-trend-legend"><span><i class="sold"></i>Vendido</span><span><i class="collected"></i>Cobrado</span></div>
-  </div>
-  {% if total_anio_vendido_usd or total_anio_cobrado_usd %}
-    <div class="kpi-trend-chart">
-      {% for mes in meses_anio %}
-        <div class="kpi-trend-row {{ 'current' if mes.periodo == periodo }}">
-          <div class="kpi-trend-month">
-            {% if mes.disponible %}
-              <a href="{{ url_for('admin.kpis', periodo=mes.periodo) }}">{{ mes.nombre }}</a>
-            {% else %}
-              <span>{{ mes.nombre }}</span>
-            {% endif %}
-            {% if mes.mas_vendido and mes.mas_cobrado %}{{ kpi_crown('Mes con más ventas y cobros del año') }}{% elif mes.mas_vendido %}{{ kpi_crown('Mes con más ventas del año') }}{% elif mes.mas_cobrado %}{{ kpi_crown('Mes con más cobros del año') }}{% endif %}
-          </div>
-          <div class="kpi-trend-bars">
-            <div class="kpi-trend-bar-line">
-              <span class="kpi-trend-track"><i class="sold" style="width:{{ mes.ancho_vendido }}%"></i></span>
-              <small>$ {{ mes.vendido_usd|num }}</small>
-            </div>
-            <div class="kpi-trend-bar-line">
-              <span class="kpi-trend-track"><i class="collected" style="width:{{ mes.ancho_cobrado }}%"></i></span>
-              <small>$ {{ mes.cobrado_usd|num }}</small>
-            </div>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="muted">Aún no hay ventas ni cobros registrados en este año.</p>
-  {% endif %}
-</section>
 {% endblock %}
 {% block scripts %}
 <script>

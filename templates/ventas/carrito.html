@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
-{% block titulo %}Nueva venta · Carrito y cliente{% endblock %}
+{% block titulo %}{{ 'Nuevo presupuesto · Carrito y cliente' if g.user.rol == 'admin' else 'Nueva venta · Carrito y cliente' }}{% endblock %}
 {% block contenido %}
 {% include 'ventas/_pasos.html' %}
 {% set especial = g.user.tipo_vendedor == 'especial' %}
 {% set pago = b.get('tipo_pago', 'credito') if b.get('_tipo_pago_elegido') else 'credito' %}
 {% set agotados = lineas|selectattr('0.stock', 'le', 0)|list %}
+{% if g.user.rol == 'admin' %}<section class="card hint"><b>Modo administrador:</b> este carrito solo puede guardarse como presupuesto; no registra una venta.</section>{% endif %}
 {% if presupuesto_origen %}<section class="card hint"><b>Convirtiendo el presupuesto #{{ presupuesto_origen }}.</b> Revisa o cambia el cliente, productos y condiciones de pago antes de continuar. La venta solo se crea cuando la confirmes.</section>{% endif %}
 {% if agotados %}<section class="card aviso-agotado"><b class="neg">Hay productos agotados en tu carrito:</b>
   <ul>{% for p, cant in agotados %}<li><b>{{ p.nombre }}</b> — no hay más. Quítalo (✕) y elige otro producto para continuar con la compra.</li>{% endfor %}</ul></section>{% endif %}
@@ -12,7 +13,7 @@
   {{ csrf_field() }}
 
   <section class="card form">
-    <h2>Tu carrito</h2>
+    <h2>{{ 'Presupuesto a preparar' if g.user.rol == 'admin' else 'Tu carrito' }}</h2>
     <div class="table-wrap"><table class="stack lineas compacta">
       <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad de venta</th><th>Precio unitario</th><th class="r">Subtotal</th><th></th></tr></thead>
       <tbody>
@@ -43,15 +44,15 @@
       <a class="btn" href="{{ url_for('ventas.nueva') }}">← Seguir agregando productos</a>
       <button type="submit" class="btn danger" formaction="{{ url_for('ventas.carrito_quitar') }}" formnovalidate name="todo" value="1" onclick="return confirm('¿Vaciar el carrito?');">Vaciar carrito</button>
     </div>
-    <p class="hint">El precio sale del precio base, pero puedes cambiarlo en cada línea; los precios cambiados se marcan para el administrador.</p>
+    <p class="hint">{% if g.user.rol == 'admin' %}El precio sale del precio base y puedes ajustarlo en cada línea.{% else %}El precio sale del precio base, pero puedes cambiarlo en cada línea; los precios cambiados se marcan para el administrador.{% endif %}</p>
   </section>
 
   <section class="card form">
     <h2>Cliente y condiciones</h2>
     <div class="cols">
-      <label>Cliente <small class="muted">(necesario para la venta o el presupuesto)</small>
+      <label>Cliente <small class="muted">{{ '(necesario para el presupuesto)' if g.user.rol == 'admin' else '(necesario para la venta o el presupuesto)' }}</small>
         <select name="cliente_id" id="cliente" required>
-          <option value="">— Elegir de mi cartera —</option>
+          <option value="">— {{ 'Elegir cliente' if g.user.rol == 'admin' else 'Elegir de mi cartera' }} —</option>
           {% for c in clientes %}
           <option value="{{ c.id }}" data-dias="{{ c.dias_credito or 0 }}" {{ 'selected' if b.get('cliente_id') == c.id|string }}>{{ {'verde': '🟢 ', 'amarillo': '🟡 ', 'rojo': '🔴 '}.get(c.color, '') }}{{ c.nombre }}</option>
           {% endfor %}
@@ -70,13 +71,13 @@
       <label id="campo-inicial">Cuota inicial (opcional)<input type="number" data-decimal-input min="0" step="0.01" name="cuota_inicial" id="cuota-inicial" value="{{ b.get('cuota_inicial', '0') or '0' }}" placeholder="0,00"><small class="muted">En crédito, se registra como primer abono.</small></label>
       <label id="campo-metodo">Método de pago
         <select name="metodo_pago">
-          {% for m in (['Efectivo $', 'Transferencia', 'Zelle', 'Punto de venta', 'Otro'] if especial else ['Efectivo $', 'Transferencia', 'Zelle', 'Otro']) %}
+          {% for m in (['Efectivo $', 'Transferencia', 'Zelle', 'Punto de venta', 'Otro'] if especial or g.user.rol == 'admin' else ['Efectivo $', 'Transferencia', 'Zelle', 'Otro']) %}
           <option {{ 'selected' if b.get('metodo_pago') == m }}>{{ m }}</option>{% endfor %}
         </select></label>
       <label><span>Descuento (%)</span><input type="number" min="0" max="100" step="1" name="descuento_porcentaje" id="descuento" value="{{ b.get('descuento_porcentaje', '0') }}"><small class="muted">Solo números enteros, de 0 a 100.</small></label>
       <label>Nota (opcional)<input name="nota" value="{{ b.get('nota', '') }}"></label>
     </div>
-    <p class="hint" id="aviso-credito">Las ventas a crédito quedan <b>pendientes</b>: el stock se descuenta cuando el administrador las aprueba.</p>
+    <p class="hint" id="aviso-credito">{% if g.user.rol == 'admin' %}El crédito es solo una condición estimada del presupuesto; no registra una venta ni una deuda.{% else %}Las ventas a crédito quedan <b>pendientes</b>: el stock se descuenta cuando el administrador las aprueba.{% endif %}</p>
   </section>
 
   <section class="card form totales">
@@ -86,10 +87,10 @@
       <div class="grande"><span>Total</span><b id="t-total">0,00</b></div>
     </div>
     <div class="actions">
-      <button class="btn primary lg" id="continuar" name="accion" value="venta" {{ 'disabled' if agotados }}>Continuar con la venta →</button>
+      {% if g.user.rol != 'admin' %}<button class="btn primary lg" id="continuar" name="accion" value="venta" {{ 'disabled' if agotados }}>Continuar con la venta →</button>{% endif %}
       <button class="btn lg" name="accion" value="presupuesto">Generar presupuesto PDF</button>
     </div>
-    <p class="hint">El presupuesto incluye los datos del cliente seleccionado. Desde el editor del PDF podrás guardarlo para editarlo o convertirlo en venta más tarde; generarlo no registra una venta ni reserva o descuenta existencias.</p>
+    <p class="hint">{% if g.user.rol == 'admin' %}El presupuesto se guardará asociado al vendedor responsable del cliente. No registra una venta ni reserva o descuenta existencias.{% else %}El presupuesto incluye los datos del cliente seleccionado. Desde el editor del PDF podrás guardarlo para editarlo o convertirlo en venta más tarde; generarlo no registra una venta ni reserva o descuenta existencias.{% endif %}</p>
   </section>
 </form>
 {% endblock %}

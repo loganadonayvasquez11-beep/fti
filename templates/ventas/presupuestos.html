@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 {% block titulo %}{{ 'Presupuestos del equipo' if admin else 'Mis presupuestos' }}{% endblock %}
-{% block acciones %}{% if not admin %}<a class="btn primary" href="{{ url_for('ventas.nueva') }}">Crear presupuesto</a>{% endif %}{% endblock %}
+{% block acciones %}<a class="btn primary" href="{{ url_for('ventas.nueva') }}">Crear presupuesto</a>{% endblock %}
 {% block contenido %}
 <section class="card">
   {% if admin %}
-  <p class="hint">Administra los presupuestos de todos los vendedores. Traspasar solo cambia el responsable del presupuesto; no mueve al cliente ni sus ventas o deudas.</p>
+  <p class="hint">Administra los presupuestos de todos los vendedores. Puedes crearlos, editarlos, traspasarlos o eliminarlos; solo el vendedor responsable puede convertirlos en venta.</p>
   <form method="get" class="actions">
     <label>Vendedor
       <select name="vendedor" onchange="this.form.submit()">
@@ -45,10 +45,7 @@
               </select>
               <button class="btn sm">Traspasar</button>
             </form>
-            <form method="post" action="{{ url_for('ventas.convertir_presupuesto', presupuesto_id=p.id) }}"
-                  onsubmit="return confirm('Se creará la venta con las condiciones del presupuesto. Si queda aprobada, se descontará el stock. ¿Continuar?');">
-              {{ csrf_field() }}<button class="btn primary sm">Convertir en venta</button>
-            </form>
+            <small class="muted">Solo el vendedor responsable puede convertirlo en venta.</small>
             {% endif %}
             <form method="post" action="{{ url_for('ventas.eliminar_presupuesto', presupuesto_id=p.id) }}"
                   onsubmit="return confirm('¿Eliminar definitivamente este presupuesto? La venta asociada, si existe, se conservará.');">

@@ -30,7 +30,7 @@
       <label>Cuota inicial estimada ($)<input type="number" data-decimal-input min="0" step="0.01" name="cuota_inicial" value="{{ '%.2f' % p.cuota_inicial }}"></label>
       <label>Método de pago
         <select name="metodo_pago">
-          {% for m in (['Efectivo $', 'Transferencia', 'Zelle', 'Punto de venta', 'Otro'] if es_especial else ['Efectivo $', 'Transferencia', 'Zelle', 'Otro']) %}
+          {% for m in (['Efectivo $', 'Transferencia', 'Zelle', 'Punto de venta', 'Otro'] if es_especial or g.user.rol == 'admin' else ['Efectivo $', 'Transferencia', 'Zelle', 'Otro']) %}
           <option {{ 'selected' if p.metodo_pago == m }}>{{ m }}</option>
           {% endfor %}
         </select>

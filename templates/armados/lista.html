@@ -26,6 +26,12 @@
           onsubmit="return confirm('¿Confirmas que ya armaste este pedido?');">{{ csrf_field() }}
       <button class="btn primary lg">Ya lo armé · Confirmar</button></form>
     {% endif %}
+    {% if modo == 'admin' and a.estado == 'pendiente' %}
+    <form method="post" action="{{ url_for('ventas.confirmar_armado_admin', venta_id=a.venta_id) }}" class="actions"
+          onsubmit="return confirm('¿Marcar este pedido como armado sin asignarlo?');">{{ csrf_field() }}
+      <input type="hidden" name="volver" value="{{ url_for('armados.lista', estado=estado) }}">
+      <button class="btn primary">Marcar como armado sin asignar</button></form>
+    {% endif %}
     {% if a.estado == 'pendiente' %}
       {% with venta_id=a.venta_id, actual=a, volver=url_for('armados.lista') %}{% include 'armados/_asignar.html' %}{% endwith %}
     {% endif %}
@@ -49,18 +55,22 @@
 {% if sin_asignar %}
 <section class="card">
   <h2>Ventas aprobadas sin asignar ({{ sin_asignar|length }})</h2>
-  <p class="hint">Elige quién arma cada pedido. La venta sigue siendo del vendedor que la hizo.</p>
+  <p class="hint">Elige quién arma cada pedido o márcalo como armado sin asignarlo. La venta sigue siendo del vendedor que la hizo.</p>
   <div class="table-wrap"><table class="stack compacta">
-    <thead><tr><th>Venta</th><th>Vendedor</th><th>Cliente</th><th>Asignar armado</th></tr></thead>
+    <thead><tr><th>Venta</th><th>Vendedor</th><th>Cliente</th><th>Acciones</th></tr></thead>
     <tbody>{% for s in sin_asignar %}
       <tr><td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=s.id) }}"><b>{{ s.numero }}</b></a><br><small class="muted">{{ s.fecha|fechahora }}</small></td>
           <td data-label="Vendedor">{{ s.vendedor }}</td><td data-label="Cliente">{{ s.cliente }}</td>
-          <td>{% with venta_id=s.id, actual=None, volver=url_for('armados.lista') %}
+          <td data-label="Acciones"><div class="actions">{% with venta_id=s.id, actual=None, volver=url_for('armados.lista') %}
             <form method="post" action="{{ url_for('armados.asignar', venta_id=venta_id) }}" class="inline-form">{{ csrf_field() }}
               <input type="hidden" name="volver" value="{{ volver }}">
               <select name="armador" required><option value="">— Elegir —</option><option value="cualquiera">Cualquiera de los especiales</option>
                 {% for e in vendedores_especiales() %}<option value="{{ e.id }}">{{ e.nombre }}</option>{% endfor %}</select>
-              <button class="btn primary sm">Enviar a armar</button></form>{% endwith %}</td></tr>
+              <button class="btn primary sm">Enviar a armar</button></form>{% endwith %}
+            <form method="post" action="{{ url_for('ventas.confirmar_armado_admin', venta_id=s.id) }}"
+                  onsubmit="return confirm('¿Marcar este pedido como armado sin asignarlo?');">{{ csrf_field() }}
+              <input type="hidden" name="volver" value="{{ url_for('armados.lista', estado=estado) }}">
+              <button class="btn sm">Marcar como armado sin asignar</button></form></div></td></tr>
     {% endfor %}</tbody></table></div>
 </section>
 {% endif %}

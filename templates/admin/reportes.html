@@ -1,43 +1,251 @@
 {% extends 'base.html' %}
-{% block titulo %}Reportes{% endblock %}
+{% block titulo %}Panel de reportes{% endblock %}
 {% block contenido %}
-<form class="filters card" method="get">
-  <label class="inline">Desde <input type="date" name="desde" value="{{ desde }}"></label>
-  <label class="inline">Hasta <input type="date" name="hasta" value="{{ hasta }}"></label>
-  <button class="btn">Ver reporte</button>
+<section class="report-intro card">
+  <div>
+    <span class="report-eyebrow">RESUMEN DEL NEGOCIO</span>
+    <h2>Ventas y pagos, cada uno en su fecha</h2>
+    <p class="muted">Vendido se cuenta por la fecha de la venta. Los pagos se cuentan el día que se recibieron, aunque correspondan a una venta anterior.</p>
+  </div>
+  <div class="report-period">{{ desde|fecha }} <span>→</span> {{ hasta|fecha }}</div>
+</section>
+
+<form class="card report-filter" method="get" id="report-filter">
+  <div class="report-filter-heading">
+    <div><h2>¿Qué período quieres revisar?</h2><p class="muted">Elige un año, mes, día o un rango propio.</p></div>
+    <div class="report-modes" role="group" aria-label="Tipo de período">
+      {% for valor, etiqueta in [('anio', 'Año'), ('mes', 'Mes'), ('dia', 'Día'), ('personalizado', 'Personalizado')] %}
+        <button type="button" class="report-mode {{ 'selected' if modo == valor }}" data-report-mode="{{ valor }}" aria-pressed="{{ 'true' if modo == valor else 'false' }}">{{ etiqueta }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  <input type="hidden" name="modo" id="report-mode-value" value="{{ modo }}">
+  <div class="report-filter-fields">
+    <label>Año
+      <select name="anio" id="report-year">
+        {% for y in anios %}<option value="{{ y }}" {{ 'selected' if anio == y }}>{{ y }}</option>{% endfor %}
+      </select>
+    </label>
+    <label data-report-field="mes" {% if modo not in ('mes', 'dia') %}hidden{% endif %}>Mes
+      <select name="mes" id="report-month">
+        {% for numero in range(1, 13) %}<option value="{{ numero }}" {{ 'selected' if mes == numero }}>{{ meses[numero - 1] }}</option>{% endfor %}
+      </select>
+    </label>
+    <label data-report-field="dia" {% if modo != 'dia' %}hidden{% endif %}>Día
+      <select name="dia" id="report-day">
+        {% for numero in range(1, 32) %}<option value="{{ numero }}" {{ 'selected' if dia == numero }}>{{ numero }}</option>{% endfor %}
+      </select>
+    </label>
+    <label data-report-field="personalizado" {% if modo != 'personalizado' %}hidden{% endif %}>Desde
+      <input type="date" name="desde" value="{{ desde }}">
+    </label>
+    <label data-report-field="personalizado" {% if modo != 'personalizado' %}hidden{% endif %}>Hasta
+      <input type="date" name="hasta" value="{{ hasta }}">
+    </label>
+    <button class="btn primary report-apply" type="submit">Ver reporte <span aria-hidden="true">→</span></button>
+  </div>
 </form>
 
-<div class="grid-2">
-  <section class="card">
-    <h2>Ventas aprobadas por vendedor</h2>
-    <div class="table-wrap"><table class="stack">
-      <thead><tr><th>Vendedor</th><th class="r">Ventas</th><th class="r">Total $</th></tr></thead>
-      <tbody>{% for v in por_vendedor %}<tr><td data-label="Vendedor">{{ v.nombre }}</td><td data-label="Ventas" class="r">{{ v.n }}</td><td data-label="Total" class="r">$ {{ v.total|num }}</td></tr>
-      {% else %}<tr><td colspan="3" class="muted">Sin datos.</td></tr>{% endfor %}</tbody></table></div>
+<div class="stats report-stats">
+  <article class="stat report-stat-sold">
+    <small>Vendido en el período</small>
+    <b>{{ resumen.vendido|money }}</b>
+    <span>{{ resumen.aprobadas }} ventas aprobadas de {{ resumen.registradas }} registradas</span>
+  </article>
+  <article class="stat report-stat-paid">
+    <small>Pagos recibidos en el período</small>
+    <b>{{ total_pagos|money }}</b>
+    <span>{{ cantidad_pagos }} pagos válidos registrados</span>
+  </article>
+  <article class="stat">
+    <small>Saldo pendiente actual</small>
+    <b>{{ saldo_pendiente|money }}</b>
+    <span>De las deudas creadas dentro de este período</span>
+  </article>
+  <article class="stat">
+    <small>Registros de ventas</small>
+    <b>{{ resumen.registradas }}</b>
+    <span>Incluye aprobadas y otros estados</span>
+  </article>
+  <article class="stat">
+    <small>Inventario actual a precio mayor</small>
+    <b>{{ valor_inventario|money }}</b>
+    <span>Productos activos · valor de referencia actual</span>
+  </article>
+</div>
+
+<nav class="report-jump card" aria-label="Ir a una sección">
+  <strong>Ir a:</strong>
+  <a href="#actividad">Actividad</a><a href="#ventas">Ventas</a><a href="#pagos">Pagos</a>
+  <a href="#clientes">Clientes</a><a href="#vendedores">Vendedores</a>
+  <a href="#productos">Productos</a><a href="#precios">Precios ajustados</a><a href="#deudas">Deudas</a>
+</nav>
+
+<section class="card report-chart-card" id="actividad">
+  <div class="report-section-heading">
+    <div><h2>Actividad del período</h2><p class="muted">Compara ventas aprobadas con pagos recibidos. Selecciona una barra para abrir ese período.</p></div>
+    <div class="report-legend"><span><i class="legend-sold"></i>Vendido</span><span><i class="legend-paid"></i>Pagos</span></div>
+  </div>
+  <div class="report-chart-scroll">
+    <div class="report-bars" role="list" aria-label="Ventas y pagos por {{ 'mes' if granularidad == 'mes' else 'día' }}">
+      {% for periodo in serie %}
+        <a class="report-bar-item" role="listitem"
+           href="{{ url_for('admin.reportes', modo='mes', anio=periodo.anio, mes=periodo.mes) if granularidad == 'mes' else url_for('admin.reportes', modo='dia', anio=periodo.anio, mes=periodo.mes, dia=periodo.dia) }}"
+           title="{{ periodo.label }} · Vendido {{ periodo.vendido|money }} · Pagos {{ periodo.pago|money }}">
+          <span class="report-bar-pair" aria-hidden="true">
+            <i class="report-bar-sold" style="height:{{ periodo.ancho_vendido }}%"></i>
+            <i class="report-bar-paid" style="height:{{ periodo.ancho_pago }}%"></i>
+          </span>
+          <span class="report-bar-label">{{ periodo.label }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="card" id="ventas">
+  <div class="report-section-heading">
+    <div><h2>Ventas registradas</h2><p class="muted">Abre una venta para ver sus productos y detalles. El saldo es el pendiente actual, no el total pagado en el período.</p></div>
+    <span class="badge info">{{ ventas|length }} registros</span>
+  </div>
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Venta</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Tipo</th><th>Estado</th><th class="r">Total vendido</th><th class="r">Saldo actual</th></tr></thead>
+    <tbody>{% for v in ventas %}
+      <tr>
+        <td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=v.id) }}">{{ v.numero or ('Venta #' ~ v.id) }}</a></td>
+        <td data-label="Fecha">{{ v.fecha|fecha }}</td>
+        <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=v.cliente_id) }}">{{ v.cliente }}</a></td>
+        <td data-label="Vendedor"><a href="{{ url_for('admin.vendedor_detalle', vid=v.vendedor_id) }}">{{ v.vendedor }}</a></td>
+        <td data-label="Tipo">{{ 'Crédito' if v.tipo_pago == 'credito' else 'Contado' }}</td>
+        <td data-label="Estado"><span class="badge {{ 'ok' if v.estado == 'aprobada' else ('warn' if v.estado == 'pendiente' else 'bad') }}">{{ v.estado|capitalize }}</span></td>
+        <td data-label="Total vendido" class="r">{{ v.total_usd|money }}</td>
+        <td data-label="Saldo actual" class="r">{{ v.saldo_pendiente|money if v.saldo_pendiente > 0 else '—' }}</td>
+      </tr>
+    {% else %}<tr><td colspan="8" class="muted">No hay ventas registradas en este período.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+
+<section class="card" id="pagos">
+  <div class="report-section-heading">
+    <div><h2>Pagos recibidos</h2><p class="muted">Cada pago aparece en la fecha en que se recibió. Una venta anterior puede generar un pago en este período.</p></div>
+    <span class="badge ok">{{ total_pagos|money }}</span>
+  </div>
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Fecha del pago</th><th>Tipo</th><th>Referencia</th><th>Cliente</th><th>Vendedor</th><th>Registrado por</th><th>Método</th><th class="r">Monto</th><th>Estado</th></tr></thead>
+    <tbody>{% for p in pagos %}
+      <tr>
+        <td data-label="Fecha del pago">{{ p.fecha|fechahora }}</td>
+        <td data-label="Tipo">{{ p.tipo }}</td>
+        <td data-label="Referencia">
+          {% if p.abono_id %}
+            <a href="{{ url_for('deudas.detalle', deuda_id=p.deuda_id) }}">{{ p.referencia or ('Abono #' ~ p.abono_id) }}</a>
+            <a class="report-receipt" href="{{ url_for('deudas.recibo_pdf', abono_id=p.abono_id) }}">Recibo</a>
+          {% elif p.venta_id %}
+            <a href="{{ url_for('ventas.detalle', venta_id=p.venta_id) }}">{{ p.referencia }}</a>
+          {% else %}{{ p.referencia }}{% endif %}
+        </td>
+        <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=p.cliente_id) }}">{{ p.cliente }}</a></td>
+        <td data-label="Vendedor">{% if p.vendedor_id %}<a href="{{ url_for('admin.vendedor_detalle', vid=p.vendedor_id) }}">{{ p.vendedor }}</a>{% else %}—{% endif %}</td>
+        <td data-label="Registrado por">{{ p.registrado_por or '—' }}</td>
+        <td data-label="Método">{{ p.metodo or '—' }}</td>
+        <td data-label="Monto" class="r">{{ p.monto_usd|money }}</td>
+        <td data-label="Estado"><span class="badge {{ 'bad' if p.anulado else 'ok' }}">{{ 'Anulado' if p.anulado else 'Válido' }}</span></td>
+      </tr>
+    {% else %}<tr><td colspan="9" class="muted">No hay pagos recibidos en este período.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+
+<div class="grid-2 report-summary-grid">
+  <section class="card" id="vendedores">
+    <div class="report-section-heading"><div><h2>Ventas por vendedor</h2><p class="muted">Solo ventas aprobadas.</p></div></div>
+    <div class="table-wrap"><table class="stack compacta">
+      <thead><tr><th>Vendedor</th><th class="r">Ventas</th><th class="r">Total vendido</th></tr></thead>
+      <tbody>{% for v in por_vendedor %}<tr>
+        <td data-label="Vendedor"><a href="{{ url_for('admin.vendedor_detalle', vid=v.id) }}">{{ v.nombre }}</a></td>
+        <td data-label="Ventas" class="r">{{ v.n }}</td><td data-label="Total vendido" class="r">{{ v.total|money }}</td>
+      </tr>{% else %}<tr><td colspan="3" class="muted">Sin ventas en este período.</td></tr>{% endfor %}</tbody>
+    </table></div>
   </section>
-  <section class="card">
-    <h2>Productos más vendidos</h2>
-    <div class="table-wrap"><table class="stack">
-      <thead><tr><th>Producto</th><th class="r">Cantidad</th></tr></thead>
-      <tbody>{% for p in top %}<tr><td data-label="Producto">{{ p.codigo }} · {{ p.nombre }}</td><td data-label="Cantidad" class="r">{{ p.cant|qty }}</td></tr>
-      {% else %}<tr><td colspan="2" class="muted">Sin datos.</td></tr>{% endfor %}</tbody></table></div>
+
+  <section class="card" id="clientes">
+    <div class="report-section-heading"><div><h2>Ventas por cliente</h2><p class="muted">Abre la ficha del cliente o una de sus ventas.</p></div></div>
+    <div class="table-wrap"><table class="stack compacta">
+      <thead><tr><th>Cliente</th><th class="r">Ventas</th><th class="r">Total vendido</th></tr></thead>
+      <tbody>{% for c in por_cliente %}<tr>
+        <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a></td>
+        <td data-label="Ventas" class="r">{{ c.n }}</td><td data-label="Total vendido" class="r">{{ c.total|money }}</td>
+      </tr>{% else %}<tr><td colspan="3" class="muted">Sin ventas en este período.</td></tr>{% endfor %}</tbody>
+    </table></div>
   </section>
 </div>
 
-<section class="card">
-  <h2>Almacén valorizado</h2>
-  <p>Valor a precio mayor: <b>$ {{ valor.mayor|num }}</b></p>
+<section class="card" id="productos">
+  <div class="report-section-heading"><div><h2>Productos vendidos</h2><p class="muted">Cantidad total en ventas aprobadas. Selecciona un producto para buscarlo en el catálogo.</p></div></div>
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Producto</th><th class="r">Cantidad vendida</th></tr></thead>
+    <tbody>{% for p in productos %}<tr>
+      <td data-label="Producto"><a href="{{ url_for('catalogo.productos', q=p.codigo) }}">{{ p.codigo }} · {{ p.nombre }}</a></td>
+      <td data-label="Cantidad vendida" class="r">{{ p.cant|qty }}</td>
+    </tr>{% else %}<tr><td colspan="2" class="muted">Sin productos vendidos en este período.</td></tr>{% endfor %}</tbody>
+  </table></div>
 </section>
 
-<section class="card">
-  <h2>Ventas con precio modificado por el vendedor</h2>
-  <div class="table-wrap"><table class="stack">
-    <thead><tr><th>Venta</th><th>Vendedor</th><th>Cliente</th><th>Producto</th><th class="r">Precio base</th><th class="r">Cobrado</th></tr></thead>
-    <tbody>{% for m in modificadas %}
-      <tr><td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=m.id) }}">{{ m.numero }}</a></td><td data-label="Vendedor">{{ m.vendedor }}</td>
-          <td data-label="Cliente">{{ m.cliente }}</td><td data-label="Producto">{{ m.producto }}</td>
-          <td data-label="Precio base" class="r">{{ m.precio_lista|money(m.moneda) }}</td>
-          <td data-label="Cobrado" class="r {{ 'neg' if m.precio_unit < m.precio_lista else 'pos' }}">{{ m.precio_unit|money(m.moneda) }}</td></tr>
-    {% else %}<tr><td colspan="6" class="muted">Ningún precio fue modificado en este periodo.</td></tr>{% endfor %}</tbody></table></div>
+<section class="card" id="precios">
+  <div class="report-section-heading">
+    <div><h2>Precios ajustados en ventas</h2><p class="muted">Líneas pendientes o aprobadas donde el vendedor modificó el precio base.</p></div>
+    <span class="badge info">{{ modificadas|length }} líneas</span>
+  </div>
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Venta</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Producto</th><th class="r">Precio base</th><th class="r">Precio aplicado</th></tr></thead>
+    <tbody>{% for m in modificadas %}<tr>
+      <td data-label="Venta"><a href="{{ url_for('ventas.detalle', venta_id=m.id) }}">{{ m.numero or ('Venta #' ~ m.id) }}</a></td>
+      <td data-label="Fecha">{{ m.fecha|fecha }}</td>
+      <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=m.cliente_id) }}">{{ m.cliente }}</a></td>
+      <td data-label="Vendedor"><a href="{{ url_for('admin.vendedor_detalle', vid=m.vendedor_id) }}">{{ m.vendedor }}</a></td>
+      <td data-label="Producto"><a href="{{ url_for('catalogo.productos', q=m.codigo) }}">{{ m.codigo }} · {{ m.producto }}</a></td>
+      <td data-label="Precio base" class="r">{{ m.precio_lista|money(m.moneda) }}</td>
+      <td data-label="Precio aplicado" class="r">{{ m.precio_unit|money(m.moneda) }}</td>
+    </tr>{% else %}<tr><td colspan="7" class="muted">No hay precios ajustados en este período.</td></tr>{% endfor %}</tbody>
+  </table></div>
 </section>
+
+<section class="card" id="deudas">
+  <div class="report-section-heading"><div><h2>Deudas creadas en el período</h2><p class="muted">El saldo pendiente refleja el estado actual. Las deudas anuladas se conservan para consulta.</p></div></div>
+  <div class="table-wrap"><table class="stack compacta">
+    <thead><tr><th>Fecha</th><th>Deuda / venta</th><th>Cliente</th><th>Vendedor</th><th>Estado</th><th class="r">Monto inicial</th><th class="r">Saldo actual</th></tr></thead>
+    <tbody>{% for d in deudas %}<tr>
+      <td data-label="Fecha">{{ d.fecha|fecha }}</td>
+      <td data-label="Deuda / venta"><a href="{{ url_for('deudas.detalle', deuda_id=d.id) }}">{{ d.concepto or ('Deuda #' ~ d.id) }}</a>{% if d.venta_id %}<br><small><a href="{{ url_for('ventas.detalle', venta_id=d.venta_id) }}">Ver venta</a></small>{% endif %}</td>
+      <td data-label="Cliente"><a href="{{ url_for('clientes.detalle', cliente_id=d.cliente_id) }}">{{ d.cliente }}</a></td>
+      <td data-label="Vendedor"><a href="{{ url_for('admin.vendedor_detalle', vid=d.vendedor_id) }}">{{ d.vendedor }}</a></td>
+      <td data-label="Estado"><span class="badge {{ 'bad' if d.estado == 'anulada' else ('ok' if d.estado == 'pagada' else 'info') }}">{{ d.estado|capitalize }}</span></td>
+      <td data-label="Monto inicial" class="r">{{ d.monto_usd|money }}</td>
+      <td data-label="Saldo actual" class="r">{{ d.saldo_usd|money if d.saldo_usd > 0 else '—' }}</td>
+    </tr>{% else %}<tr><td colspan="7" class="muted">No hay deudas creadas en este período.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const form = document.getElementById('report-filter');
+  if (!form) return;
+  const modeInput = document.getElementById('report-mode-value');
+  const modeButtons = form.querySelectorAll('[data-report-mode]');
+  const updateMode = (mode) => {
+    modeInput.value = mode;
+    modeButtons.forEach((button) => {
+      const selected = button.dataset.reportMode === mode;
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    form.querySelectorAll('[data-report-field]').forEach((field) => {
+      const fieldMode = field.dataset.reportField;
+      field.hidden = fieldMode === 'mes' ? !['mes', 'dia'].includes(mode) : fieldMode !== mode;
+    });
+  };
+  modeButtons.forEach((button) => button.addEventListener('click', () => updateMode(button.dataset.reportMode)));
+})();
+</script>
 {% endblock %}

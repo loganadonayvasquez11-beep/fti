@@ -148,10 +148,11 @@ SQLite guarda la base junto a los archivos de la aplicación y es adecuada para 
 
 ## Reglas de negocio
 
-- **Vendido y cobrado son métricas distintas**: vendido se atribuye a la fecha de la venta aprobada; cobrado se atribuye al día en que se aprobó/pagó una venta de contado o se registró un abono válido. Por eso un cobro del mes puede corresponder a una venta de meses anteriores. El panel y el histórico muestran ambas cifras separadas.
+- **Vendido y pagos son métricas distintas**: vendido se atribuye a la fecha de la venta aprobada; los pagos se atribuyen al día en que se aprobó/pagó una venta de contado o se registró un abono válido. Por eso un pago del mes puede corresponder a una venta de meses anteriores. El panel muestra ambas cifras por separado.
 
-- **Admin**: dueño del almacén central (productos, precios al mayor, entradas, mermas, ajustes, kardex),
+- **Admin**: dueño del almacén central (productos, precios al mayor, entradas, mermas, ajustes e historial interno de movimientos),
   de la cartera de vendedores (agregar, traspasar clientes y deudas manteniendo activo al vendedor o congelándolo); aprueba, rechaza y anula ventas.   Puede editar ventas pendientes y aprobadas de cualquier vendedor, incluida su fecha de compra. En créditos sin fecha de salida, cambiar la fecha de compra recalcula el vencimiento; después de registrar la salida, el vencimiento conserva esa fecha como referencia. Al editar una aprobada se ajusta el stock y la deuda; los abonos se conservan y no se permite reducir el total por debajo de lo abonado. Si cambian productos o cantidades de un pedido que requiere armado, este vuelve a quedar pendiente de armado y salida. También puede marcar directamente un pedido aprobado como armado, aunque no esté asignado a un vendedor especial.
+  También puede crear, editar, traspasar y eliminar presupuestos, pero no registrar una venta ni convertir un presupuesto en venta. Un presupuesto creado por el admin se asocia al vendedor responsable del cliente; solo un vendedor puede convertirlo y confirmar la venta.
 - **Vendedor**: tiene su cartera de clientes (puede agregar), genera ventas con productos del catálogo,
   vende **al mayor**, contado o crédito y puede **cambiar el precio unitario** de cada línea.
 - Puede editar sus pedidos pendientes (productos, cantidades, precios, descuento y nota) hasta que
@@ -200,7 +201,7 @@ static/         css/style.css y js/venta.js (formulario de venta)
 - Productos con foto opcional (JPG/PNG/WEBP/GIF, máximo 5 MB), imagen de catálogo ampliada y nombre visible; si falta o falla la imagen, se muestra el nombre como alternativa.
 - El sistema no solicita ni muestra costo; los reportes de valorización usan el precio de venta al mayor.
 - El administrador puede retirar productos. Si existen ventas o movimientos, se desactivan para conservar el historial.
-- Sección **Archivos históricos** para generar y descargar el PDF del día con Kardex/movimientos, detalle de cada artículo vendido (cliente, vendedor e importes), deudas pendientes, abonos y auditoría.
+- Sección **Archivos históricos** para generar y descargar el PDF del día con movimientos de almacén, detalle de cada artículo vendido (cliente, vendedor e importes), deudas pendientes, abonos y auditoría.
 - Se conserva un único archivo, con nombre `historial_DD-MM-AAAA.pdf`. Si se genera de nuevo durante el mismo día se actualiza; al cambiar el día, el PDF anterior se elimina. La limpieza se ejecuta a medianoche y también al abrir la sección o generar el PDF.
 - Los registros originales de ventas, inventario, deudas y auditoría no se eliminan; solo se retiran los PDF vencidos. Se puede generar desde la interfaz o ejecutar `python -m flask --app app archive-daily`. En despliegues con varios workers, se recomienda desactivar el scheduler integrado (`ENABLE_ARCHIVE_SCHEDULER=0`) para evitar ejecuciones duplicadas.
 

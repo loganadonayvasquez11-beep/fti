@@ -128,11 +128,20 @@ def detalle(cliente_id):
                 ORDER BY id DESC LIMIT 10""",
             (cliente_id, g.user["id"]),
         )
-    presupuestos = query(
-        """SELECT id, actualizado, tipo_pago, total, venta_id FROM presupuestos
-            WHERE cliente_id = ? AND vendedor_id = ? ORDER BY actualizado DESC LIMIT 20""",
-        (cliente_id, g.user["id"]),
-    ) if g.user["rol"] == "vendedor" else []
+    if g.user["rol"] == "admin":
+        presupuestos = query(
+            """SELECT id, actualizado, tipo_pago, total, venta_id FROM presupuestos
+                WHERE cliente_id = ? ORDER BY actualizado DESC LIMIT 20""",
+            (cliente_id,),
+        )
+    elif g.user["rol"] == "vendedor":
+        presupuestos = query(
+            """SELECT id, actualizado, tipo_pago, total, venta_id FROM presupuestos
+                WHERE cliente_id = ? AND vendedor_id = ? ORDER BY actualizado DESC LIMIT 20""",
+            (cliente_id, g.user["id"]),
+        )
+    else:
+        presupuestos = []
     return render_template("clientes/detalle.html", c=c, deudas=deudas, ventas=ventas,
                            saldo=saldo, presupuestos=presupuestos)
 

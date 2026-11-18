@@ -10,6 +10,18 @@ from utils import aviso, hoy, login_required, roles_required, to_int
 bp = Blueprint("deudas", __name__)
 
 
+def _progreso_pago(deuda):
+    monto = float(deuda["monto_usd"])
+    if deuda["estado"] == "pagada":
+        porcentaje = 100
+    elif monto <= 0:
+        porcentaje = 0
+    else:
+        porcentaje = max(0, min(100, round(float(deuda["abonado_usd"]) / monto * 100)))
+    color = "alto" if porcentaje >= 60 else "medio" if porcentaje >= 30 else "bajo"
+    return porcentaje, color
+
+
 def _deuda_o_404(deuda_id):
     """Devuelve la deuda si el usuario puede verla (admin: todas; vendedor: las suyas)."""
     d = query("SELECT * FROM v_deudas WHERE id = ?", (deuda_id,), one=True)
@@ -39,7 +51,9 @@ def lista():
     if q:
         sql += " AND cliente_nombre LIKE ?"; args.append(f"%{q}%")
     sql += " ORDER BY vencimiento ASC, id DESC LIMIT 300"
-    filas = query(sql, args)
+    filas = [dict(d) for d in query(sql, args)]
+    for deuda in filas:
+        deuda["porcentaje_pagado"], deuda["color_progreso"] = _progreso_pago(deuda)
     total = sum(d["saldo_usd"] for d in filas if d["estado"] == "activa")
     vendedores = query("SELECT id, nombre, rol FROM usuarios ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, nombre", (g.user["id"],)) if g.user["rol"] == "admin" else []
     return render_template("deudas/lista.html", deudas=filas, estado=estado, q=q, vendedor=vendedor,

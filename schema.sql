@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS abonos (
     anulado       INTEGER NOT NULL DEFAULT 0
 );
 
--- Kardex: cada entrada, salida o ajuste del almacén central.
+-- Registro interno de cada entrada, salida o ajuste del almacén central.
 CREATE TABLE IF NOT EXISTS movimientos_stock (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     producto_id      INTEGER NOT NULL REFERENCES productos(id),

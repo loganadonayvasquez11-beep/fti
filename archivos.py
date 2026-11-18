@@ -228,7 +228,7 @@ def generar_archivo_diario(usuario_id=None, fecha_reporte=None):
         ]))
         story.extend([tabla, Spacer(1, 5*mm)])
 
-    agregar_tabla("Kardex y movimientos de almacén", ["Fecha/hora","Código","Producto","Tipo","Cantidad","Stock final","Motivo","Usuario"],
+    agregar_tabla("Movimientos de almacén", ["Fecha/hora","Código","Producto","Tipo","Cantidad","Stock final","Motivo","Usuario"],
                   [(r["fecha"],r["codigo"],r["nombre"],r["tipo"],r["cantidad"],r["stock_resultante"],r["motivo"],r["usuario"]) for r in movs])
     agregar_tabla("Detalle de ventas del día", ["Fecha/hora","Venta","Producto","Cantidad","Cliente","Vendedor","Importe línea","Total USD","Estado"],
                   [(r["fecha"],r["numero"],f'{r["codigo"]} - {r["producto"]}',

@@ -9,7 +9,7 @@
   {% if g.user %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}
   <title>{{ self.titulo() }} · Inventario</title>
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='Logo.ico') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v='20261118-4') }}">
 </head>
 <body>
 {% if g.user %}
@@ -28,7 +28,6 @@
         <a href="{{ url_for('panel.inicio') }}" class="{{ 'on' if ep == 'panel.inicio' }}">{{ ico('home') }}<span>Panel</span></a>
         {% if g.user.rol == 'admin' %}
           <div class="nav-group">Cartera</div>
-          <a href="{{ url_for('admin.kpis') }}" class="{{ 'on' if ep == 'admin.kpis' }}">{{ ico('chart') }}<span>KPI mensual</span></a>
           <a href="{{ url_for('admin.vendedores') }}" class="{{ 'on' if ep.startswith('admin.vendedor') }}">{{ ico('brief') }}<span>Vendedores</span></a>
           <a href="{{ url_for('clientes.lista') }}" class="{{ 'on' if ep.startswith('clientes.') }}">{{ ico('users') }}<span>Clientes</span></a>
           <div class="nav-group">Operación</div>
@@ -36,14 +35,18 @@
           <a href="{{ url_for('ventas.presupuestos') }}" class="{{ 'on' if 'presupuesto' in ep }}">{{ ico('file') }}<span>Presupuestos</span></a>
           <a href="{{ url_for('deudas.lista') }}" class="{{ 'on' if ep.startswith('deudas.') }}">{{ ico('dollar') }}<span>Deudas</span></a>
           <div class="nav-group">Almacén</div>
-          <a href="{{ url_for('catalogo.productos') }}" class="{{ 'on' if ep in ('catalogo.productos','catalogo.producto_nuevo','catalogo.producto_editar','catalogo.categorias') }}">{{ ico('box') }}<span>Productos</span>{% if n_stock_alerta %}<b class="pill" title="Productos con stock en alerta">{{ n_stock_alerta }}</b>{% endif %}</a>
+          <a href="{{ url_for('catalogo.productos') }}" class="{{ 'on' if ep in ('catalogo.productos','catalogo.producto_nuevo','catalogo.producto_editar','catalogo.categorias') }}">{{ ico('box') }}<span>Inventario</span>{% if n_stock_alerta %}<b class="pill" title="Productos con stock en alerta">{{ n_stock_alerta }}</b>{% endif %}</a>
           <a href="{{ url_for('armados.lista') }}" class="{{ 'on' if ep.startswith('armados.') }}">{{ ico('layers') }}<span>Pedidos para armar</span>{% if n_por_armar %}<b class="pill" title="Pedidos pendientes o sin asignar">{{ n_por_armar }}</b>{% endif %}</a>
           <a href="{{ url_for('catalogo.movimiento') }}" class="{{ 'on' if ep == 'catalogo.movimiento' }}">{{ ico('plus') }}<span>Entradas y ajustes</span></a>
-          <a href="{{ url_for('catalogo.kardex') }}" class="{{ 'on' if ep == 'catalogo.kardex' }}">{{ ico('clip') }}<span>Kardex</span></a>
           <div class="nav-group">Sistema</div>
-          <a href="{{ url_for('admin.reportes') }}" class="{{ 'on' if ep == 'admin.reportes' }}">{{ ico('chart') }}<span>Reportes</span></a>
-          <a href="{{ url_for('admin.auditoria') }}" class="{{ 'on' if ep == 'admin.auditoria' }}">{{ ico('file') }}<span>Auditoría</span></a>
-          <a href="{{ url_for('admin.historiales') }}" class="{{ 'on' if ep.startswith('admin.historial') }}">{{ ico('clip') }}<span>Archivos históricos</span></a>
+          <details class="nav-disclosure">
+            <summary class="{{ 'on' if ep in ('admin.reportes', 'admin.kpis', 'admin.auditoria') }}">{{ ico('chart') }}<span>Reportes</span></summary>
+            <div class="nav-sub">
+              <a href="{{ url_for('admin.reportes') }}" class="{{ 'on' if ep == 'admin.reportes' }}">{{ ico('chart') }}<span>Panel de reportes</span></a>
+              <a href="{{ url_for('admin.kpis') }}" class="{{ 'on' if ep == 'admin.kpis' }}">{{ ico('chart') }}<span>KPI mensual</span></a>
+              <a href="{{ url_for('admin.auditoria') }}" class="{{ 'on' if ep == 'admin.auditoria' }}">{{ ico('file') }}<span>Auditoría</span></a>
+            </div>
+          </details>
           <a href="{{ url_for('admin.configuracion') }}" class="{{ 'on' if ep == 'admin.configuracion' }}">{{ ico('sliders') }}<span>Configuración</span></a>
         {% else %}
           <a href="{{ url_for('ventas.nueva') }}" class="{{ 'on' if ep in ('ventas.nueva', 'ventas.carrito', 'ventas.confirmar') }}">{{ ico('plus') }}<span>Nueva venta</span>{% if n_carrito %}<b class="pill" title="Productos en tu carrito">{{ n_carrito }}</b>{% endif %}</a>

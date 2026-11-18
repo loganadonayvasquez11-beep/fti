@@ -1,4 +1,4 @@
-"""Catálogo y almacén central: productos, categorías, movimientos y kardex.
+"""Catálogo y almacén central: productos, categorías y movimientos de stock.
 
 Solo el admin crea y edita productos, precios y stock; vendedores especiales pueden descargar la lista
 de mercancía. Cada cambio de precio queda en una lista temporal de 48 horas.
@@ -14,7 +14,6 @@ from utils import (ahora, aviso, especial_o_admin_required, login_required, role
                    parse_decimal_input, to_int)
 from werkzeug.utils import secure_filename
 from pathlib import Path
-from datetime import datetime, timedelta
 import uuid
 
 bp = Blueprint("catalogo", __name__)
@@ -127,7 +126,7 @@ def _guardar_imagen(archivo, imagen_actual=None):
 @bp.route("/productos/nuevo", methods=["GET", "POST"])
 @roles_required("admin")
 def producto_nuevo():
-    """Crea un producto en el almacén central (con stock inicial opcional que queda en el kardex).
+    """Crea un producto en el almacén central (con stock inicial opcional).
 
     Solo puede hacerlo el administrador."""
     cats = query("SELECT * FROM categorias WHERE activo=1 ORDER BY nombre")
@@ -172,7 +171,7 @@ def producto_editar(pid):
     cats = query("SELECT * FROM categorias WHERE activo=1 ORDER BY nombre")
     if request.method == "POST":
         d, error = _leer_producto(request.form)
-        # El código es manual y editable (las ventas y el kardex se enlazan por id, no por código); debe seguir siendo único.
+        # El código es manual y editable (las ventas y los movimientos se enlazan por id, no por código); debe seguir siendo único.
         if not error and _codigo_repetido(get_db(), d["codigo"], pid):
             error = f"El código {d['codigo']} ya está asignado a otro producto."
         if request.files.get("imagen") and request.files["imagen"].filename:
@@ -255,37 +254,16 @@ def movimiento():
                 to_int(request.form.get("producto_id")), request.form.get("tipo", ""),
                 to_float(request.form.get("cantidad")), request.form.get("motivo", "").strip(), g.user["id"])
             audit("movimiento_stock", f"{request.form.get('tipo')} prod={request.form.get('producto_id')}")
-            aviso("Movimiento registrado en el kardex.")
-            return redirect(url_for("catalogo.kardex", producto=request.form.get("producto_id")))
+            aviso("Movimiento de stock registrado.")
+            return redirect(url_for("catalogo.movimiento", producto=request.form.get("producto_id")))
         except ValueError as e:
             aviso(str(e), "error")
     return render_template("productos/movimiento.html", productos=prods,
                            seleccionado=to_int(request.args.get("producto")))
-
-
-@bp.route("/kardex")
-@roles_required("admin")
-def kardex():
-    """Historial de movimientos del almacén (todos o de un producto)."""
-    pid = to_int(request.args.get("producto"))
-    hasta = request.args.get("hasta") or ahora()[:10]
-    desde = request.args.get("desde") or (datetime.strptime(hasta, "%Y-%m-%d") - timedelta(days=6)).strftime("%Y-%m-%d")
-    sql = """SELECT m.*, p.codigo, p.nombre AS producto, p.unidad, u.nombre AS usuario, v.numero AS venta
-               FROM movimientos_stock m JOIN productos p ON p.id = m.producto_id
-               LEFT JOIN usuarios u ON u.id = m.usuario_id LEFT JOIN ventas v ON v.id = m.venta_id
-               WHERE substr(m.fecha,1,10) BETWEEN ? AND ?"""
-    args = [desde, hasta]
-    if pid:
-        sql += " AND m.producto_id = ?"; args.append(pid)
-    sql += " ORDER BY m.id DESC LIMIT 1000"
-    prods = query("SELECT id, codigo, nombre FROM productos ORDER BY nombre")
-    return render_template("productos/kardex.html", movs=query(sql, args), productos=prods, pid=pid, desde=desde, hasta=hasta)
-
-
 @bp.route("/productos/<int:pid>/eliminar", methods=["POST"])
 @roles_required("admin")
 def producto_eliminar(pid):
-    """Permite al admin retirar un producto sin romper ventas/Kardex históricos."""
+    """Permite al admin retirar un producto sin romper ventas ni movimientos históricos."""
     p = query("SELECT * FROM productos WHERE id=?", (pid,), one=True)
     if not p:
         aviso("Producto no encontrado.", "error")
@@ -295,7 +273,7 @@ def producto_eliminar(pid):
         "SELECT 1 FROM movimientos_stock WHERE producto_id=? LIMIT 1", (pid,), one=True)
     if tiene_historial:
         db.execute("UPDATE productos SET activo=0 WHERE id=?", (pid,))
-        aviso("El producto tiene historial; se desactivó para conservar las ventas y el Kardex.")
+        aviso("El producto tiene historial; se desactivó para conservar las ventas y los movimientos de stock.")
         audit("producto_desactivado", p["codigo"])
     else:
         db.execute("DELETE FROM productos WHERE id=?", (pid,))

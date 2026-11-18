@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
-{% block titulo %}Nueva venta · Productos{% endblock %}
+{% block titulo %}{{ 'Nuevo presupuesto · Productos' if g.user.rol == 'admin' else 'Nueva venta · Productos' }}{% endblock %}
 {% block contenido %}
 {% include 'ventas/_pasos.html' %}
 {% set especial = g.user.tipo_vendedor == 'especial' %}
+{% if g.user.rol == 'admin' %}<p class="hint">Modo administrador: puedes preparar presupuestos. No puedes registrar ventas desde esta cuenta.</p>{% endif %}
 {% include 'productos/_precios_recientes.html' %}
 
 <div class="filters card barra-fija">
@@ -33,7 +34,7 @@
         <td class="c-foto">{% if p.imagen %}<img class="pfoto" src="{{ url_for('static', filename=p.imagen) }}" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="psinfoto" hidden>Sin foto</span>{% else %}<span class="psinfoto">Sin foto</span>{% endif %}</td>
         <td class="c-nombre" data-label="Producto"><b>{{ p.nombre }}</b>{% if p.id in ids_recientes %} <span class="badge warn" title="Precio cambiado en las últimas 48 horas">Precio nuevo</span>{% endif %}
           <br><small class="muted">{{ p.codigo }}{% if p.categoria %} · {{ p.categoria }}{% endif %}</small>
-          {% if agotado %}<br><small class="neg"><b>Se agotó: no hay más.</b> Elige otro producto para continuar con la compra.</small>{% endif %}</td>
+          {% if agotado %}<br><small class="neg"><b>Se agotó: no hay más.</b> Elige otro producto para continuar.</small>{% endif %}</td>
         <td data-label="Precio mayor" class="r">$ {{ p.precio_mayor_usd|num }}</td>
         {% if especial %}
         <td data-label="Disponible" class="r {{ 'neg' if agotado }}">{% if agotado %}<span class="badge bad">Agotado</span>{% else %}{{ p.stock|qty }}{% endif %}</td>
@@ -60,7 +61,7 @@
     <span><b id="n-sel">0</b> seleccionado(s) · <span id="carrito-resumen">🛒 <b id="carrito-n">{{ carrito|length }}</b> en tu carrito</span></span>
     <span class="barra-botones">
       <button class="btn primary" type="submit" id="btn-anadir" disabled>Añadir seleccionados</button>
-      <a class="btn" id="btn-carrito" href="{{ url_for('ventas.carrito') }}" {{ 'hidden' if not carrito }}>Ver carrito y continuar →</a>
+      <a class="btn" id="btn-carrito" href="{{ url_for('ventas.carrito') }}" {{ 'hidden' if not carrito }}>{{ 'Revisar presupuesto →' if g.user.rol == 'admin' else 'Ver carrito y continuar →' }}</a>
     </span>
   </div>
 </form>
