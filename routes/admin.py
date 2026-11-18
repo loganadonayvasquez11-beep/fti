@@ -346,13 +346,15 @@ def reportes():
     """Panel financiero con ventas por fecha de venta y pagos por fecha de recepción."""
     modo, anio, mes, dia, fecha_desde, fecha_hasta = _reportes_periodo()
     desde, hasta = fecha_desde.isoformat(), fecha_hasta.isoformat()
-    resumen = query(
+    inicio_anio, fin_anio = f"{anio}-01-01", f"{anio}-12-31"
+    consulta_resumen = (
         """SELECT COUNT(*) AS registradas,
                   SUM(CASE WHEN estado='aprobada' THEN 1 ELSE 0 END) AS aprobadas,
                   COALESCE(SUM(CASE WHEN estado='aprobada' THEN total_usd ELSE 0 END),0) AS vendido
-             FROM ventas WHERE substr(fecha,1,10) BETWEEN ? AND ?""",
-        (desde, hasta), one=True,
+             FROM ventas WHERE substr(fecha,1,10) BETWEEN ? AND ?"""
     )
+    resumen = query(consulta_resumen, (desde, hasta), one=True)
+    resumen_anual = query(consulta_resumen, (inicio_anio, fin_anio), one=True)
     pagos = list(reversed(_historial_cobros(desde, hasta)))
     pagos_validos = [p for p in pagos if not p["anulado"]]
     total_pagos = sum(float(p["monto_usd"]) for p in pagos_validos)
@@ -387,10 +389,6 @@ def reportes():
             WHERE d.modificado=1 AND v.estado IN ('pendiente','aprobada')
               AND substr(v.fecha,1,10) BETWEEN ? AND ?
             ORDER BY v.fecha DESC, v.id DESC, d.id""", (desde, hasta))
-    valor_inventario = query(
-        "SELECT COALESCE(SUM(stock*precio_mayor_usd),0) AS mayor FROM productos WHERE activo=1",
-        one=True,
-    )
     ventas = query(
         """SELECT v.id, v.numero, v.fecha, v.estado, v.tipo_pago, v.total_usd,
                   v.cliente_id, c.nombre AS cliente, v.vendedor_id, u.nombre AS vendedor,
@@ -416,11 +414,11 @@ def reportes():
         modo=modo, anio=anio, mes=mes, dia=dia, desde=desde, hasta=hasta,
         anios=_reportes_anios(), meses=MESES_REPORTE,
         resumen=resumen, total_pagos=total_pagos, cantidad_pagos=len(pagos_validos),
+        resumen_anual=resumen_anual,
         saldo_pendiente=float(saldo_pendiente["total"]),
         pagos=pagos, ventas=ventas, deudas=deudas, por_vendedor=por_vendedor,
         por_cliente=por_cliente, productos=productos, modificadas=modificadas,
-        valor_inventario=float(valor_inventario["mayor"]), serie=serie,
-        granularidad=granularidad,
+        serie=serie, granularidad=granularidad,
     )
 
 

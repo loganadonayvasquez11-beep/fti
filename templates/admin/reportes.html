@@ -4,10 +4,8 @@
 <section class="report-intro card">
   <div>
     <span class="report-eyebrow">RESUMEN DEL NEGOCIO</span>
-    <h2>Ventas y pagos, cada uno en su fecha</h2>
-    <p class="muted">Vendido se cuenta por la fecha de la venta. Los pagos se cuentan el día que se recibieron, aunque correspondan a una venta anterior.</p>
+    <div class="report-annual-amount" aria-label="Total vendido en el año seleccionado">{{ resumen_anual.vendido|money }}</div>
   </div>
-  <div class="report-period">{{ desde|fecha }} <span>→</span> {{ hasta|fecha }}</div>
 </section>
 
 <form class="card report-filter" method="get" id="report-filter">
@@ -66,11 +64,6 @@
     <small>Registros de ventas</small>
     <b>{{ resumen.registradas }}</b>
     <span>Incluye aprobadas y otros estados</span>
-  </article>
-  <article class="stat">
-    <small>Inventario actual a precio mayor</small>
-    <b>{{ valor_inventario|money }}</b>
-    <span>Productos activos · valor de referencia actual</span>
   </article>
 </div>
 
