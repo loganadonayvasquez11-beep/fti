@@ -11,31 +11,44 @@
   </svg>
 </span>
 {%- endmacro %}
-{% block titulo %}KPI mensual{% endblock %}
+{% block titulo %}KPI{% endblock %}
 {% block contenido %}
-<section class="card">
-  <div class="kpi-period-heading">
-    <div>
-      <h2>Indicadores de {{ mes_seleccionado.nombre }} {{ anio_seleccionado }}</h2>
-      <p class="hint">Cada mes tiene sus propios resultados; cambiar de mes no borra el historial.</p>
+<form class="card report-filter" method="get" id="report-filter">
+  <div class="report-filter-heading">
+    <div><h2>Indicadores de {{ periodo_etiqueta }}</h2><p class="muted">Elige un año, mes, día o un rango propio.</p></div>
+    <div class="report-modes" role="group" aria-label="Tipo de período">
+      {% for valor, etiqueta in [('anio', 'Año'), ('mes', 'Mes'), ('dia', 'Día'), ('personalizado', 'Personalizado')] %}
+        <button type="button" class="report-mode {{ 'selected' if modo == valor }}" data-report-mode="{{ valor }}" aria-pressed="{{ 'true' if modo == valor else 'false' }}">{{ etiqueta }}</button>
+      {% endfor %}
     </div>
-    <nav class="kpi-period-switch" aria-label="Cambiar mes">
-      <a class="btn" href="{{ url_for('admin.kpis', periodo=periodo_anterior) }}" aria-label="Mes anterior">‹ Anterior</a>
-      <strong>{{ mes_seleccionado.nombre }} {{ anio_seleccionado }}</strong>
-      {% if periodo_siguiente %}
-        <a class="btn" href="{{ url_for('admin.kpis', periodo=periodo_siguiente) }}" aria-label="Mes siguiente">Siguiente ›</a>
-      {% else %}
-        <span class="btn" aria-disabled="true">Siguiente ›</span>
-      {% endif %}
-    </nav>
   </div>
-  <form class="filters kpi-period-form" method="get">
-    <label for="periodo">Ir a otro mes</label>
-    <input id="periodo" type="month" name="periodo" value="{{ periodo }}" max="{{ periodo_max }}">
-    <button class="btn primary" type="submit">Ver mes</button>
-  </form>
+  <input type="hidden" name="modo" id="report-mode-value" value="{{ modo }}">
+  <div class="report-filter-fields">
+    <label>Año
+      <select name="anio" id="report-year">
+        {% for y in anios %}<option value="{{ y }}" {{ 'selected' if anio == y }}>{{ y }}</option>{% endfor %}
+      </select>
+    </label>
+    <label data-report-field="mes" {% if modo not in ('mes', 'dia') %}hidden{% endif %}>Mes
+      <select name="mes" id="report-month">
+        {% for numero in range(1, 13) %}<option value="{{ numero }}" {{ 'selected' if mes == numero }}>{{ meses[numero - 1] }}</option>{% endfor %}
+      </select>
+    </label>
+    <label data-report-field="dia" {% if modo != 'dia' %}hidden{% endif %}>Día
+      <select name="dia" id="report-day">
+        {% for numero in range(1, 32) %}<option value="{{ numero }}" {{ 'selected' if dia == numero }}>{{ numero }}</option>{% endfor %}
+      </select>
+    </label>
+    <label data-report-field="personalizado" {% if modo != 'personalizado' %}hidden{% endif %}>Desde
+      <input type="date" name="desde" value="{{ desde }}">
+    </label>
+    <label data-report-field="personalizado" {% if modo != 'personalizado' %}hidden{% endif %}>Hasta
+      <input type="date" name="hasta" value="{{ hasta }}">
+    </label>
+    <button class="btn primary report-apply" type="submit">Ver KPI <span aria-hidden="true">→</span></button>
+  </div>
   <p class="hint">Período: {{ desde }} al {{ hasta }}. Las ventas se cuentan por fecha de venta aprobada; los pagos, por fecha en que se recibieron.</p>
-</section>
+</form>
 
 <section class="stats">
   <div class="stat"><span>Vendido</span><b>$ {{ datos.resumen.vendido_usd|num }}</b><small>{{ datos.resumen.ventas }} ventas aprobadas</small></div>
@@ -89,7 +102,7 @@
       <tr>
         <td data-label="Producto">
           <details class="kpi-drilldown">
-            <summary>{% if p.mas %}{{ kpi_crown('Producto más vendido del mes') }}{% endif %} {{ p.nombre }} <small class="muted">· ver {{ p.ventas_detalle|length }} ventas</small></summary>
+            <summary>{% if p.mas %}{{ kpi_crown('Producto más vendido del período') }}{% endif %} {{ p.nombre }} <small class="muted">· ver {{ p.ventas_detalle|length }} ventas</small></summary>
             <div class="table-wrap kpi-sales-detail">
               <table class="stack">
                 <thead><tr><th>Fecha</th><th>Venta</th><th>Vendedor</th><th>Cliente</th><th class="r">Unidades</th><th class="r">Vendido</th></tr></thead>
@@ -129,7 +142,7 @@
       <tr>
         <td data-label="Vendedor">
           <details class="kpi-drilldown">
-            <summary>{% if v.mas_ventas %}{{ kpi_crown('Vendedor con más ventas del mes') }}{% endif %} {{ v.nombre }} <small class="muted">· ver productos y clientes</small></summary>
+            <summary>{% if v.mas_ventas %}{{ kpi_crown('Vendedor con más ventas del período') }}{% endif %} {{ v.nombre }} <small class="muted">· ver productos y clientes</small></summary>
             <div class="kpi-drill-list">
               {% for p in v.productos_detalle %}
               <article class="kpi-drill-item">
@@ -182,7 +195,7 @@
       <tr>
         <td data-label="Vendedor">
           <details class="kpi-drilldown">
-            <summary>{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más pagos del mes') }}{% endif %} {{ v.nombre }} <small class="muted">· ver desglose por producto</small></summary>
+            <summary>{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más pagos del período') }}{% endif %} {{ v.nombre }} <small class="muted">· ver desglose por producto</small></summary>
             {% if v.productos_cobros_detalle %}
             <ul class="kpi-payment-list">
               {% for p in v.productos_cobros_detalle %}
@@ -200,7 +213,7 @@
         {% else %}
         <td data-label="Producto con más pagos">Sin atribución a productos</td><td data-label="Producto con menos pagos">Sin atribución a productos</td>
         {% endif %}
-        <td data-label="Ranking">{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más pagos del mes') }} <span class="badge ok">Más pagos</span>{% endif %}{% if v.menos_cobros %} <span class="badge bad">Menos pagos</span>{% endif %}</td>
+        <td data-label="Ranking">{% if v.mas_cobros %}{{ kpi_crown('Vendedor con más pagos del período') }} <span class="badge ok">Más pagos</span>{% endif %}{% if v.menos_cobros %} <span class="badge bad">Menos pagos</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
   </table></div>
@@ -217,7 +230,7 @@
       <tr>
         <td data-label="Cliente">
           <details class="kpi-drilldown">
-            <summary>{% if c.mas_compras %}{{ kpi_crown('Cliente con más ventas del mes') }}{% endif %} {{ c.nombre }} <small class="muted">· ver {{ c.ventas_detalle|length }} ventas</small></summary>
+            <summary>{% if c.mas_compras %}{{ kpi_crown('Cliente con más ventas del período') }}{% endif %} {{ c.nombre }} <small class="muted">· ver {{ c.ventas_detalle|length }} ventas</small></summary>
             <div class="table-wrap kpi-sales-detail">
               <table class="stack">
                 <thead><tr><th>Fecha</th><th>Venta</th><th>Vendedor</th><th class="r">Productos</th><th class="r">Unidades</th><th class="r">Total vendido</th></tr></thead>
@@ -251,7 +264,7 @@
     <thead><tr><th>Cliente</th><th class="r">Pagos recibidos</th><th>Ranking</th></tr></thead>
     <tbody>{% for c in datos.clientes_cobros %}
       <tr>
-        <td data-label="Cliente">{% if c.mas_pagos %}{{ kpi_crown('Cliente con más pagos del mes') }}{% endif %} <a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a></td><td class="r" data-label="Pagos recibidos">$ {{ c.cobrado_usd|num }}</td>
+        <td data-label="Cliente">{% if c.mas_pagos %}{{ kpi_crown('Cliente con más pagos del período') }}{% endif %} <a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">{{ c.nombre }}</a></td><td class="r" data-label="Pagos recibidos">$ {{ c.cobrado_usd|num }}</td>
         <td data-label="Ranking">{% if c.mas_pagos %}<span class="badge ok">Más pagos</span>{% endif %}{% if c.menos_pagos %} <span class="badge bad">Menos pagos</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
@@ -262,6 +275,26 @@
 {% endblock %}
 {% block scripts %}
 <script>
+(() => {
+  const form = document.getElementById('report-filter');
+  if (!form) return;
+  const modeInput = document.getElementById('report-mode-value');
+  const modeButtons = form.querySelectorAll('[data-report-mode]');
+  const updateMode = (mode) => {
+    modeInput.value = mode;
+    modeButtons.forEach((button) => {
+      const selected = button.dataset.reportMode === mode;
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    form.querySelectorAll('[data-report-field]').forEach((field) => {
+      const fieldMode = field.dataset.reportField;
+      field.hidden = fieldMode === 'mes' ? !['mes', 'dia'].includes(mode) : fieldMode !== mode;
+    });
+  };
+  modeButtons.forEach((button) => button.addEventListener('click', () => updateMode(button.dataset.reportMode)));
+})();
+
   (function () {
     var tabs = Array.from(document.querySelectorAll('[data-kpi-tab]'));
     var panels = Array.from(document.querySelectorAll('[data-kpi-panel]'));

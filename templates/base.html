@@ -43,7 +43,7 @@
             <summary class="{{ 'on' if ep in ('admin.reportes', 'admin.kpis', 'admin.auditoria') }}">{{ ico('chart') }}<span>Reportes</span></summary>
             <div class="nav-sub">
               <a href="{{ url_for('admin.reportes') }}" class="{{ 'on' if ep == 'admin.reportes' }}">{{ ico('chart') }}<span>Panel de reportes</span></a>
-              <a href="{{ url_for('admin.kpis') }}" class="{{ 'on' if ep == 'admin.kpis' }}">{{ ico('chart') }}<span>KPI mensual</span></a>
+              <a href="{{ url_for('admin.kpis') }}" class="{{ 'on' if ep == 'admin.kpis' }}">{{ ico('chart') }}<span>KPI</span></a>
               <a href="{{ url_for('admin.auditoria') }}" class="{{ 'on' if ep == 'admin.auditoria' }}">{{ ico('file') }}<span>Auditoría</span></a>
             </div>
           </details>

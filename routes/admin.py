@@ -425,35 +425,24 @@ def reportes():
 @bp.route("/kpis")
 @roles_required("admin")
 def kpis():
-    fecha_hoy = hoy()
-    periodo = request.args.get("periodo", fecha_hoy[:7]).strip()
-    try:
-        fecha_periodo = datetime.strptime(periodo, "%Y-%m")
-    except ValueError:
-        abort(400, "El mes seleccionado no es válido.")
-    if fecha_periodo.strftime("%Y-%m") != periodo or periodo > fecha_hoy[:7]:
-        abort(400, "El mes seleccionado no es válido.")
-
-    desde = periodo + "-01"
-    hasta = fecha_hoy if periodo == fecha_hoy[:7] else (
-        f"{periodo}-{calendar.monthrange(fecha_periodo.year, fecha_periodo.month)[1]:02d}"
-    )
-    mes_seleccionado = {"nombre": MESES_REPORTE[fecha_periodo.month - 1]}
-    fecha_anterior = fecha_periodo - timedelta(days=1)
-    fecha_siguiente = (fecha_periodo.replace(day=28) + timedelta(days=4)).replace(day=1)
+    modo, anio, mes, dia, fecha_desde, fecha_hasta = _reportes_periodo()
+    desde, hasta = fecha_desde.isoformat(), fecha_hasta.isoformat()
+    if modo == "anio":
+        periodo_etiqueta = str(anio)
+    elif modo == "mes":
+        periodo_etiqueta = f"{MESES_REPORTE[mes - 1]} {anio}"
+    elif modo == "dia":
+        periodo_etiqueta = fecha_desde.strftime("%d/%m/%Y")
+    else:
+        periodo_etiqueta = (
+            f"{fecha_desde.strftime('%d/%m/%Y')} al "
+            f"{fecha_hasta.strftime('%d/%m/%Y')}"
+        )
     return render_template(
         "admin/kpis.html",
-        periodo=periodo,
-        periodo_max=fecha_hoy[:7],
-        periodo_anterior=fecha_anterior.strftime("%Y-%m"),
-        periodo_siguiente=(
-            fecha_siguiente.strftime("%Y-%m")
-            if fecha_siguiente.strftime("%Y-%m") <= fecha_hoy[:7] else None
-        ),
-        desde=desde,
-        hasta=hasta,
-        anio_seleccionado=fecha_periodo.year,
-        mes_seleccionado=mes_seleccionado,
+        modo=modo, anio=anio, mes=mes, dia=dia,
+        desde=desde, hasta=hasta, anios=_reportes_anios(),
+        meses=MESES_REPORTE, periodo_etiqueta=periodo_etiqueta,
         datos=resumen_kpis_mensuales(desde, hasta),
     )
 
